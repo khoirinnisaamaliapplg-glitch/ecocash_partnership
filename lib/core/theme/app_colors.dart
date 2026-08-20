@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  static const Color primaryCyan = Color(0xFF0BCFD1);
   // --- Brand Colors (Warna Utama Identitas) ---
   static const Color primaryGreen = Color(0xFF0F7A3E); // Hijau utama (Tombol Masuk, Lanjut, aksen daun di Logo)
   static const Color primaryBlue = Color(0xFF1E88E5);  // Biru utama (Huruf 'e' pada Logo EcoCash, ikon verifikasi)

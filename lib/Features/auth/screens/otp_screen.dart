@@ -12,7 +12,7 @@ class OtpScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: AppColors.primary2, // Latar belakang biru navy
+          backgroundColor: AppColors.primaryCyan, // Latar belakang biru navy
           elevation: 0,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(
