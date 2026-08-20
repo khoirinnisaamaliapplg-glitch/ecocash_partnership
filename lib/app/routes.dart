@@ -5,7 +5,10 @@ import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/onboarding_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
-import '../features/auth/screens/otp_screen.dart'; // 1. Import OtpScreen
+import '../features/auth/screens/otp_screen.dart'; 
+import '../features/auth/screens/forgot_password_screen.dart';
+import '../features/auth/screens/forgot_otp_screen.dart';
+import '../features/auth/screens/new_password_screen.dart';
 
 class AppRoutes {
   static final router = GoRouter(
@@ -36,6 +39,19 @@ class AppRoutes {
         path: '/main',
         builder: (context, state) => const MainLayout(),
       ),
+      // Tambahkan di dalam routes list GoRouter:
+GoRoute(
+  path: '/forgot-password',
+  builder: (context, state) => const ForgotPasswordScreen(),
+),
+GoRoute(
+  path: '/forgot-otp',
+  builder: (context, state) => const ForgotOtpScreen(),
+),
+GoRoute(
+  path: '/new-password',
+  builder: (context, state) => const NewPasswordScreen(),
+),
     ],
   );
 }

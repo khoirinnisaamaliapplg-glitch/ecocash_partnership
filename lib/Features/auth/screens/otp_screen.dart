@@ -9,18 +9,30 @@ class OtpScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          backgroundColor: AppColors.primary2, // Latar belakang biru navy
+          elevation: 0,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(24), // Melengkung di bagian bawah AppBar
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text(
+            'Verification',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
         ),
-        title: const Text(
-          'Verification',
-          style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -28,7 +40,6 @@ class OtpScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            // Ikon gembok di atas
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -40,7 +51,11 @@ class OtpScreen extends StatelessWidget {
             const SizedBox(height: 24),
             const Text(
               'Verifikasi Kode OTP',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -49,8 +64,6 @@ class OtpScreen extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 32),
-
-            // Kotak Input Angka OTP (6 Kotak)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(6, (index) => SizedBox(
@@ -68,22 +81,16 @@ class OtpScreen extends StatelessWidget {
               )),
             ),
             const SizedBox(height: 24),
-
-            // Timer Kirim Ulang
             const Text(
               'Belum menerima kode?\nKirim ulang dalam 04:54',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const Spacer(),
-
-            // Tombol Verifikasi
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Jika verifikasi berhasil, arahkan ke pop-up sukses atau langsung ke Main
-                  // Di sini kita arahkan ke dialog sukses atau route /success
                   _showSuccessDialog(context);
                 },
                 style: ElevatedButton.styleFrom(
@@ -101,7 +108,6 @@ class OtpScreen extends StatelessWidget {
     );
   }
 
-  // Fungsi untuk menampilkan Pop-up Sukses Verifikasi (Sesuai Referensi Gambar Anda)
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -136,7 +142,6 @@ class OtpScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Tutup dialog lalu masuk ke Dashboard Utama
                   Navigator.pop(context);
                   context.go('/main');
                 },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/app_storage.dart'; // Import AppStorage untuk menyimpan status
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -32,6 +33,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
   ];
 
+  // Fungsi helper untuk menyimpan status dan berpindah ke login
+  Future<void> _completeOnboarding() async {
+    await AppStorage.setOnboardingCompleted(); // Simpan status onboarding selesai
+    if (!mounted) return;
+    context.go('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +51,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Align(
               alignment: Alignment.topRight,
               child: TextButton(
-                onPressed: () => context.go('/login'),
+                onPressed: () => _completeOnboarding(), // Simpan status saat lewat
                 child: const Text(
                   'Lewati',
                   style: TextStyle(color: AppColors.textSecondary),
@@ -114,8 +122,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ElevatedButton(
                     onPressed: () {
                       if (_currentPage == onboardingData.length - 1) {
-                        // Jika di halaman terakhir, pergi ke Login
-                        context.go('/login');
+                        // Jika di halaman terakhir, simpan status dan pergi ke Login
+                        _completeOnboarding();
                       } else {
                         // Jika belum, geser ke halaman berikutnya
                         _pageController.nextPage(
