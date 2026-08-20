@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/app_storage.dart'; // Import penyimpanan status onboarding
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,14 +18,22 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNext() async {
-    // Memberikan jeda 3 detik
+    // Memberikan jeda 3 detik untuk animasi/logo
     await Future.delayed(const Duration(seconds: 3));
     
-    if (mounted) {
-      // Pindah ke Onboarding setelah 3 detik
+    if (!mounted) return;
+
+    // Cek apakah user sudah pernah melihat onboarding sebelumnya
+    bool seen = await AppStorage.hasSeenOnboarding();
+
+    if (seen) {
+      // Jika sudah pernah, langsung arahkan ke Login
+      context.go('/login');
+    } else {
+      // Jika belum (pengguna baru), arahkan ke Onboarding
       context.go('/onboarding');
     }
-  } // <-- Kemungkinan besar kurung kurawal ini yang tadi tidak sengaja terhapus
+  }
 
   @override
   Widget build(BuildContext context) {

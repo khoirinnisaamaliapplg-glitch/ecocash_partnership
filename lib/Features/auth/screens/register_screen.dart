@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/auth_local_service.dart'; // Import service dummy data lokal
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -31,158 +32,265 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF4F6F8), // Background abu-abu terang
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => context.pop(),
-                ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Container(
+              // Kotak kartu putih dengan sudut melengkung dan bayangan
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Center(
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 80,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Tombol Kembali
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
-                    children: [
-                      TextSpan(
-                        text: 'EcoCash ',
-                        style: TextStyle(color: AppColors.primary2),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Logo & Judul Dua Warna
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 70,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: RichText(
+                      text: const TextSpan(
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'EcoCash ',
+                            style: TextStyle(color: AppColors.primary2),
+                          ),
+                          TextSpan(
+                            text: 'Partner',
+                            style: TextStyle(color: AppColors.primaryGreen),
+                          ),
+                        ],
                       ),
-                      TextSpan(
-                        text: 'Partner',
-                        style: TextStyle(color: AppColors.primaryGreen),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Center(
+                    child: Text(
+                      'Daftar',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 1. Nama Lengkap
+                  const Text('Nama', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan Nama',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 2. Username
+                  const Text('Username', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan Username',
+                      prefixIcon: const Icon(Icons.alternate_email),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 3. Nomor Ponsel
+                  const Text('Nomor Ponsel', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: 08123456789',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 4. E-mail
+                  const Text('E-mail', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: ketua@gmail.com',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // 5. Kata Sandi
+                  const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: 'Masukkan kata sandi',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: AppColors.textSecondary,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Tombol Lanjut (Menyimpan data ke local service & menuju ke OTP)
+                 ElevatedButton(
+  onPressed: () async {
+    if (_nameController.text.isEmpty ||
+        _usernameController.text.isEmpty ||
+        _phoneController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua kolom wajib diisi!')),
+      );
+      return;
+    }
+
+    // Gunakan await karena memanggil SharedPreferences
+    bool success = await AuthLocalService.register(
+      name: _nameController.text,
+      username: _usernameController.text,
+      phone: _phoneController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    if (success) {
+      context.go('/otp');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nomor ponsel atau E-mail sudah terdaftar!')),
+      );
+    }
+  },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Lanjut',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Divider
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Atau masuk dengan',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.grey.shade300)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Tombol Sosial Media
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
+                          label: const Text('Google', style: TextStyle(color: AppColors.textPrimary)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.apple, color: Colors.black, size: 24),
+                          label: const Text('Apple', style: TextStyle(color: AppColors.textPrimary)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Daftar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text('Nama', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan Nama',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Username', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan Username',
-                  prefixIcon: const Icon(Icons.alternate_email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Nomor Ponsel', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: 'Contoh: 08123456789',
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('E-mail', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Contoh: ketua@gmail.com',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan kata sandi',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  context.go('/otp'); // <-- Ubah dari /main ke /otp
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Lanjut',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
