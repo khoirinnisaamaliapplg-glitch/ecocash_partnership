@@ -153,18 +153,30 @@ class _JobsScreenState extends State<JobsScreen> with SingleTickerProviderStateM
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: const Text('Ambil Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
+          Container(
+  width: double.infinity,
+  decoration: BoxDecoration(
+    gradient: AppColors.primaryButtonGradient,
+    borderRadius: BorderRadius.circular(10),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 4,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  ),
+  child: ElevatedButton(
+    onPressed: () {},
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+    ),
+    child: const Text('Ambil Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  ),
+),
         ],
       ),
     );

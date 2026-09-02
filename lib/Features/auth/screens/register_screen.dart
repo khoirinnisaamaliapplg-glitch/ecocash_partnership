@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart'; // Import service dummy data lokal
+import '../../../data/auth_local_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -32,13 +32,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Background abu-abu terang
+      backgroundColor: const Color(0xFFF4F6F8),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/login');
+            }
+          },
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
             child: Container(
-              // Kotak kartu putih dengan sudut melengkung dan bayangan
               padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -55,19 +68,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Tombol Kembali
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Logo & Judul Dua Warna
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
@@ -106,9 +106,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-                  // 1. Nama Lengkap
                   const Text('Nama', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -122,7 +121,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 2. Username
                   const Text('Username', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -136,7 +134,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 3. Nomor Ponsel
                   const Text('Nomor Ponsel', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -151,7 +148,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 4. E-mail
                   const Text('E-mail', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -166,7 +162,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // 5. Kata Sandi
                   const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -192,59 +187,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Tombol Lanjut (Menyimpan data ke local service & menuju ke OTP)
-                 ElevatedButton(
-  onPressed: () async {
-    if (_nameController.text.isEmpty ||
-        _usernameController.text.isEmpty ||
-        _phoneController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua kolom wajib diisi!')),
-      );
-      return;
-    }
-
-    // Gunakan await karena memanggil SharedPreferences
-    bool success = await AuthLocalService.register(
-      name: _nameController.text,
-      username: _usernameController.text,
-      phone: _phoneController.text,
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
-
-    if (success) {
-      context.go('/otp');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomor ponsel atau E-mail sudah terdaftar!')),
-      );
-    }
-  },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Lanjut',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                  // --- TOMBOL LANJUT DENGAN GRADASI & TEKS "Lanjut →" ---
+                  Container(
+                    width: double.infinity,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryButtonGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
                       ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_nameController.text.isEmpty ||
+                            _usernameController.text.isEmpty ||
+                            _phoneController.text.isEmpty ||
+                            _emailController.text.isEmpty ||
+                            _passwordController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Semua kolom wajib diisi!')),
+                          );
+                          return;
+                        }
+
+                        bool success = await AuthLocalService.register(
+                          name: _nameController.text,
+                          username: _usernameController.text,
+                          phone: _phoneController.text,
+                          email: _emailController.text,
+                          password: _passwordController.text,
+                        );
+
+                        if (success) {
+                          context.go('/otp');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nomor ponsel atau E-mail sudah terdaftar!')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Lanjut',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '→',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Divider
                   Row(
                     children: [
                       Expanded(child: Divider(color: Colors.grey.shade300)),
@@ -260,7 +271,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Tombol Sosial Media
                   Row(
                     children: [
                       Expanded(

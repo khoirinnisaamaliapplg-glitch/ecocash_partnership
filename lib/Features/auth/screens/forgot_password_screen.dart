@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart'; // <-- IMPORT INI YANG KURANG
+import '../../../data/auth_local_service.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
@@ -87,46 +87,65 @@ class ForgotPasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Tombol Lanjut ke OTP
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (phoneController.text.isEmpty && emailController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Masukkan nomor ponsel atau e-mail Anda!')),
-                        );
-                        return;
-                      }
-
-                      // Ambil data yang diisi (Prioritaskan nomor telepon atau email)
-                      String identifier = phoneController.text.isNotEmpty ? phoneController.text : emailController.text;
-
-                      // Cek apakah akun terdaftar di database lokal
-                      String? existingPassword = await AuthLocalService.resetPassword(identifier);
-
-                      if (!context.mounted) return;
-
-                      if (existingPassword != null) {
-                        // Jika ada, lanjut ke halaman OTP
-                        context.push('/forgot-otp');
-                      } else {
-                        // Jika tidak ditemukan
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Nomor atau E-mail tidak ditemukan di sistem!')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('lanjut', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  // --- TOMBOL LANJUT DENGAN GRADASI ---
+                  Container(
+                    width: double.infinity,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryButtonGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (phoneController.text.isEmpty && emailController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Masukkan nomor ponsel atau e-mail Anda!')),
+                          );
+                          return;
+                        }
+
+                        String identifier = phoneController.text.isNotEmpty ? phoneController.text : emailController.text;
+
+                        String? existingPassword = await AuthLocalService.resetPassword(identifier);
+
+                        if (!context.mounted) return;
+
+                        if (existingPassword != null) {
+                          context.push('/forgot-otp');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nomor atau E-mail tidak ditemukan di sistem!')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Lanjut',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '→',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

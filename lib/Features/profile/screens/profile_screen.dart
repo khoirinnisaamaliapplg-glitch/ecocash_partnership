@@ -17,8 +17,8 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const CircleAvatar(
               radius: 16,
+              backgroundImage: AssetImage('assets/images/logo.png'), // Sesuaikan foto profil jika ada
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: AppColors.primaryCyan, size: 18),
             ),
             const SizedBox(width: 10),
             const Text(
@@ -28,29 +28,11 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text('Online', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            onPressed: () {
+              // Navigasi ke halaman notifikasi jika ada
+            },
           ),
         ],
       ),
@@ -118,7 +100,9 @@ class ProfileScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+  context.push('/edit-profile');
+},
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primaryCyan),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -183,7 +167,7 @@ class ProfileScreen extends StatelessWidget {
                     child: const LinearProgressIndicator(
                       value: 0.876,
                       backgroundColor: Color(0xFFE0E0E0),
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
                       minHeight: 8,
                     ),
                   ),
@@ -298,21 +282,27 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildMenuItem(Icons.person_outline, 'Profil Saya', () {}),
+
                   _buildDivider(),
-                  _buildMenuItem(Icons.account_balance_outlined, 'Akun Bank', () {}),
+                  _buildMenuItem(Icons.account_balance_outlined, 'Akun Bank', () {
+  context.push('/akun-bank');
+}),
                   _buildDivider(),
                   _buildMenuItem(Icons.description_outlined, 'Dokumen', () {}),
                   _buildDivider(),
                   _buildMenuItem(Icons.school_outlined, 'Pelatihan', () {}),
                   _buildDivider(),
-                  _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {}),
+                  _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {
+  context.push('/dampak-saya');
+}),
                   _buildDivider(),
                   _buildMenuItem(Icons.security_outlined, 'Keamanan', () {}),
                   _buildDivider(),
                   _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {}),
                   _buildDivider(),
-                  _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {}),
+                  _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {
+  context.push('/pengaturan');
+}),
                 ],
               ),
             ),
@@ -335,7 +325,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget Item Menu
   Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary),
@@ -345,7 +334,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget Item Menu dengan Badge Notifikasi
   Widget _buildMenuItemWithBadge(IconData icon, String title, bool hasBadge, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary),
@@ -363,7 +351,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget Pemisah Menu
   Widget _buildDivider() {
     return const Divider(height: 1, thickness: 0.5, indent: 56, endIndent: 16);
   }

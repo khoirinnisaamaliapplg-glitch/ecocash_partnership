@@ -1,168 +1,239 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/app_storage.dart'; // Import AppStorage untuk menyimpan status
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  // Data dummy untuk konten Onboarding. Nanti gambarnya bisa disesuaikan.
-  final List<Map<String, String>> onboardingData = [
-    {
-      "title": "Temukan Pekerjaan Terdekat",
-      "text": "Lihat daftar pekerjaan pengumpulan material di sekitar lokasi Anda secara real-time.",
-      "image": "assets/images/logo.png" // Sementara pakai logo, nanti diganti ilustrasi
-    },
-    {
-      "title": "Kumpulkan & Verifikasi",
-      "text": "Kumpulkan material dan verifikasi pekerjaan Anda dengan mudah melalui aplikasi.",
-      "image": "assets/images/logo.png" 
-    },
-    {
-      "title": "Dapatkan Penghasilan",
-      "text": "Ubah sampah menjadi uang dan pantau saldo Anda di dalam dompet digital.",
-      "image": "assets/images/logo.png" 
-    },
-  ];
-
-  // Fungsi helper untuk menyimpan status dan berpindah ke login
-  Future<void> _completeOnboarding() async {
-    await AppStorage.setOnboardingCompleted(); // Simpan status onboarding selesai
-    if (!mounted) return;
-    context.go('/login');
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Tombol "Lewati" di kanan atas
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: () => _completeOnboarding(), // Simpan status saat lewat
-                child: const Text(
-                  'Lewati',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            ),
-            
-            // Konten PageView
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (value) {
-                  setState(() {
-                    _currentPage = value;
-                  });
-                },
-                itemCount: onboardingData.length,
-                itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Placeholder Gambar (Jangan pakai const di sini jika pakai Image.asset)
-                      Image.asset(
-                        onboardingData[index]["image"]!,
-                        height: 250,
-                      ),
-                      const SizedBox(height: 40),
-                      Text(
-                        onboardingData[index]["title"]!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        onboardingData[index]["text"]!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+    // Menggunakan MediaQuery untuk mendapatkan lebar layar agar responsif
+    final screenWidth = MediaQuery.of(context).size.width;
 
-            // Bagian Bawah: Indikator & Tombol Lanjut
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Indikator Titik (Dots)
-                  Row(
-                    children: List.generate(
-                      onboardingData.length,
-                      (index) => buildDot(index: index),
+    return Scaffold(
+      backgroundColor: Colors.white, // Latar belakang putih bersih
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // --- Jarak Atas ---
+              const SizedBox(height: 30),
+
+              // --- LOGO ECOBAS / ECO CASH (Diambil dari asset logo.png) ---
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/logo.png', // Pastikan path asset benar
+                      width: 40, // Sedikit diperbesar agar lebih terlihat
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 8),
+            
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // --- ILUSTRASI DENGAN EFEK LENGKUNG DI BAWAHNYA ---
+              // Kita gunakan ClipPath untuk memotong gambar menjadi melengkung
+              ClipPath(
+                clipper: BottomCurveClipper(),
+                child: Container(
+                  height: screenWidth * 1.05, // Tinggi responsif berdasarkan lebar
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/onboarding.png'), // Pastikan path asset benar
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  
-                  // Tombol Lanjut / Mulai
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_currentPage == onboardingData.length - 1) {
-                        // Jika di halaman terakhir, simpan status dan pergi ke Login
-                        _completeOnboarding();
-                      } else {
-                        // Jika belum, geser ke halaman berikutnya
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.ease,
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              
+              // Jarak antara gambar dan teks
+              const SizedBox(height: 5),
+
+              // --- KONTEN TEKS & TOMBOL (Padding horizontal agar rapi) ---
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    // --- JUDUL ---
+                    const Text(
+                      'Selamat Datang di EcoCash',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // --- DESKRIPSI ---
+                    const Text(
+                      'Hubungkan, kelola, dan tumbuhkan ekosistem ekonomi sirkular bersama EcoCash.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        height: 1.5, // Line height agar mudah dibaca
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+
+                    // --- 4 FITUR BADGE KECIL (Ditata dalam Row) ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildFeatureBadge(Icons.all_inclusive, 'Terhubung'),
+                        _buildFeatureBadge(Icons.verified_outlined, 'Terverifikasi'),
+                        _buildFeatureBadge(Icons.bar_chart, 'Terukur'),
+                        _buildFeatureBadge(Icons.volunteer_activism_outlined, 'Bernilai'),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+
+                    // --- TOMBOL LOGIN DENGAN GRADASI (Menggunakan AppColors.primaryButtonGradient) ---
+                    Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryButtonGradient,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () => context.push('/login'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent, // Wajib transparan agar gradient Container terlihat
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      _currentPage == onboardingData.length - 1 ? 'Mulai' : 'Lanjut ->',
-                      style: const TextStyle(color: Colors.white),
+                    const SizedBox(height: 20),
+
+                    // --- FOOTER DAFTAR ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Belum punya akun? ',
+                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            // Aksi ke halaman register/daftar
+                            context.push('/register');
+                          },
+                          child: const Text(
+                            'Daftar',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textLink,
+                              decoration: TextDecoration.underline, // Opsional, sesuai mockup
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Fungsi untuk membuat titik indikator
-  Widget buildDot({required int index}) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      margin: const EdgeInsets.only(right: 5),
-      height: 8,
-      width: _currentPage == index ? 24 : 8, // Memanjang jika aktif
-      decoration: BoxDecoration(
-        color: _currentPage == index ? AppColors.primary2 : AppColors.textSecondary.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(4),
-      ),
+  // Widget helper untuk membuat badge fitur kecil
+  Widget _buildFeatureBadge(IconData icon, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC), // Warna latar icon box yang sangat terang
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: AppColors.primaryCyan, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
     );
   }
+}
+
+// --- CUSTOM CLIPPER UNTUK MEMBUAT LENGKUNGAN DI BAWAH GAMBAR ---
+class BottomCurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    
+    // Mulai dari sudut kiri atas (0, 0)
+    path.lineTo(0, size.height - 50); // Garis ke bawah sampai dekat sudut kiri bawah
+
+    // Buat titik kontrol untuk kurva kuadratik (melengkung ke bawah)
+    var firstControlPoint = Offset(size.width / 2, size.height + 30);
+    var firstEndPoint = Offset(size.width, size.height - 50);
+
+    // Terapkan kurva dari kiri bawah ke kanan bawah
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
+
+    // Garis ke atas sampai sudut kanan atas
+    path.lineTo(size.width, 0);
+    
+    // Tutup path
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
