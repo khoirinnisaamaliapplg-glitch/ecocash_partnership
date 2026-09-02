@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart'; // Import service dummy data lokal
+import '../../../data/auth_local_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,7 +11,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controller untuk inputan login
   final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
@@ -56,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Akun Pilihan 1: Budi Santoso
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const CircleAvatar(
@@ -72,7 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const Divider(),
 
-            // Akun Pilihan 2: Siti Rahmawati
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const CircleAvatar(
@@ -88,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const Divider(),
 
-            // Opsi: Gunakan akun lain
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const CircleAvatar(
@@ -141,7 +137,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Info Akun yang Dipilih
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -188,32 +183,28 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Tombol Izinkan
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A73E8), // Warna biru ala Google Button
+                backgroundColor: const Color(0xFF1A73E8),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               onPressed: () async {
-                // Simpan atau verifikasi akun ke storage lokal
                 await AuthLocalService.googleSignIn(email: email, name: name);
                 
                 if (!context.mounted) return;
-                Navigator.pop(context); // Tutup bottom sheet
+                Navigator.pop(context);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Berhasil masuk sebagai $name!')),
                 );
 
-                // Masuk ke Dashboard Utama
                 context.go('/main');
               },
               child: const Text('Izinkan', style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
             const SizedBox(height: 8),
 
-            // Tombol Batal
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Batal', style: TextStyle(color: Color(0xFF1A73E8))),
@@ -227,13 +218,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Background abu-abu terang
+      backgroundColor: const Color(0xFFF4F6F8),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Container(
-              // Kotak kartu putih dengan sudut melengkung dan bayangan
               padding: const EdgeInsets.all(24.0),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -250,7 +240,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo & Judul Dua Warna
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
@@ -290,7 +279,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Form Masuk ke Akun Anda
                   const Text(
                     'Masuk ke Akun Anda',
                     style: TextStyle(
@@ -301,7 +289,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Nomor Ponsel / E-mail / Username
                   const Text('Nomor Ponsel / E-mail', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -315,7 +302,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Kata Sandi
                   const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 6),
                   TextFormField(
@@ -341,12 +327,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Lupa Kata Sandi (Dialihkan ke Halaman Multi-Step Lupa Password)
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        // Mengarahkan ke rute halaman Lupa Password
                         context.push('/forgot-password');
                       },
                       child: const Text(
@@ -357,50 +341,70 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Tombol Masuk (Terhubung ke AuthLocalService)
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_identifierController.text.isEmpty || _passwordController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kolom identitas dan kata sandi harus diisi!')),
-                        );
-                        return;
-                      }
-
-                      bool isValid = await AuthLocalService.login(
-                        identifier: _identifierController.text,
-                        password: _passwordController.text,
-                      );
-
-                      if (!context.mounted) return;
-
-                      if (isValid) {
-                        context.go('/main');
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Nomor/Email atau Kata Sandi salah!')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Masuk', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                  // --- TOMBOL MASUK DENGAN GRADASI & TEKS "Masuk →" ---
+                  Container(
+                    width: double.infinity,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryButtonGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_identifierController.text.isEmpty || _passwordController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Kolom identitas dan kata sandi harus diisi!')),
+                          );
+                          return;
+                        }
+
+                        bool isValid = await AuthLocalService.login(
+                          identifier: _identifierController.text,
+                          password: _passwordController.text,
+                        );
+
+                        if (!context.mounted) return;
+
+                        if (isValid) {
+                          context.go('/main');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nomor/Email atau Kata Sandi salah!')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Masuk',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '→',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Divider
                   Row(
                     children: [
                       Expanded(child: Divider(color: Colors.grey.shade300)),
@@ -416,13 +420,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Tombol Sosial Media
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            // Memanggil Bottom Sheet Pilihan Akun Google
                             _showGoogleAccountPicker();
                           },
                           icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
@@ -449,7 +451,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Belum punya akun? Daftar
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

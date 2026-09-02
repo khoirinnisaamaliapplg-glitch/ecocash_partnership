@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'package:ecocash_partnership/features/dashboard/screens/dashboard_screen.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'package:ecocash_partnership/features/jobs/screens/jobs_screen.dart';
+import 'package:ecocash_partnership/features/wallet/screens/wallet_screen.dart';
+import 'package:ecocash_partnership/features/profile/screens/profile_screen.dart';
+import 'package:ecocash_partnership/features/scan/screens/scan_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -11,14 +16,14 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
-  // Daftar halaman dummy untuk masing-masing tab
-  final List<Widget> _screens = [
-    const Center(child: Text('Dashboard Screen', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Tasks Screen', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Scan Screen', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Wallet Screen', style: TextStyle(fontSize: 24))),
-    const Center(child: Text('Profile Screen', style: TextStyle(fontSize: 24))),
-  ];
+  // Daftar halaman untuk masing-masing tab
+final List<Widget> _screens = [
+  const DashboardScreen(),
+  const JobsScreen(),
+  const ScanScreen(), // <-- Hubungkan ke ScanScreen
+  const WalletScreen(),
+  const ProfileScreen(),
+];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -33,7 +38,7 @@ class _MainLayoutState extends State<MainLayout> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed, // Penting jika tab lebih dari 3
+        type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary2,
         unselectedItemColor: AppColors.textSecondary,
         items: const [
