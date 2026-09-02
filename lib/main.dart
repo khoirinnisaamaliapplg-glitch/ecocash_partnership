@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
+import 'app/app.dart';
 
 void main() {
-  runApp(const MainApp());
-}
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Nanti kita bisa tambahkan inisialisasi lain di sini, 
+  // seperti Firebase, Env variables, atau service locator.
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
-    );
-  }
+  runApp(const EcoCashApp());
 }
