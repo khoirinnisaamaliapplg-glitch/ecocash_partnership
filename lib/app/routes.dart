@@ -9,6 +9,7 @@ import '../features/auth/screens/otp_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/forgot_otp_screen.dart';
 import '../features/auth/screens/new_password_screen.dart';
+import 'package:ecocash_partnership/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/detail_penghasilan_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/statistik_material_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/skor_partner_screen.dart';
@@ -24,7 +25,10 @@ import 'package:ecocash_partnership/features/profile/screens/pengaturan_notifika
 import 'package:ecocash_partnership/features/profile/screens/pusat_bantuan_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/chat_cs_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/laporkan_masalah_screen.dart';
+import 'package:ecocash_partnership/features/jobs/screens/detail_pekerjaan_screen.dart';
+import 'package:ecocash_partnership/features/jobs/screens/dalam_perjalanan_screen.dart';
 import '../features/dashboard/screens/riwayat_pekerjaan_screen.dart';
+
 
 class AppRoutes {
   static final router = GoRouter(
@@ -46,98 +50,117 @@ class AppRoutes {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      // 2. Tambahkan route OTP di sini
       GoRoute(
-        path: '/otp',
-        builder: (context, state) => const OtpScreen(),
-      ),
-      GoRoute(
-        path: '/main',
-        builder: (context, state) => const MainLayout(),
-      ),
-      // Tambahkan di dalam routes list GoRouter:
-GoRoute(
-  path: '/forgot-password',
-  builder: (context, state) => const ForgotPasswordScreen(),
-),
-GoRoute(
-  path: '/forgot-otp',
-  builder: (context, state) => const ForgotOtpScreen(),
-),
-GoRoute(
-  path: '/new-password',
-  builder: (context, state) => const NewPasswordScreen(),
-),
-
-GoRoute(
-  path: '/detail-penghasilan',
-  builder: (context, state) => const DetailPenghasilanScreen(),
-),
-
-GoRoute(
-  path: '/statistik-material',
-  builder: (context, state) => const StatistikMaterialScreen(),
-),
-GoRoute(
-  path: '/skor-partner',
-  builder: (context, state) => const SkorPartnerScreen(),
-),
-GoRoute(
-  path: '/harga-material',
-  builder: (context, state) => const HargaMaterialScreen(),
-),
-GoRoute(
-  path: '/edit-profile',
-  builder: (context, state) => const EditProfileScreen(),
-),
-GoRoute(
-  path: '/dampak-saya',
-  builder: (context, state) => const DampakSayaScreen(),
-),
-GoRoute(
-  path: '/akun-bank',
-  builder: (context, state) => const AkunBankScreen(),
-),
-GoRoute(
-  path: '/tambah-rekening',
-  builder: (context, state) => const TambahRekeningScreen(),
-),
-GoRoute(
-  path: '/detail-rekening',
+  path: '/otp',
   builder: (context, state) {
-    final bankData = state.extra as Map<String, String>?;
-    return DetailRekeningScreen(bankData: bankData);
+    final userData = (state.extra as Map<String, dynamic>?) ?? {};
+    return OtpScreen(userData: userData);
   },
 ),
+      // Pastikan rute /main memanggil MainLayout, bukan DashboardScreen
 GoRoute(
-  path: '/pengaturan',
-  builder: (context, state) => const PengaturanScreen(),
+  path: '/main',
+  builder: (context, state) {
+    // Menangkap data extra (seperti nama user) untuk diteruskan ke MainLayout
+    final Map<String, dynamic> userData = (state.extra as Map<String, dynamic>?) ?? {};
+    return MainLayout(userData: userData);
+  },
 ),
-GoRoute(
-  path: '/keamanan',
-  builder: (context, state) => const KeamananScreen(),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-otp',
+        builder: (context, state) => const ForgotOtpScreen(),
+      ),
+      GoRoute(
+        path: '/new-password',
+        builder: (context, state) => const NewPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/detail-penghasilan',
+        builder: (context, state) => const DetailPenghasilanScreen(),
+      ),
+      GoRoute(
+        path: '/statistik-material',
+        builder: (context, state) => const StatistikMaterialScreen(),
+      ),
+      GoRoute(
+        path: '/skor-partner',
+        builder: (context, state) => const SkorPartnerScreen(),
+      ),
+      GoRoute(
+        path: '/harga-material',
+        builder: (context, state) => const HargaMaterialScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/dampak-saya',
+        builder: (context, state) => const DampakSayaScreen(),
+      ),
+      GoRoute(
+        path: '/akun-bank',
+        builder: (context, state) => const AkunBankScreen(),
+      ),
+      GoRoute(
+        path: '/tambah-rekening',
+        builder: (context, state) => const TambahRekeningScreen(),
+      ),
+      GoRoute(
+        path: '/detail-rekening',
+        builder: (context, state) {
+          final bankData = state.extra as Map<String, String>?;
+          return DetailRekeningScreen(bankData: bankData);
+        },
+      ),
+      GoRoute(
+        path: '/pengaturan',
+        builder: (context, state) => const PengaturanScreen(),
+      ),
+      GoRoute(
+        path: '/keamanan',
+        builder: (context, state) => const KeamananScreen(),
+      ),
+      GoRoute(
+        path: '/pengaturan-notifikasi',
+        builder: (context, state) => const PengaturanNotifikasiScreen(),
+      ),
+      GoRoute(
+        path: '/pusat-bantuan',
+        builder: (context, state) => const PusatBantuanScreen(),
+      ),
+      GoRoute(
+        path: '/chat-cs',
+        builder: (context, state) => const ChatCsScreen(),
+      ),
+      GoRoute(
+        path: '/laporkan-masalah',
+        builder: (context, state) => const LaporkanMasalahScreen(),
+      ),
+      GoRoute(
+        path: '/riwayat-pekerjaan',
+        builder: (context, state) => const RiwayatPekerjaanScreen(),
+      ),
+      GoRoute(
+        path: '/detail-pekerjaan',
+        builder: (context, state) {
+          final rawData = state.extra;
+          final Map<String, dynamic> jobData = rawData is Map<String, dynamic> ? rawData : {};
+          return DetailPekerjaanScreen(jobData: jobData);
+        },
+      ),
+      GoRoute(
+  path: '/dalam-perjalanan',
+  builder: (context, state) {
+    final rawData = state.extra;
+    final Map<String, dynamic> jobData = rawData is Map<String, dynamic> ? rawData : {};
+    return DalamPerjalananScreen(jobData: jobData);
+  },
 ),
-GoRoute(
-  path: '/pengaturan-notifikasi',
-  builder: (context, state) => const PengaturanNotifikasiScreen(),
-),
-GoRoute(
-  path: '/pusat-bantuan',
-  builder: (context, state) => const PusatBantuanScreen(),
-),
-GoRoute(
-  path: '/chat-cs',
-  builder: (context, state) => const ChatCsScreen(),
-),
-GoRoute(
-  path: '/laporkan-masalah',
-  builder: (context, state) => const LaporkanMasalahScreen(),
-),
-GoRoute(
-  path: '/riwayat-pekerjaan',
-  builder: (context, state) => const RiwayatPekerjaanScreen(),
-),
-
     ],
   );
 }

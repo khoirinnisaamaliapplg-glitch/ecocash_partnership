@@ -199,7 +199,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   SnackBar(content: Text('Berhasil masuk sebagai $name!')),
                 );
 
-                context.go('/main');
+                // Kirim nama asli dari akun google yang dipilih
+                context.go('/main', extra: {'name': name});
               },
               child: const Text('Izinkan', style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
@@ -341,7 +342,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // --- TOMBOL MASUK DENGAN GRADASI & TEKS "Masuk →" ---
+                  // --- TOMBOL MASUK DENGAN PENCARIAN NAMA ASLI DI LOCAL STORAGE ---
                   Container(
                     width: double.infinity,
                     height: 52,
@@ -358,7 +359,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: ElevatedButton(
                       onPressed: () async {
-                        if (_identifierController.text.isEmpty || _passwordController.text.isEmpty) {
+                        String identifier = _identifierController.text.trim();
+                        String password = _passwordController.text;
+
+                        if (identifier.isEmpty || password.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Kolom identitas dan kata sandi harus diisi!')),
                           );
@@ -366,14 +370,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
 
                         bool isValid = await AuthLocalService.login(
-                          identifier: _identifierController.text,
-                          password: _passwordController.text,
+                          identifier: identifier,
+                          password: password,
                         );
 
                         if (!context.mounted) return;
 
                         if (isValid) {
-                          context.go('/main');
+                          // Ambil daftar user yang tersimpan untuk mencocokkan nama aslinya secara aman
+                          List<Map<String, String>> allUsers = await AuthLocalService.getUsers();
+                          String matchedName = 'Mitra Partner';
+
+                          for (var u in allUsers) {
+                            if (u['phone'] == identifier || u['email'] == identifier || u['username'] == identifier) {
+                              matchedName = u['name'] ?? 'Mitra Partner';
+                              break;
+                            }
+                          }
+
+                          // Teruskan nama asli user ke dashboard
+                          context.go('/main', extra: {'name': matchedName});
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Nomor/Email atau Kata Sandi salah!')),

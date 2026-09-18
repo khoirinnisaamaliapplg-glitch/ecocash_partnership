@@ -3,14 +3,15 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key});
+  final Map<String, dynamic> userData;
+
+  const OtpScreen({super.key, this.userData = const {}});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  // Controller untuk 6 kotak input OTP
   final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
   
@@ -30,14 +31,14 @@ class _OtpScreenState extends State<OtpScreen> {
   void _checkOtpCompletion() {
     String otp = _controllers.map((c) => c.text).join();
     setState(() {
-      _isComplete = otp.length == 4; // Sesuaikan jumlah digit jika 4 atau 6 (di gambar ada 4 kotak)
+      _isComplete = otp.length == 4;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Latar belakang abu-abu terang
+      backgroundColor: const Color(0xFFF4F6F8), // Latar belakang abu-abu terang yang bersih
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -82,12 +83,12 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Masukkan 6 digit kode yang dikirim ke nomor\n+62 812 **** 7890',
+                    'Masukkan 4 digit kode yang dikirim ke nomor\n+62 812 **** 7890',
                     style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 24),
 
-                  // --- KOTAK INPUT OTP (4 atau 6 digit) ---
+                  // --- KOTAK INPUT OTP (4 digit) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(4, (index) => SizedBox(
@@ -162,15 +163,15 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // --- TOMBOL VERIFIKASI (BLUR / REDUP JIKA BELUM LENGKAP) ---
+                  // --- TOMBOL VERIFIKASI ---
                   Opacity(
-                    opacity: _isComplete ? 1.0 : 0.5, // Efek redup/blur jika belum lengkap
+                    opacity: _isComplete ? 1.0 : 0.5,
                     child: Container(
                       width: double.infinity,
                       height: 52,
                       decoration: BoxDecoration(
                         gradient: _isComplete ? AppColors.primaryButtonGradient : null,
-                        color: _isComplete ? null : Colors.grey.shade400, // Warna abu-abu redup jika belum diisi
+                        color: _isComplete ? null : Colors.grey.shade400,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: _isComplete
                             ? [
@@ -187,7 +188,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             ? () {
                                 _showSuccessDialog(context);
                               }
-                            : null, // Tombol mati jika belum lengkap
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -252,7 +253,7 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             const SizedBox(height: 24),
             
-            // --- TOMBOL CONTINUE TO DASHBOARD DENGAN GRADASI ---
+            // --- TOMBOL CONTINUE TO DASHBOARD ---
             Container(
               width: double.infinity,
               height: 48,
@@ -270,7 +271,7 @@ class _OtpScreenState extends State<OtpScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.go('/main');
+                  context.go('/main', extra: widget.userData);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,

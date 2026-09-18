@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart'; // <-- WAJIB: Import GoRouter
 import '../../../core/theme/app_colors.dart';
-import 'detail_pekerjaan_screen.dart'; // Pastikan path import ini sesuai dengan lokasi file detail_pekerjaan_screen.dart
+import '../screens/detail_pekerjaan_screen.dart'; // Pastikan path import sesuai
 
 class JobsScreen extends StatefulWidget {
   const JobsScreen({super.key});
@@ -245,20 +246,16 @@ class _JobsScreenState extends State<JobsScreen> with SingleTickerProviderStateM
                 ),
                 child: ElevatedButton(
                   onPressed: () {
-                    // Menghubungkan ke halaman DetailPekerjaanScreen dengan mengirim data dinamis
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailPekerjaanScreen(
-                          jobData: {
-                            'title': title,
-                            'address': address,
-                            'materialTag': materialTag,
-                            'volume': volume,
-                            'price': price,
-                          },
-                        ),
-                      ),
+                    // PERBAIKAN UTAMA: Menggunakan context.push dari GoRouter agar navigasi stabil
+                    context.push(
+                      '/detail-pekerjaan',
+                      extra: {
+                        'title': title,
+                        'address': address,
+                        'materialTag': materialTag,
+                        'volume': volume,
+                        'price': price,
+                      },
                     );
                   },
                   style: ElevatedButton.styleFrom(
