@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_map/flutter_map.dart'; // <-- IMPORT LEAFLET
-import 'package:latlong2/latlong.dart';     // <-- IMPORT KOORDINAT
+import 'package:go_router/go_router.dart'; // <-- WAJIB IMPORT GO_ROUTER
+import 'package:flutter_map/flutter_map.dart'; 
+import 'package:latlong2/latlong.dart';     
 import '../../../core/theme/app_colors.dart';
-import 'dalam_perjalanan_screen.dart';
 
 class DetailPekerjaanScreen extends StatelessWidget {
   final Map<String, dynamic> jobData;
@@ -18,7 +17,7 @@ class DetailPekerjaanScreen extends StatelessWidget {
     final String volume = jobData['volume'] ?? '42 kg';
     final String price = jobData['price'] ?? 'Rp82.000';
 
-    // Koordinat contoh (Bandung/Singaparna)
+    // Koordinat contoh
     final LatLng pickupLocation = const LatLng(-6.9175, 107.6191);
 
     return Scaffold(
@@ -75,12 +74,10 @@ class DetailPekerjaanScreen extends StatelessWidget {
                     initialZoom: 15.0,
                   ),
                   children: [
-                    // Lapisan Peta OpenStreetMap
                     TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.ecocash_partnership',
                     ),
-                    // Lapisan Marker / Pin Lokasi
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -229,14 +226,8 @@ class DetailPekerjaanScreen extends StatelessWidget {
                     ),
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DalamPerjalananScreen(
-                              jobData: jobData,
-                            ),
-                          ),
-                        );
+                        // DIPERBAIKI: Menggunakan context.push GoRouter agar navigasi stabil
+                        context.push('/dalam-perjalanan', extra: jobData);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,

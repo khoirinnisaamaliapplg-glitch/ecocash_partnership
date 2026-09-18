@@ -224,7 +224,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         );
 
                         if (success) {
-                          context.go('/otp');
+                          // Mengirim data nama inputan ke halaman OTP via GoRouter extra
+                          context.go('/otp', extra: {
+                            'name': _nameController.text.trim(),
+                          });
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Nomor ponsel atau E-mail sudah terdaftar!')),

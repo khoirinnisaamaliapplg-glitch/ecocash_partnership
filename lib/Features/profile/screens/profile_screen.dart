@@ -1,12 +1,45 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../../data/app_storage.dart';
+import 'vehicles/vehicle_list_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic> _profileData = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final data = await AppStorage.getProfile();
+    setState(() {
+      _profileData = data;
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final String name = _profileData['name'] ?? 'Budi Santoso';
+    final String? base64Image = _profileData['imageBytes'];
+    Uint8List? imageBytes;
+    if (base64Image != null && base64Image.isNotEmpty) {
+      imageBytes = base64Decode(base64Image);
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -15,24 +48,24 @@ class ProfileScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 16,
-              backgroundImage: AssetImage('assets/images/logo.png'), // Sesuaikan foto profil jika ada
               backgroundColor: Colors.white,
+              backgroundImage: imageBytes != null
+                  ? MemoryImage(imageBytes) as ImageProvider
+                  : const AssetImage('assets/images/logo.png'),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Halo, Budi Santoso',
-              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            Text(
+              'Halo, $name',
+              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {
-              // Navigasi ke halaman notifikasi jika ada
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -65,15 +98,24 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 36,
-                    backgroundColor: AppColors.primaryCyan,
-                    child: Icon(Icons.person, color: Colors.white, size: 40),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primaryCyan,
+                      border: Border.all(color: AppColors.primaryCyan, width: 2),
+                    ),
+                    child: ClipOval(
+                      child: imageBytes != null
+                          ? Image.memory(imageBytes, fit: BoxFit.cover, width: 72, height: 72)
+                          : const Icon(Icons.person, color: Colors.white, size: 40),
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Budi Santoso',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  Text(
+                    name,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 2),
                   const Text(
@@ -100,9 +142,12 @@ class ProfileScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () {
-  context.push('/edit-profile');
-},
+                      onPressed: () async {
+                        final result = await context.push('/edit-profile');
+                        if (result == true) {
+                          _loadProfileData();
+                        }
+                      },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.primaryCyan),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -282,27 +327,31 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-
-                  _buildDivider(),
                   _buildMenuItem(Icons.account_balance_outlined, 'Akun Bank', () {
-  context.push('/akun-bank');
-}),
+                    context.push('/akun-bank');
+                  }),
                   _buildDivider(),
                   _buildMenuItem(Icons.description_outlined, 'Dokumen', () {}),
                   _buildDivider(),
-                  _buildMenuItem(Icons.school_outlined, 'Pelatihan', () {}),
+                  _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {}),
                   _buildDivider(),
                   _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {
-  context.push('/dampak-saya');
-}),
+                    context.push('/dampak-saya');
+                  }),
                   _buildDivider(),
+                  _buildMenuItem(Icons.directions_car_outlined, 'Kendaraan', () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => const VehicleListScreen()),
+  );
+}),
                   _buildMenuItem(Icons.security_outlined, 'Keamanan', () {}),
                   _buildDivider(),
                   _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {}),
                   _buildDivider(),
                   _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {
-  context.push('/pengaturan');
-}),
+                    context.push('/pengaturan');
+                  }),
                 ],
               ),
             ),
