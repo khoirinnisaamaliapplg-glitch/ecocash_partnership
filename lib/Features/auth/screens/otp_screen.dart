@@ -1,24 +1,40 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 
 class OtpScreen extends StatefulWidget {
-  final Map<String, dynamic> userData;
+  final Map userData;
 
   const OtpScreen({super.key, this.userData = const {}});
 
   @override
-  State<OtpScreen> createState() => _OtpScreenState();
+  State createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State<OtpScreen> {
-  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+class _OtpScreenState extends State {
+  final List _controllers = List.generate(4, (index) => TextEditingController());
+  final List _focusNodes = List.generate(4, (index) => FocusNode());
   
+  String _selectedMethod = 'email'; 
   bool _isComplete = false;
+  bool _isLoading = false;
+
+  Timer? _timer;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
+
+  Map get _data => (widget as OtpScreen).userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -28,6 +44,26 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
+  void _startTimer() {
+    setState(() {
+      _secondsRemaining = 60;
+      _canResend = false;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() {
+          _secondsRemaining--;
+        });
+      } else {
+        setState(() {
+          _canResend = true;
+        });
+        _timer?.cancel();
+      }
+    });
+  }
+
   void _checkOtpCompletion() {
     String otp = _controllers.map((c) => c.text).join();
     setState(() {
@@ -35,10 +71,79 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
+  // --- MASKING EMAIL & NO HP BERSIH ---
+  String _maskEmail(String? email) {
+    if (email == null || email.trim().isEmpty || !email.contains('@')) {
+      return 'mitra@gmail.com';
+    }
+    List parts = email.trim().split('@');
+    String name = parts[0];
+    String domain = parts[1];
+
+    if (name.length <= 3) {
+      return '\({name[0]}***@\)domain';
+    }
+
+    String visibleName = name.substring(0, 3);
+    return '\(visibleName***@\)domain';
+  }
+
+  String _maskPhone(String? phone) {
+    if (phone == null || phone.trim().isEmpty || phone.length < 8) {
+      return '+62 812 **** 7890';
+    }
+    String cleanPhone = phone.trim();
+    String start = cleanPhone.substring(0, 4);
+    String end = cleanPhone.substring(cleanPhone.length - 4);
+    return '\(start ****\)end';
+  }
+
+  // TODO(BE-Sync): Kirim ulang OTP di-mock sementara sambil menunggu penyesuaian endpoint backend.
+  Future _resendCode() async {
+    if (!_canResend || _isLoading) return;
+
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_selectedMethod == 'email' 
+            ? 'Kode verifikasi telah dikirim ulang ke email Anda.' 
+            : 'Kode OTP SMS/WA berhasil dikirim ulang.'),
+        backgroundColor: Colors.green,
+      ),
+    );
+    _startTimer();
+  }
+
+  // TODO(BE-Sync): Backend saat ini menggunakan Magic Link 64-char.
+  // Sementara di-fallback ke dialog sukses agar alur UI/UX mobile bisa dites oleh Lead FE & QA.
+  Future _verifyOtp() async {
+    String otpCode = _controllers.map((c) => c.text).join();
+    if (otpCode.length < 4) return;
+
+    setState(() => _isLoading = true);
+
+    // Simulasi respons jaringan
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Mengizinkan lolos ke Dashboard
+    _showSuccessDialog(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    String emailTarget = _data['email'] ?? '';
+    String phoneTarget = _data['phone'] ?? _data['phoneNumber'] ?? '';
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Latar belakang abu-abu terang yang bersih
+      backgroundColor: const Color(0xFFF4F6F8),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -60,19 +165,16 @@ class _OtpScreenState extends State<OtpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // --- TOMBOL BACK KECIL DI DALAM KARTU ---
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                      onPressed: () => context.pop(),
+                      onPressed: _isLoading ? null : () => context.pop(),
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // --- JUDUL ---
                   const Text(
                     'Verifikasi Kode OTP',
                     style: TextStyle(
@@ -81,14 +183,94 @@ class _OtpScreenState extends State<OtpScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Masukkan 4 digit kode yang dikirim ke nomor\n+62 812 **** 7890',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F2F5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _isLoading ? null : () => setState(() => _selectedMethod = 'email'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedMethod == 'email' ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: _selectedMethod == 'email'
+                                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                                    : [],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.email_outlined,
+                                    size: 16,
+                                    color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'E-mail',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _isLoading ? null : () => setState(() => _selectedMethod = 'phone'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedMethod == 'phone' ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: _selectedMethod == 'phone'
+                                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                                    : [],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.phone_outlined,
+                                    size: 16,
+                                    color: _selectedMethod == 'phone' ? AppColors.primaryGreen : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'No. Ponsel',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _selectedMethod == 'phone' ? AppColors.primaryGreen : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _selectedMethod == 'email'
+                        ? 'Masukkan kode verifikasi yang dikirim ke email\n${_maskEmail(emailTarget)}'
+                        : 'Masukkan 4 digit kode OTP yang dikirim ke nomor\n${_maskPhone(phoneTarget)}',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 24),
-
-                  // --- KOTAK INPUT OTP (4 digit) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: List.generate(4, (index) => SizedBox(
@@ -97,6 +279,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       child: TextFormField(
                         controller: _controllers[index],
                         focusNode: _focusNodes[index],
+                        enabled: !_isLoading,
                         textAlign: TextAlign.center,
                         keyboardType: TextInputType.number,
                         maxLength: 1,
@@ -106,7 +289,7 @@ class _OtpScreenState extends State<OtpScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                            borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2),
                           ),
                         ),
                         onChanged: (value) {
@@ -121,8 +304,6 @@ class _OtpScreenState extends State<OtpScreen> {
                     )),
                   ),
                   const SizedBox(height: 20),
-
-                  // --- INFO KIRIM ULANG ---
                   Center(
                     child: Column(
                       children: [
@@ -131,30 +312,37 @@ class _OtpScreenState extends State<OtpScreen> {
                           style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Kirim ulang dalam 00:54',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                        GestureDetector(
+                          onTap: _canResend && !_isLoading ? _resendCode : null,
+                          child: Text(
+                            _canResend
+                                ? 'Kirim Ulang Kode Sekarang'
+                                : 'Kirim ulang dalam 00:${_secondsRemaining.toString().padLeft(2, '0')}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _canResend ? AppColors.textLink : AppColors.primaryGreen,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // --- KOTAK PERINGATAN (WARNING BOX) ---
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF0F5FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
+                    child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Icon(Icons.info_outline, size: 18, color: Color(0xFF1A73E8)),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Jangan bagikan kode OTP kepada siapa pun, termasuk pihak EcoCash Partner, untuk keamanan akun Anda.',
+                            'Jangan bagikan kode OTP kepada siapa pun, termasuk pihak EcoCash Partner.',
                             style: TextStyle(fontSize: 11, color: Color(0xFF1A73E8), height: 1.3),
                           ),
                         ),
@@ -162,10 +350,8 @@ class _OtpScreenState extends State<OtpScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-
-                  // --- TOMBOL VERIFIKASI ---
                   Opacity(
-                    opacity: _isComplete ? 1.0 : 0.5,
+                    opacity: _isComplete && !_isLoading ? 1.0 : 0.5,
                     child: Container(
                       width: double.infinity,
                       height: 52,
@@ -184,11 +370,7 @@ class _OtpScreenState extends State<OtpScreen> {
                             : [],
                       ),
                       child: ElevatedButton(
-                        onPressed: _isComplete
-                            ? () {
-                                _showSuccessDialog(context);
-                              }
-                            : null,
+                        onPressed: (_isComplete && !_isLoading) ? _verifyOtp : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -196,20 +378,26 @@ class _OtpScreenState extends State<OtpScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Verifikasi',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              '→',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ],
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Verifikasi',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '→',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -247,13 +435,11 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your phone number has been\nsuccessfully verified.',
+              'Akun EcoCash Partner Anda berhasil diverifikasi.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
-            
-            // --- TOMBOL CONTINUE TO DASHBOARD ---
             Container(
               width: double.infinity,
               height: 48,
@@ -271,7 +457,7 @@ class _OtpScreenState extends State<OtpScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.go('/main', extra: widget.userData);
+                  context.go('/main', extra: _data);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -281,7 +467,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Continue to Dashboard',
+                  'Lanjut ke Dashboard',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
