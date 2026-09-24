@@ -1,19 +1,131 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../../data/app_storage.dart';
 
-class EditProfileScreen extends StatelessWidget {
+class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Controller untuk mengisi data awal profil
-    final TextEditingController nameController = TextEditingController(text: 'Budi Santoso');
-    final TextEditingController phoneController = TextEditingController(text: '+62 812-3456-7890');
-    final TextEditingController emailController = TextEditingController(text: 'budi.s@email.com');
-    final TextEditingController addressController = TextEditingController(
-      text: 'Jl. Merdeka Raya No. 45, Kebayoran Baru,\nJakarta Selatan, 12110',
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  File? _imageFile;
+  Uint8List? _imageBytes;
+  final ImagePicker _picker = ImagePicker();
+
+  late final TextEditingController nameController;
+  late final TextEditingController phoneController;
+  late final TextEditingController emailController;
+  late final TextEditingController addressController;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController();
+    phoneController = TextEditingController();
+    emailController = TextEditingController();
+    addressController = TextEditingController();
+    _loadStoredProfile();
+  }
+
+  Future<void> _loadStoredProfile() async {
+    final profile = await AppStorage.getProfile();
+    setState(() {
+      nameController.text = profile['name'] ?? 'Budi Santoso';
+      phoneController.text = profile['phone'] ?? '+62 812-3456-7890';
+      emailController.text = profile['email'] ?? 'budi.s@email.com';
+      addressController.text = profile['address'] ?? 'Jl. Merdeka Raya No. 45, Kebayoran Baru,\nJakarta Selatan, 12110';
+      
+      final String? base64Str = profile['imageBytes'];
+      if (base64Str != null && base64Str.isNotEmpty) {
+        _imageBytes = base64Decode(base64Str);
+      }
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    addressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pilihSumberFoto() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Pilih Sumber Foto',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppColors.primaryCyan),
+                title: const Text('Ambil dari Kamera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80);
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    setState(() {
+                      _imageBytes = bytes;
+                      if (!kIsWeb) {
+                        _imageFile = File(image.path);
+                      }
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppColors.primaryCyan),
+                title: const Text('Pilih dari Galeri'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    setState(() {
+                      _imageBytes = bytes;
+                      if (!kIsWeb) {
+                        _imageFile = File(image.path);
+                      }
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -37,31 +149,42 @@ class EditProfileScreen extends StatelessWidget {
           children: [
             // --- 1. FOTO PROFIL & TOMBOL KAMERA ---
             Center(
-              child: Stack(
-                children: [
-                  const CircleAvatar(
-                    radius: 46,
-                    backgroundColor: Colors.white,
-                    child: CircleAvatar(
-                      radius: 42,
-                      backgroundColor: AppColors.primaryCyan,
-                      child: Icon(Icons.person, color: Colors.white, size: 50),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
+              child: GestureDetector(
+                onTap: _pilihSumberFoto,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryCyan,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.primaryCyan, width: 2),
                       ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                      child: ClipOval(
+                        child: _imageBytes != null
+                            ? Image.memory(_imageBytes!, fit: BoxFit.cover, width: 96, height: 96)
+                            : Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.person, color: AppColors.textSecondary, size: 50),
+                              ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryCyan,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -182,15 +305,24 @@ class EditProfileScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Berikan aksi simpan dan kembali ke halaman profil
+                onPressed: () async {
+                  final profileBaru = {
+                    'name': nameController.text,
+                    'phone': phoneController.text,
+                    'email': emailController.text,
+                    'address': addressController.text,
+                    'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : null,
+                  };
+
+                  await AppStorage.saveProfile(profileBaru);
+
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Perubahan profil berhasil disimpan!')),
+                    const SnackBar(content: Text('Perubahan profil berhasil disimpan!'), backgroundColor: Colors.green),
                   );
-                  context.pop();
+                  context.pop(true);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCyan,
+                  backgroundColor: const Color(0xFF28859B), // Warna disamakan dengan tombol konfirmasi penarikan & unduh bukti
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,

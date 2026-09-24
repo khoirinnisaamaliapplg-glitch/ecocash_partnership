@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import 'package:ecocash_partnership/features/dashboard/screens/dashboard_screen.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'package:ecocash_partnership/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ecocash_partnership/features/jobs/screens/jobs_screen.dart';
 import 'package:ecocash_partnership/features/wallet/screens/wallet_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/profile_screen.dart';
 import 'package:ecocash_partnership/features/scan/screens/scan_screen.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final Map<String, dynamic> userData;
+
+  const MainLayout({super.key, this.userData = const {}});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -15,15 +17,6 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
-
-  // Daftar halaman untuk masing-masing tab
-final List<Widget> _screens = [
-  const DashboardScreen(),
-  const JobsScreen(),
-  const ScanScreen(), // <-- Hubungkan ke ScanScreen
-  const WalletScreen(),
-  const ProfileScreen(),
-];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -34,7 +27,18 @@ final List<Widget> _screens = [
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      // Menggunakan IndexedStack dengan pengecekan atau membangun halaman secara dinamis
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          DashboardScreen(userData: widget.userData),
+          const JobsScreen(),
+          // Halaman Scan hanya akan dirender/dijalankan ketika tab ke-2 (Scan) diklik!
+          _selectedIndex == 2 ? const ScanScreen() : const SizedBox.shrink(),
+          const WalletScreen(),
+          const ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

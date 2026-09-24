@@ -16,19 +16,29 @@ class AuthLocalService {
     }
   ];
 
-  // 1. Ambil semua data pengguna dari SharedPreferences
+  // 1. Ambil semua data pengguna dari SharedPreferences (Diperbarui agar selalu menyertakan default user)
   static Future<List<Map<String, String>>> getUsers() async {
     final prefs = await SharedPreferences.getInstance();
     final String? usersString = prefs.getString(_usersKey);
     
+    List<Map<String, String>> users = [];
+
     if (usersString == null) {
-      // Jika belum ada, simpan data default
-      await saveUsers(_defaultUsers);
-      return _defaultUsers;
+      users = List.from(_defaultUsers);
+      await saveUsers(users);
+    } else {
+      List<dynamic> decoded = jsonDecode(usersString);
+      users = decoded.map((item) => Map<String, String>.from(item)).toList();
     }
 
-    List<dynamic> decoded = jsonDecode(usersString);
-    return decoded.map((item) => Map<String, String>.from(item)).toList();
+    // Pastikan akun default mitra@ecocash.com selalu ada di penyimpanan lokal
+    bool defaultExists = users.any((u) => u['email'] == 'mitra@ecocash.com');
+    if (!defaultExists) {
+      users.insert(0, _defaultUsers.first);
+      await saveUsers(users);
+    }
+
+    return users;
   }
 
   // 2. Simpan daftar pengguna ke SharedPreferences

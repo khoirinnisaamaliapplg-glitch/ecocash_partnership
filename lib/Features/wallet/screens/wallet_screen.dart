@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import 'withdraw_screen.dart';
+import 'history_screen.dart';
+import 'top_up_screen.dart';
+import 'detail_transaction_screen.dart';
 
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -45,12 +49,12 @@ class WalletScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 1. KARTU SALDO TERSEDIA (Dengan Latar Belakang Soft Cyan/Blue) ---
+            // --- 1. KARTU SALDO TERSEDIA ---
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primaryCyan.withOpacity(0.18), // Warna latar belakang biru lembut sesuai Figma
+                color: AppColors.primaryCyan.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -76,10 +80,10 @@ class WalletScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildWalletAction(Icons.account_balance_wallet, 'Tarik Saldo'),
-                      _buildWalletAction(Icons.history, 'Riwayat'),
-                      _buildWalletAction(Icons.add_circle_outline, 'Top Up'),
-                      _buildWalletAction(Icons.help_outline, 'Bantuan'),
+                      _buildWalletAction(context, Icons.account_balance_wallet, 'Tarik Saldo', const WithdrawScreen()),
+                      _buildWalletAction(context, Icons.history, 'Riwayat', const HistoryScreen()),
+                      _buildWalletAction(context, Icons.add_circle_outline, 'Top Up', const TopUpScreen()),
+                      _buildWalletAction(context, Icons.help_outline, 'Bantuan', null),
                     ],
                   ),
                 ],
@@ -139,45 +143,60 @@ class WalletScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                    );
+                  },
                   child: const Text('Lihat Semua', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            _buildTransactionItem(Icons.arrow_downward, Colors.green, 'Pembayaran Pekerjaan', 'Hari ini', '+Rp82.000', Colors.green),
+            _buildTransactionItem(context, Icons.arrow_downward, Colors.green, 'Pembayaran Pekerjaan', 'Hari ini', '+Rp82.000', Colors.green, false),
             const SizedBox(height: 10),
-            _buildTransactionItem(Icons.arrow_downward, Colors.green, 'Pembayaran Pekerjaan', '10 Agu 2026', '+Rp45.000', Colors.green),
+            _buildTransactionItem(context, Icons.arrow_downward, Colors.green, 'Pembayaran Pekerjaan', '10 Agu 2026', '+Rp45.000', Colors.green, false),
             const SizedBox(height: 10),
-            _buildTransactionItem(Icons.arrow_upward, Colors.red, 'Penarikan Saldo', '09 Agu 2026', '-Rp500.000', Colors.red),
+            _buildTransactionItem(context, Icons.arrow_upward, Colors.red, 'Penarikan Saldo', '09 Agu 2026', '-Rp500.000', Colors.red, true),
           ],
         ),
       ),
     );
   }
 
-  // Widget Tombol Aksi Cepat Dompet (Tombol Bulat Putih)
-  Widget _buildWalletAction(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Colors.white, // Tombol aksi tetap putih bersih
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 4,
-                offset: Offset(0, 2),
-              ),
-            ],
+  // Widget Tombol Aksi Cepat Dompet dengan Navigasi
+  Widget _buildWalletAction(BuildContext context, IconData icon, String label, Widget? targetScreen) {
+    return GestureDetector(
+      onTap: () {
+        if (targetScreen != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => targetScreen),
+          );
+        }
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: AppColors.primaryCyan, size: 22),
           ),
-          child: Icon(icon, color: AppColors.primaryCyan, size: 22),
-        ),
-        const SizedBox(height: 6),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-      ],
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+        ],
+      ),
     );
   }
 
@@ -192,43 +211,51 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  // Widget Item Transaksi Terbaru
-  Widget _buildTransactionItem(IconData icon, Color iconBgColor, String title, String date, String amount, Color amountColor) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconBgColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
+  // Widget Item Transaksi Terbaru dengan Navigasi ke Detail
+  Widget _buildTransactionItem(BuildContext context, IconData icon, Color iconBgColor, String title, String date, String amount, Color amountColor, bool isWithdrawal) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => DetailTransactionScreen(isWithdrawal: isWithdrawal)),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconBgColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconBgColor, size: 20),
                 ),
-                child: Icon(icon, color: iconBgColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
-                  const SizedBox(height: 2),
-                  Text(date, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-          Text(amount, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: amountColor)),
-        ],
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                    const SizedBox(height: 2),
+                    Text(date, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ],
+            ),
+            Text(amount, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: amountColor)),
+          ],
+        ),
       ),
     );
   }

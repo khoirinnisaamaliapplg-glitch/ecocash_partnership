@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../data/app_storage.dart';
 import '../../../data/auth_local_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State {
   final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,7 +27,109 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // --- ALUR GOOGLE LOGIN: 1. Pilih Akun ---
+  // --- FUNGSI INTEGRASI LOGIN KE BACKEND DOCKER ---
+ Future _prosesLoginBackend() async {
+    String identifier = _identifierController.text.trim();
+    String password = _passwordController.text;
+
+    if (identifier.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      // Payload disesuaikan ke 'identifier' sesuai ekspektasi validator backend
+      final response = await dio.post(
+        '/auth/login',
+        data: {
+          'identifier': identifier,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+        
+        final String? token = responseData['token'] ?? responseData['data']?['token'];
+        final dynamic userData = responseData['user'] ?? responseData['data']?['user'] ?? responseData['data'];
+
+        if (token != null) {
+          await AppStorage.saveToken(token);
+        }
+
+        if (userData != null) {
+          await AppStorage.saveUserData(userData);
+        }
+
+        if (!mounted) return;
+
+        String name = userData?['name'] ?? userData?['username'] ?? 'Mitra Partner';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Berhasil masuk! Selamat datang, $name'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        context.go('/main', extra: {'name': name});
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.data['message'] ?? 'Login gagal!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      String errorMessage = 'Login gagal';
+      
+      if (e.response != null && e.response?.data != null) {
+        final responseData = e.response?.data;
+        if (responseData['errors'] != null) {
+          errorMessage = responseData['errors'].toString();
+        } else if (responseData['message'] != null) {
+          errorMessage = responseData['message'].toString();
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+  
   void _showGoogleAccountPicker() {
     showModalBottomSheet(
       context: context,
@@ -109,7 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- ALUR GOOGLE LOGIN: 2. Konfirmasi Izin ---
   void _showGoogleConsent(String name, String email) {
     showModalBottomSheet(
       context: context,
@@ -199,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   SnackBar(content: Text('Berhasil masuk sebagai $name!')),
                 );
 
-                context.go('/main');
+                context.go('/main', extra: {'name': name});
               },
               child: const Text('Izinkan', style: TextStyle(color: Colors.white, fontSize: 16)),
             ),
@@ -293,6 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _identifierController,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'No. Ponsel / Email / Username',
                       prefixIcon: const Icon(Icons.person_outline),
@@ -307,6 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Masukkan kata sandi',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -330,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
+                      onPressed: _isLoading ? null : () {
                         context.push('/forgot-password');
                       },
                       child: const Text(
@@ -341,7 +448,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // --- TOMBOL MASUK DENGAN GRADASI & TEKS "Masuk →" ---
                   Container(
                     width: double.infinity,
                     height: 52,
@@ -357,29 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (_identifierController.text.isEmpty || _passwordController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Kolom identitas dan kata sandi harus diisi!')),
-                          );
-                          return;
-                        }
-
-                        bool isValid = await AuthLocalService.login(
-                          identifier: _identifierController.text,
-                          password: _passwordController.text,
-                        );
-
-                        if (!context.mounted) return;
-
-                        if (isValid) {
-                          context.go('/main');
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nomor/Email atau Kata Sandi salah!')),
-                          );
-                        }
-                      },
+                      onPressed: _isLoading ? null : _prosesLoginBackend,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -387,20 +471,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Masuk',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            '→',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ],
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Masuk',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '→',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -424,9 +514,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            _showGoogleAccountPicker();
-                          },
+                          onPressed: _isLoading ? null : _showGoogleAccountPicker,
                           icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
                           label: const Text('Google', style: TextStyle(color: AppColors.textPrimary)),
                           style: OutlinedButton.styleFrom(
@@ -438,7 +526,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : () {},
                           icon: const Icon(Icons.apple, color: Colors.black, size: 24),
                           label: const Text('Apple', style: TextStyle(color: AppColors.textPrimary)),
                           style: OutlinedButton.styleFrom(
@@ -459,9 +547,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          context.go('/register');
-                        },
+                        onTap: _isLoading
+                            ? null
+                            : () {
+                                context.go('/register');
+                              },
                         child: const Text(
                           'Daftar Sekarang',
                           style: TextStyle(
