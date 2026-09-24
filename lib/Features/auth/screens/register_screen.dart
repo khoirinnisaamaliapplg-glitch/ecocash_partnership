@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../data/app_storage.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -18,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -29,6 +32,118 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // --- FUNGSI INTEGRASI REGISTER PARTNER KE BACKEND DOCKER ---
+  Future _prosesRegisterBackend() async {
+    String name = _nameController.text.trim();
+    String username = _usernameController.text.trim();
+    String phone = _phoneController.text.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text;
+
+    if (name.isEmpty || username.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua kolom wajib diisi!')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      // Endpoint Khusus Register Partner: /partners/register
+      final response = await dio.post(
+        '/partners/register',
+        data: {
+          'name': name,
+          'username': username,
+          'email': email,
+          'password': password,
+          'phoneNumber': phone,
+          'type': 'WASTE_COLLECTOR', // Default tipe mitra pengumpul sampah
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+
+        final String? token = responseData['token'] ?? responseData['data']?['token'];
+        final dynamic userData = responseData['data']?['user'] ?? responseData['user'];
+
+        if (token != null) {
+          await AppStorage.saveToken(token);
+        }
+        if (userData != null) {
+          await AppStorage.saveUserData(userData);
+        }
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(responseData['message'] ?? 'Pendaftaran Partner berhasil dikirim.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Pindah ke halaman OTP / Verifikasi
+        context.go('/otp', extra: {
+          'name': name,
+          'email': email,
+          'phone': phone,
+        });
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.data['message'] ?? 'Registrasi gagal!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      String errorMessage = 'Registrasi Partner gagal. Silakan periksa kembali data Anda.';
+      
+      if (e.response != null && e.response?.data != null) {
+        final responseData = e.response?.data;
+        if (responseData['errors'] != null) {
+          errorMessage = responseData['errors'].toString();
+        } else if (responseData['message'] != null) {
+          errorMessage = responseData['message'].toString();
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,13 +153,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/login');
-            }
-          },
+          onPressed: _isLoading
+              ? null
+              : () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/login');
+                  }
+                },
         ),
       ),
       body: SafeArea(
@@ -98,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 4),
                   const Center(
                     child: Text(
-                      'Daftar',
+                      'Daftar Mitra Partner',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
@@ -112,8 +229,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _nameController,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
-                      hintText: 'Masukkan Nama',
+                      hintText: 'Masukkan Nama Lengkap',
                       prefixIcon: const Icon(Icons.person_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -125,6 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _usernameController,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Masukkan Username',
                       prefixIcon: const Icon(Icons.alternate_email),
@@ -138,6 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _phoneController,
+                    enabled: !_isLoading,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
                       hintText: 'Contoh: 08123456789',
@@ -152,9 +272,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _emailController,
+                    enabled: !_isLoading,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      hintText: 'Contoh: ketua@gmail.com',
+                      hintText: 'Contoh: mitra@gmail.com',
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -167,6 +288,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Masukkan kata sandi',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -187,7 +309,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // --- TOMBOL LANJUT DENGAN GRADASI & TEKS "Lanjut →" ---
                   Container(
                     width: double.infinity,
                     height: 52,
@@ -203,37 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (_nameController.text.isEmpty ||
-                            _usernameController.text.isEmpty ||
-                            _phoneController.text.isEmpty ||
-                            _emailController.text.isEmpty ||
-                            _passwordController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Semua kolom wajib diisi!')),
-                          );
-                          return;
-                        }
-
-                        bool success = await AuthLocalService.register(
-                          name: _nameController.text,
-                          username: _usernameController.text,
-                          phone: _phoneController.text,
-                          email: _emailController.text,
-                          password: _passwordController.text,
-                        );
-
-                        if (success) {
-                          // Mengirim data nama inputan ke halaman OTP via GoRouter extra
-                          context.go('/otp', extra: {
-                            'name': _nameController.text.trim(),
-                          });
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nomor ponsel atau E-mail sudah terdaftar!')),
-                          );
-                        }
-                      },
+                      onPressed: _isLoading ? null : _prosesRegisterBackend,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -241,20 +332,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Lanjut',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            '→',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ],
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Daftar Sebagai Partner',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '→',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -278,7 +375,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : () {},
                           icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
                           label: const Text('Google', style: TextStyle(color: AppColors.textPrimary)),
                           style: OutlinedButton.styleFrom(
@@ -290,7 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: _isLoading ? null : () {},
                           icon: const Icon(Icons.apple, color: Colors.black, size: 24),
                           label: const Text('Apple', style: TextStyle(color: AppColors.textPrimary)),
                           style: OutlinedButton.styleFrom(
