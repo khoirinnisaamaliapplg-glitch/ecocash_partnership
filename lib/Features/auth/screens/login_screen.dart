@@ -27,108 +27,93 @@ class _LoginScreenState extends State {
     super.dispose();
   }
 
-  // --- FUNGSI INTEGRASI LOGIN KE BACKEND DOCKER ---
- Future _prosesLoginBackend() async {
-    String identifier = _identifierController.text.trim();
-    String password = _passwordController.text;
+ // Ubah fungsi _prosesLoginBackend pada LoginScreen:
+Future _prosesLoginBackend() async {
+  String identifier = _identifierController.text.trim();
+  String password = _passwordController.text;
 
-    if (identifier.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
-      );
-      return;
-    }
+  if (identifier.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
+    );
+    return;
+  }
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConstants.baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
-      );
-
-      // Payload disesuaikan ke 'identifier' sesuai ekspektasi validator backend
-      final response = await dio.post(
-        '/auth/login',
-        data: {
-          'identifier': identifier,
-          'password': password,
+  try {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-      );
+      ),
+    );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data;
-        
-        final String? token = responseData['token'] ?? responseData['data']?['token'];
-        final dynamic userData = responseData['user'] ?? responseData['data']?['user'] ?? responseData['data'];
+    final response = await dio.post(
+      '/auth/login',
+      data: {
+        'identifier': identifier,
+        'password': password,
+      },
+    );
 
-        if (token != null) {
-          await AppStorage.saveToken(token);
-        }
-
-        if (userData != null) {
-          await AppStorage.saveUserData(userData);
-        }
-
-        if (!mounted) return;
-
-        String name = userData?['name'] ?? userData?['username'] ?? 'Mitra Partner';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Berhasil masuk! Selamat datang, $name'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        context.go('/main', extra: {'name': name});
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.data['message'] ?? 'Login gagal!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      String errorMessage = 'Login gagal';
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final responseData = response.data;
       
-      if (e.response != null && e.response?.data != null) {
-        final responseData = e.response?.data;
-        if (responseData['errors'] != null) {
-          errorMessage = responseData['errors'].toString();
-        } else if (responseData['message'] != null) {
-          errorMessage = responseData['message'].toString();
-        }
+      // Mengambil token dan user dari balik pembungkus data controller Express
+      final String? token = responseData['data']?['token'];
+      final dynamic userData = responseData['data']?['user'];
+
+      if (token != null) {
+        await AppStorage.saveToken(token);
       }
+
+      if (userData != null) {
+        await AppStorage.saveUserData(userData);
+      }
+
+      if (!mounted) return;
+
+      String name = userData?['name'] ?? userData?['username'] ?? 'Mitra Partner';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          content: Text('Berhasil masuk! Selamat datang, $name'),
+          backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+
+      context.go('/main', extra: {'name': name});
     }
+  } on DioException catch (e) {
+    if (!mounted) return;
+    String errorMessage = 'Login gagal';
+    
+    if (e.response?.data != null) {
+      final responseData = e.response?.data;
+      errorMessage = responseData['message'] ?? errorMessage;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(errorMessage),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
   
   void _showGoogleAccountPicker() {
     showModalBottomSheet(
