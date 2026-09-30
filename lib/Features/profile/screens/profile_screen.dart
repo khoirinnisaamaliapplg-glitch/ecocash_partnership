@@ -5,16 +5,20 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../../data/app_storage.dart';
 import 'vehicles/vehicle_list_screen.dart';
+import 'documents/dokumen_identitas_screen.dart';
+import 'academy/ecocash_academy_screen.dart';
+import 'security/keamanan_screen.dart';
+import 'notifications/notifikasi_screen.dart'; // <--- Import NotifikasiScreen di sini
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  Map<String, dynamic> _profileData = {};
+class _ProfileScreenState extends State {
+  Map _profileData = {};
   bool _isLoading = true;
 
   @override
@@ -23,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileData();
   }
 
-  Future<void> _loadProfileData() async {
+  Future _loadProfileData() async {
     final data = await AppStorage.getProfile();
     setState(() {
       _profileData = data;
@@ -63,9 +67,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         actions: [
+          // 1. NAVIGASI DARI LONCENG APP BAR
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotifikasiScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -212,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const LinearProgressIndicator(
                       value: 0.876,
                       backgroundColor: Color(0xFFE0E0E0),
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
+                      valueColor: AlwaysStoppedAnimation(AppColors.primaryCyan),
                       minHeight: 8,
                     ),
                   ),
@@ -331,23 +341,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.push('/akun-bank');
                   }),
                   _buildDivider(),
-                  _buildMenuItem(Icons.description_outlined, 'Dokumen', () {}),
+                  _buildMenuItem(Icons.description_outlined, 'Dokumen', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DokumenIdentitasScreen()),
+                    );
+                  }),
                   _buildDivider(),
-                  _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {}),
+                  _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const EcocashAcademyScreen()),
+                    );
+                  }),
                   _buildDivider(),
                   _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {
                     context.push('/dampak-saya');
                   }),
                   _buildDivider(),
                   _buildMenuItem(Icons.directions_car_outlined, 'Kendaraan', () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const VehicleListScreen()),
-  );
-}),
-                  _buildMenuItem(Icons.security_outlined, 'Keamanan', () {}),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const VehicleListScreen()),
+                    );
+                  }),
                   _buildDivider(),
-                  _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {}),
+                  _buildMenuItem(Icons.security_outlined, 'Keamanan', () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const KeamananScreen()),
+                    );
+                  }),
+                  _buildDivider(),
+                  // 2. NAVIGASI DARI MENU LIST NOTIFIKASI
+                  _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const NotifikasiScreen()),
+                    );
+                  }),
                   _buildDivider(),
                   _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {
                     context.push('/pengaturan');

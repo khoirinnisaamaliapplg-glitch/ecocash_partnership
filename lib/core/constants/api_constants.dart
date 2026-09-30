@@ -6,10 +6,9 @@ class ApiConstants {
 
   static String get baseUrl {
     if (kIsWeb) {
-      // Jika di-run di Browser Chrome
-      return 'http://localhost:$_port/api/v1';
+      // Menggunakan 127.0.0.1 agar tidak terjadi isu resolusi IPv6 pada Chrome Web
+      return 'http://127.0.0.1:$_port/api/v1';
     } else if (Platform.isAndroid) {
-      // Jika di-run di Emulator Android
       return 'http://10.0.2.2:$_port/api/v1';
     } else {
       return 'http://127.0.0.1:$_port/api/v1';
