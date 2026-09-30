@@ -32,117 +32,91 @@ class _RegisterScreenState extends State {
     super.dispose();
   }
 
-  // --- FUNGSI INTEGRASI REGISTER PARTNER KE BACKEND DOCKER ---
-  Future _prosesRegisterBackend() async {
-    String name = _nameController.text.trim();
-    String username = _usernameController.text.trim();
-    String phone = _phoneController.text.trim();
-    String email = _emailController.text.trim();
-    String password = _passwordController.text;
+  // --- FUNGSI INTEGRASI REGISTER KE BACKEND EXPRESS ---
+Future _prosesRegisterBackend() async {
+  String name = _nameController.text.trim();
+  String username = _usernameController.text.trim();
+  String phone = _phoneController.text.trim();
+  String email = _emailController.text.trim();
+  String password = _passwordController.text;
 
-    if (name.isEmpty || username.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua kolom wajib diisi!')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConstants.baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
-      );
-
-      // Endpoint Khusus Register Partner: /partners/register
-      final response = await dio.post(
-        '/partners/register',
-        data: {
-          'name': name,
-          'username': username,
-          'email': email,
-          'password': password,
-          'phoneNumber': phone,
-          'type': 'WASTE_COLLECTOR', // Default tipe mitra pengumpul sampah
-        },
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data;
-
-        final String? token = responseData['token'] ?? responseData['data']?['token'];
-        final dynamic userData = responseData['data']?['user'] ?? responseData['user'];
-
-        if (token != null) {
-          await AppStorage.saveToken(token);
-        }
-        if (userData != null) {
-          await AppStorage.saveUserData(userData);
-        }
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(responseData['message'] ?? 'Pendaftaran Partner berhasil dikirim.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Pindah ke halaman OTP / Verifikasi
-        context.go('/otp', extra: {
-          'name': name,
-          'email': email,
-          'phone': phone,
-        });
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.data['message'] ?? 'Registrasi gagal!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } on DioException catch (e) {
-      if (!mounted) return;
-      String errorMessage = 'Registrasi Partner gagal. Silakan periksa kembali data Anda.';
-      
-      if (e.response != null && e.response?.data != null) {
-        final responseData = e.response?.data;
-        if (responseData['errors'] != null) {
-          errorMessage = responseData['errors'].toString();
-        } else if (responseData['message'] != null) {
-          errorMessage = responseData['message'].toString();
-        }
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  if (name.isEmpty || username.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Semua kolom wajib diisi!')),
+    );
+    return;
   }
+
+  setState(() => _isLoading = true);
+
+  final targetUrl = '${ApiConstants.baseUrl}/auth';
+  debugPrint('=== DEBUG START REGISTER ===');
+  debugPrint('TARGET URL: $targetUrl');
+  debugPrint('PAYLOAD: ${{
+    'name': name,
+    'username': username,
+    'email': email,
+    'password': password,
+    'phoneNumber': phone,
+  }}');
+
+  try {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    final response = await dio.post(
+      '/auth',
+      data: {
+        'name': name,
+        'username': username,
+        'email': email,
+        'password': password,
+        'phoneNumber': phone,
+      },
+    );
+
+    debugPrint('RESPONSE STATUS: ${response.statusCode}');
+    debugPrint('RESPONSE DATA: ${response.data}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      if (!mounted) return;
+      context.go('/otp', extra: {
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'phoneNumber': phone,
+      });
+    }
+  } on DioException catch (e) {
+    debugPrint('=== DIO ERROR DETECTED ===');
+    debugPrint('ERROR TYPE: ${e.type}');
+    debugPrint('ERROR MESSAGE: ${e.message}');
+    debugPrint('ERROR RESPONSE STATUS: ${e.response?.statusCode}');
+    debugPrint('ERROR RESPONSE DATA: ${e.response?.data}');
+    debugPrint('ERROR DETAIL: ${e.error}');
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: \({e.type} -\){e.message ?? e.error}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } catch (e) {
+    debugPrint('UNKNOWN ERROR: $e');
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 
   @override
   Widget build(BuildContext context) {

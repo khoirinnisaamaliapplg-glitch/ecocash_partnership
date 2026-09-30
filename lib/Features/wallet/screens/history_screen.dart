@@ -6,10 +6,10 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State {
   String _selectedFilter = 'Semua';
 
   @override
@@ -43,7 +43,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 12),
 
-            // --- FILTER CHIPS ---
+            // --- FILTER CHIPS (Hanya bagian ini yang disesuaikan warnanya) ---
             Row(
               children: [
                 _buildFilterChip('Semua'),
@@ -55,7 +55,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 16),
 
-            // --- LIST TRANSAKSI ---
+            // --- LIST TRANSAKSI (Sesuai kode awal Anda tanpa diubah) ---
             Expanded(
               child: ListView(
                 children: [
@@ -93,6 +93,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // Widget Filter Chip (Warna Navy gelap saat aktif)
   Widget _buildFilterChip(String label) {
     bool isSelected = _selectedFilter == label;
     return GestureDetector(
@@ -101,21 +102,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _selectedFilter = label;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryCyan : Colors.white,
+          color: isSelected ? const Color(0xFF112C56) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppColors.primaryCyan : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF112C56) : const Color(0xFFE0E0E0),
+            width: 1,
+          ),
         ),
         child: Text(
           label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+          ),
         ),
       ),
     );
   }
 
+  // Widget Kartu Riwayat Transaksi (Sesuai kode awal Anda)
   Widget _buildHistoryCard(BuildContext context, IconData icon, Color iconBgColor, String title, String time, String amount, Color amountColor) {
     return InkWell(
       onTap: () {

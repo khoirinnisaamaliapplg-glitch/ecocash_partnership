@@ -20,7 +20,7 @@ import 'package:ecocash_partnership/features/profile/screens/akun_bank_screen.da
 import 'package:ecocash_partnership/features/profile/screens/tambah_rekening_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/detail_rekening_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/pengaturan_screen.dart';
-import 'package:ecocash_partnership/features/profile/screens/keamanan_screen.dart';
+import 'package:ecocash_partnership/features/profile/screens/security/keamanan_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/pengaturan_notifikasi_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/pusat_bantuan_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/chat_cs_screen.dart';

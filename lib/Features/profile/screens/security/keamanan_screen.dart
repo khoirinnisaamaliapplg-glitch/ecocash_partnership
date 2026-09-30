@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/core/theme/app_colors.dart';
 
 class KeamananScreen extends StatefulWidget {
   const KeamananScreen({super.key});
 
   @override
-  State<KeamananScreen> createState() => _KeamananScreenState();
+  State createState() => _KeamananScreenState();
 }
 
-class _KeamananScreenState extends State<KeamananScreen> {
-  bool _isBiometricEnabled = true; // Status toggle biometrik
+class _KeamananScreenState extends State {
+  bool _isBiometricEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,13 @@ class _KeamananScreenState extends State<KeamananScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'Keamanan Akun',
@@ -64,7 +70,6 @@ class _KeamananScreenState extends State<KeamananScreen> {
                     onTap: () {},
                   ),
                   _buildDivider(),
-                  // Biometrik dengan Toggle Switch
                   SwitchListTile(
                     secondary: const Icon(Icons.fingerprint, color: AppColors.textSecondary, size: 24),
                     title: const Text('Login Biometrik', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
@@ -98,7 +103,6 @@ class _KeamananScreenState extends State<KeamananScreen> {
               ),
               child: Column(
                 children: [
-                  // Perangkat 1 (Aktif saat ini)
                   _buildDeviceItem(
                     icon: Icons.phone_android,
                     deviceName: 'Samsung Galaxy S23',
@@ -108,7 +112,6 @@ class _KeamananScreenState extends State<KeamananScreen> {
                     onLogout: () {},
                   ),
                   _buildDivider(),
-                  // Perangkat 2
                   _buildDeviceItem(
                     icon: Icons.laptop_windows,
                     deviceName: 'Windows 11 • Chrome',
@@ -171,7 +174,6 @@ class _KeamananScreenState extends State<KeamananScreen> {
     );
   }
 
-  // Widget Item Pengaturan Kredensial
   Widget _buildSecurityItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary, size: 22),
@@ -182,7 +184,6 @@ class _KeamananScreenState extends State<KeamananScreen> {
     );
   }
 
-  // Widget Item Perangkat Terhubung
   Widget _buildDeviceItem({
     required IconData icon,
     required String deviceName,

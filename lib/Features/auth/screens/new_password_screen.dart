@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart'; // Import service lokal
+import '../../../data/auth_local_service.dart';
 
 class NewPasswordScreen extends StatefulWidget {
   const NewPasswordScreen({super.key});
 
   @override
-  State<NewPasswordScreen> createState() => _NewPasswordScreenState();
+  State createState() => _NewPasswordScreenState();
 }
 
-class _NewPasswordScreenState extends State<NewPasswordScreen> {
+class _NewPasswordScreenState extends State {
   bool _obscurePass1 = true;
   bool _obscurePass2 = true;
 
-  // Controller untuk menangkap input sandi baru & konfirmasi
   final TextEditingController _passController1 = TextEditingController();
   final TextEditingController _passController2 = TextEditingController();
 
@@ -101,53 +100,68 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Tombol Lanjut
-                  ElevatedButton(
-                    onPressed: () async {
-                      // Validasi input kosong
-                      if (_passController1.text.isEmpty || _passController2.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Semua kolom kata sandi harus diisi!')),
-                        );
-                        return;
-                      }
-
-                      // Validasi kecocokan sandi
-                      if (_passController1.text != _passController2.text) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok!')),
-                        );
-                        return;
-                      }
-
-                      // Simpan pembaruan sandi ke database lokal (SharedPreferences)
-                      bool success = await AuthLocalService.updatePassword(_passController1.text);
-
-                      if (!context.mounted) return;
-
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kata sandi berhasil diperbarui!')),
-                        );
-                        context.go('/login'); // Kembali ke halaman login
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Terjadi kesalahan, sesi pemulihan tidak valid.')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Lanjut', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  // Tombol Lanjut (Dengan Gradient Teal Cyan Sesuai Gambar)
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF217D9B), Color(0xFF13B49E)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF13B49E).withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_passController1.text.isEmpty || _passController2.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Semua kolom kata sandi harus diisi!')),
+                          );
+                          return;
+                        }
+
+                        if (_passController1.text != _passController2.text) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok!')),
+                          );
+                          return;
+                        }
+
+                        bool success = await AuthLocalService.updatePassword(_passController1.text);
+
+                        if (!context.mounted) return;
+
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Kata sandi berhasil diperbarui!')),
+                          );
+                          context.go('/login');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Terjadi kesalahan, sesi pemulihan tidak valid.')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Lanjut', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                        ],
+                      ),
                     ),
                   ),
                 ],

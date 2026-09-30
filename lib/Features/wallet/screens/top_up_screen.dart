@@ -5,12 +5,13 @@ class TopUpScreen extends StatefulWidget {
   const TopUpScreen({super.key});
 
   @override
-  State<TopUpScreen> createState() => _TopUpScreenState();
+  State createState() => _TopUpScreenState();
 }
 
-class _TopUpScreenState extends State<TopUpScreen> {
+class _TopUpScreenState extends State {
   final TextEditingController _amountController = TextEditingController();
   String _selectedMethod = 'Transfer Bank (VA)';
+  static const Color _navyColor = Color(0xFF0F2C59);
 
   @override
   void dispose() {
@@ -25,100 +26,149 @@ class _TopUpScreenState extends State<TopUpScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryCyan,
         elevation: 0,
-        title: const Text('Top Up Saldo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Top Up Saldo',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Masukkan nominal top up untuk menambah saldo EcoCash Partner Anda. Minimal top up Rp10.000.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-
-            // --- KARTU INPUT NOMINAL & PILIHAN CEPAT ---
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                ],
-              ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Nominal Top Up', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _amountController,
-                    decoration: InputDecoration(
-                      prefixText: 'Rp ',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  const Text(
+                    'Masukkan nominal top up untuk menambah saldo EcoCash Partner Anda. Minimal top up Rp 10.000.',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- KARTU INPUT NOMINAL & PILIHAN CEPAT ---
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+                      ],
                     ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: ['50.000', '100.000', '250.000', '500.000'].map((nominal) {
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _amountController.text = nominal;
-                          });
-                        },
-                        child: Text(
-                          nominal,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryCyan),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nominal Top Up', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _amountController,
+                          onChanged: (val) {
+                            setState(() {}); // Update tampilan saat input manual
+                          },
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          decoration: InputDecoration(
+                            prefixText: 'Rp ',
+                            prefixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryCyan)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                          keyboardType: TextInputType.number,
                         ),
-                      );
-                    }).toList(),
+                        const SizedBox(height: 16),
+
+                        // --- KOTAK PILIHAN NOMINAL CEPAT ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: ['50.000', '100.000', '250.000', '500.000'].map((nominal) {
+                            bool isSelected = _amountController.text == nominal;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _amountController.text = nominal;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primaryCyan.withOpacity(0.1) : const Color(0xFFF4F6F8),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.primaryCyan : Colors.grey.shade300,
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  nominal,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? AppColors.primaryCyan : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // --- METODE PEMBAYARAN ---
+                  const Text(
+                    'Metode Pembayaran',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _navyColor),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPaymentOption('Transfer Bank (VA)', 'BCA, Mandiri, BNI, BRI', Icons.account_balance),
+                  const SizedBox(height: 10),
+                  _buildPaymentOption('Minimarket', 'Alfamart, Indomaret', Icons.store),
+                  const SizedBox(height: 10),
+                  _buildPaymentOption('QRIS', 'Gopay, OVO, Dana, LinkAja', Icons.qr_code_2),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+          ),
 
-            // --- METODE PEMBAYARAN ---
-            const Text('Metode Pembayaran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-            const SizedBox(height: 12),
-            _buildPaymentOption('Transfer Bank (VA)', 'BCA, Mandiri, BNI, BRI', Icons.account_balance),
-            const SizedBox(height: 10),
-            _buildPaymentOption('Minimarket', 'Alfamart, Indomaret', Icons.store),
-            const SizedBox(height: 10),
-            _buildPaymentOption('QRIS', 'Gopay, OVO, Dana, LinkAja', Icons.qr_code_2),
-            const SizedBox(height: 30),
-
-            // --- TOMBOL LANJUTKAN PEMBAYARAN ---
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Aksi lanjutkan pembayaran
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF28859B), // Warna disesuaikan seperti tombol Konfirmasi Penarikan
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
+          // --- TOMBOL LANJUTKAN PEMBAYARAN (FIXED BOTTOM) ---
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, -2)),
+              ],
+            ),
+            child: SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E88A8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Lanjutkan Pembayaran',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                 ),
-                child: const Text('Lanjutkan Pembayaran', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -132,7 +182,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
         });
       },
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -143,7 +193,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
         ),
         child: Row(
           children: [
-            Radio<String>(
+            Radio(
               value: title,
               groupValue: _selectedMethod,
               onChanged: (value) {
@@ -158,10 +208,10 @@ class _TopUpScreenState extends State<TopUpScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primaryCyan.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFF2F4F7),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: AppColors.primaryCyan, size: 22),
+              child: Icon(icon, color: _navyColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
