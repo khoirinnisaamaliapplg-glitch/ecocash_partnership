@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class OtpScreen extends StatefulWidget {
   final Map userData;
@@ -9,14 +10,16 @@ class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key, this.userData = const {}});
 
   @override
-  State createState() => _OtpScreenState();
+  State<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _OtpScreenState extends State {
-  final List _controllers = List.generate(4, (index) => TextEditingController());
-  final List _focusNodes = List.generate(4, (index) => FocusNode());
+class _OtpScreenState extends State<OtpScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+
+  final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
   
-  String _selectedMethod = 'email'; 
+  String _selectedMethod = 'email'; // Default tab terpilih E-mail
   bool _isComplete = false;
   bool _isLoading = false;
 
@@ -24,7 +27,7 @@ class _OtpScreenState extends State {
   int _secondsRemaining = 60;
   bool _canResend = false;
 
-  Map get _data => (widget as OtpScreen).userData;
+  Map get _data => widget.userData;
 
   @override
   void initState() {
@@ -71,7 +74,7 @@ class _OtpScreenState extends State {
     });
   }
 
-  // --- MASKING EMAIL & NO HP BERSIH ---
+  // --- MASKING EMAIL & PHONE NUMBER ---
   String _maskEmail(String? email) {
     if (email == null || email.trim().isEmpty || !email.contains('@')) {
       return 'mitra@gmail.com';
@@ -81,11 +84,11 @@ class _OtpScreenState extends State {
     String domain = parts[1];
 
     if (name.length <= 3) {
-      return '\({name[0]}***@\)domain';
+      return name[0] + '***@' + domain;
     }
 
     String visibleName = name.substring(0, 3);
-    return '\(visibleName***@\)domain';
+    return visibleName + '***@' + domain;
   }
 
   String _maskPhone(String? phone) {
@@ -95,46 +98,89 @@ class _OtpScreenState extends State {
     String cleanPhone = phone.trim();
     String start = cleanPhone.substring(0, 4);
     String end = cleanPhone.substring(cleanPhone.length - 4);
-    return '\(start ****\)end';
+    return start + ' **** ' + end;
   }
 
-  // TODO(BE-Sync): Kirim ulang OTP di-mock sementara sambil menunggu penyesuaian endpoint backend.
-  Future _resendCode() async {
-    if (!_canResend || _isLoading) return;
+  // --- RESEND OTP (Dinamis Email / WhatsApp) ---
+  Future<void> _resendCode() async {
+    String emailTarget = _data['email'] ?? '';
+    String phoneTarget = _data['phone'] ?? _data['phoneNumber'] ?? '';
+
+    bool isEmail = _selectedMethod == 'email';
+    String target = isEmail ? emailTarget : phoneTarget;
+
+    if (target.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEmail ? 'Alamat Email tidak terdeteksi!' : 'Nomor WhatsApp tidak terdeteksi!'),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_selectedMethod == 'email' 
-            ? 'Kode verifikasi telah dikirim ulang ke email Anda.' 
-            : 'Kode OTP SMS/WA berhasil dikirim ulang.'),
-        backgroundColor: Colors.green,
-      ),
+    final result = await _apiService.sendOtp(
+      email: isEmail ? emailTarget : null,
+      phoneNumber: !isEmail ? phoneTarget : null,
+      channel: isEmail ? 'EMAIL' : 'WHATSAPP',
+      purpose: 'REGISTRATION',
     );
-    _startTimer();
-  }
-
-  // TODO(BE-Sync): Backend saat ini menggunakan Magic Link 64-char.
-  // Sementara di-fallback ke dialog sukses agar alur UI/UX mobile bisa dites oleh Lead FE & QA.
-  Future _verifyOtp() async {
-    String otpCode = _controllers.map((c) => c.text).join();
-    if (otpCode.length < 4) return;
-
-    setState(() => _isLoading = true);
-
-    // Simulasi respons jaringan
-    await Future.delayed(const Duration(milliseconds: 600));
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // Mengizinkan lolos ke Dashboard
-    _showSuccessDialog(context);
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Kode OTP berhasil dikirim ulang.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _startTimer();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal mengirim ulang OTP.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // --- VERIFY OTP (Dinamis Email / WhatsApp) ---
+  Future<void> _verifyOtp() async {
+    String otpCode = _controllers.map((c) => c.text).join();
+    String emailTarget = _data['email'] ?? '';
+    String phoneTarget = _data['phone'] ?? _data['phoneNumber'] ?? '';
+
+    bool isEmail = _selectedMethod == 'email';
+    String target = isEmail ? emailTarget : phoneTarget;
+
+    if (otpCode.length < 4 || target.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    final result = await _apiService.verifyOtp(
+      email: isEmail ? emailTarget : null,
+      phoneNumber: !isEmail ? phoneTarget : null,
+      code: otpCode,
+      purpose: 'REGISTRATION',
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      _showSuccessDialog(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Verifikasi OTP gagal.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -266,8 +312,8 @@ class _OtpScreenState extends State {
                   const SizedBox(height: 16),
                   Text(
                     _selectedMethod == 'email'
-                        ? 'Masukkan kode verifikasi yang dikirim ke email\n${_maskEmail(emailTarget)}'
-                        : 'Masukkan 4 digit kode OTP yang dikirim ke nomor\n${_maskPhone(phoneTarget)}',
+                        ? 'Masukkan kode verifikasi yang dikirim ke email\n' + _maskEmail(emailTarget)
+                        : 'Masukkan 4 digit kode OTP yang dikirim ke nomor\n' + _maskPhone(phoneTarget),
                     style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 24),
@@ -317,7 +363,7 @@ class _OtpScreenState extends State {
                           child: Text(
                             _canResend
                                 ? 'Kirim Ulang Kode Sekarang'
-                                : 'Kirim ulang dalam 00:${_secondsRemaining.toString().padLeft(2, '0')}',
+                                : 'Kirim ulang dalam 00:' + _secondsRemaining.toString().padLeft(2, '0'),
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -435,7 +481,7 @@ class _OtpScreenState extends State {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Akun EcoCash Partner Anda berhasil diverifikasi.',
+              'Akun EcoCash Partner Anda berhasil diverifikasi. Silakan masuk menggunakan akun Anda.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
@@ -457,7 +503,7 @@ class _OtpScreenState extends State {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
-                  context.go('/main', extra: _data);
+                  context.go('/login');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
@@ -467,7 +513,7 @@ class _OtpScreenState extends State {
                   ),
                 ),
                 child: const Text(
-                  'Lanjut ke Dashboard',
+                  'Lanjut ke Halaman Login',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
