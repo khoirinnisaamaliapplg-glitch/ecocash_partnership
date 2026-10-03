@@ -1,16 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
-class ForgotPasswordScreen extends StatelessWidget {
+class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController phoneController = TextEditingController();
-    final TextEditingController emailController = TextEditingController();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
 
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final TextEditingController _phoneController = TextEditingController();
+  final PartnerApiService _apiService = PartnerApiService();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  // Fungsi pembantu untuk konversi otomatis 08... menjadi 62...
+  String _normalizeTo62(String phone) {
+    String clean = phone.replaceAll(RegExp(r'\D'), ''); // Hapus spasi/karakter non-digit
+    if (clean.startsWith('0')) {
+      return '62${clean.substring(1)}';
+    }
+    return clean;
+  }
+
+  Future<void> _requestOtpBackend() async {
+    String rawPhone = _phoneController.text.trim();
+
+    if (rawPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan nomor WhatsApp Anda!')),
+      );
+      return;
+    }
+
+    // Otomatis ubah awalan 08 menjadi 62 sebelum dikirim ke API
+    String formattedPhone = _normalizeTo62(rawPhone);
+
+    setState(() => _isLoading = true);
+
+    final result = await _apiService.sendOtp(
+      phoneNumber: formattedPhone,
+      channel: 'WHATSAPP',
+      purpose: 'FORGOT_PASSWORD',
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Kode OTP berhasil dikirim via WhatsApp.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      context.push('/forgot-otp', extra: {
+        'target': formattedPhone,
+        'phoneNumber': formattedPhone,
+        'channel': 'WHATSAPP',
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal mengirim kode OTP.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       body: SafeArea(
@@ -38,7 +106,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                     alignment: Alignment.topLeft,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => context.pop(),
+                      onPressed: _isLoading ? null : () => context.pop(),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -59,35 +127,22 @@ class ForgotPasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Input No Ponsel
-                  const Text('Nomor Ponsel yang Terdaftar', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
+                  const Text('Nomor WhatsApp Terdaftar', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
                   const SizedBox(height: 6),
                   TextFormField(
-                    controller: phoneController,
+                    controller: _phoneController,
+                    enabled: !_isLoading,
                     keyboardType: TextInputType.phone,
                     decoration: InputDecoration(
-                      hintText: 'Contoh: 08123456789',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Input Email
-                  const Text('E-mail yang terdaftar', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Contoh: baba@gmail.com',
+                      hintText: 'Contoh: 085716818225',
+                      helperText: 'Bisa diawali 08... atau 62...',
+                      prefixIcon: const Icon(Icons.phone_android),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // --- TOMBOL LANJUT DENGAN GRADASI ---
                   Container(
                     width: double.infinity,
                     height: 52,
@@ -103,28 +158,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (phoneController.text.isEmpty && emailController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Masukkan nomor ponsel atau e-mail Anda!')),
-                          );
-                          return;
-                        }
-
-                        String identifier = phoneController.text.isNotEmpty ? phoneController.text : emailController.text;
-
-                        String? existingPassword = await AuthLocalService.resetPassword(identifier);
-
-                        if (!context.mounted) return;
-
-                        if (existingPassword != null) {
-                          context.push('/forgot-otp');
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nomor atau E-mail tidak ditemukan di sistem!')),
-                          );
-                        }
-                      },
+                      onPressed: _isLoading ? null : _requestOtpBackend,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -132,20 +166,20 @@ class ForgotPasswordScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Lanjut',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            '→',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ],
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Kirim OTP WhatsApp', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                              ],
+                            ),
                     ),
                   ),
                 ],

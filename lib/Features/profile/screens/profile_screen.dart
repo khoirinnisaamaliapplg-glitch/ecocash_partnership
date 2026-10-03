@@ -3,21 +3,21 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../../data/app_storage.dart';
+import '../../../data/app_storage.dart';
 import 'vehicles/vehicle_list_screen.dart';
 import 'documents/dokumen_identitas_screen.dart';
 import 'academy/ecocash_academy_screen.dart';
 import 'security/keamanan_screen.dart';
-import 'notifications/notifikasi_screen.dart'; // <--- Import NotifikasiScreen di sini
+import 'notifications/notifikasi_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State {
+class _ProfileScreenState extends State<ProfileScreen> {
   Map _profileData = {};
   bool _isLoading = true;
 
@@ -27,21 +27,37 @@ class _ProfileScreenState extends State {
     _loadProfileData();
   }
 
-  Future _loadProfileData() async {
+  Future<void> _loadProfileData() async {
     final data = await AppStorage.getProfile();
-    setState(() {
-      _profileData = data;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _profileData = Map.from(data ?? {});
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String name = _profileData['name'] ?? 'Budi Santoso';
+    final String name = _profileData['name'] ??
+        _profileData['fullName'] ??
+        _profileData['username'] ??
+        'Mitra EcoCash';
+
     final String? base64Image = _profileData['imageBytes'];
     Uint8List? imageBytes;
     if (base64Image != null && base64Image.isNotEmpty) {
-      imageBytes = base64Decode(base64Image);
+      try {
+        imageBytes = base64Decode(base64Image);
+      } catch (_) {
+        imageBytes = null;
+      }
+    }
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -61,13 +77,12 @@ class _ProfileScreenState extends State {
             ),
             const SizedBox(width: 10),
             Text(
-              'Halo, $name',
+              'Halo, ' + name,
               style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         actions: [
-          // 1. NAVIGASI DARI LONCENG APP BAR
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
             onPressed: () {
@@ -128,9 +143,9 @@ class _ProfileScreenState extends State {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'ID: ECO-PA-001928',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  Text(
+                    _profileData['id'] != null ? 'ID: ' + _profileData['id'].toString() : 'ID: ECO-PA-001928',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -139,9 +154,9 @@ class _ProfileScreenState extends State {
                       color: Colors.green.shade50,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(Icons.check_circle, size: 12, color: Colors.green),
                         SizedBox(width: 4),
                         Text('Terverifikasi', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
@@ -194,9 +209,9 @@ class _ProfileScreenState extends State {
                           color: const Color(0xFFE0E0E0),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.military_tech, size: 14, color: Colors.black87),
                             SizedBox(width: 4),
                             Text('Level Silver', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
@@ -206,9 +221,9 @@ class _ProfileScreenState extends State {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  const Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: const [
+                    children: [
                       Text('876', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                       Padding(
                         padding: EdgeInsets.only(bottom: 4, left: 4),
@@ -260,9 +275,9 @@ class _ProfileScreenState extends State {
                         child: const Icon(Icons.assignment_turned_in, color: Colors.green, size: 24),
                       ),
                       const SizedBox(width: 12),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Pekerjaan Selesai', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           SizedBox(height: 2),
                           Text('426 Tugas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -287,9 +302,9 @@ class _ProfileScreenState extends State {
                         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
                       ],
                     ),
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Icon(Icons.eco, color: AppColors.primaryCyan, size: 22),
                         SizedBox(height: 12),
                         Text('8,4 Ton', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -310,9 +325,9 @@ class _ProfileScreenState extends State {
                         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
                       ],
                     ),
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Icon(Icons.star, color: Colors.amber, size: 22),
                         SizedBox(height: 12),
                         Text('4,89 / 5', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -326,65 +341,68 @@ class _ProfileScreenState extends State {
             ),
             const SizedBox(height: 24),
 
-            // --- DAFTAR MENU PENGATURAN ---
+            // --- DAFTAR MENU PENGATURAN (DIFIX DENGAN MATERIAL) ---
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
                 ],
               ),
-              child: Column(
-                children: [
-                  _buildMenuItem(Icons.account_balance_outlined, 'Akun Bank', () {
-                    context.push('/akun-bank');
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.description_outlined, 'Dokumen', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const DokumenIdentitasScreen()),
-                    );
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const EcocashAcademyScreen()),
-                    );
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {
-                    context.push('/dampak-saya');
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.directions_car_outlined, 'Kendaraan', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const VehicleListScreen()),
-                    );
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.security_outlined, 'Keamanan', () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const KeamananScreen()),
-                    );
-                  }),
-                  _buildDivider(),
-                  // 2. NAVIGASI DARI MENU LIST NOTIFIKASI
-                  _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const NotifikasiScreen()),
-                    );
-                  }),
-                  _buildDivider(),
-                  _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {
-                    context.push('/pengaturan');
-                  }),
-                ],
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    _buildMenuItem(Icons.account_balance_outlined, 'Akun Bank', () {
+                      context.push('/akun-bank');
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.description_outlined, 'Dokumen', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DokumenIdentitasScreen()),
+                      );
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const EcocashAcademyScreen()),
+                      );
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.emoji_events_outlined, 'Dampak saya', () {
+                      context.push('/dampak-saya');
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.directions_car_outlined, 'Kendaraan', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const VehicleListScreen()),
+                      );
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.security_outlined, 'Keamanan', () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const KeamananScreen()),
+                      );
+                    }),
+                    _buildDivider(),
+                    _buildMenuItemWithBadge(Icons.notifications_outlined, 'Notifikasi', true, () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotifikasiScreen()),
+                      );
+                    }),
+                    _buildDivider(),
+                    _buildMenuItem(Icons.settings_outlined, 'Pengaturan', () {
+                      context.push('/pengaturan');
+                    }),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -392,8 +410,13 @@ class _ProfileScreenState extends State {
             // --- TOMBOL KELUAR AKUN ---
             Center(
               child: TextButton.icon(
-                onPressed: () {
-                  context.go('/login');
+                onPressed: () async {
+                  await AppStorage.saveToken('');
+                  await AppStorage.saveUserData({});
+                  await AppStorage.saveProfile({});
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
                 },
                 icon: const Icon(Icons.logout, color: Colors.red, size: 18),
                 label: const Text('Keluar Akun', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),

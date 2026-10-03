@@ -1,27 +1,99 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../data/auth_local_service.dart';
+import 'package:ecocash_partnership/services/api_service.dart'; // <-- 1. IMPORT SERVICE DI SINI (sesuaikan path jika beda)
 
 class NewPasswordScreen extends StatefulWidget {
-  const NewPasswordScreen({super.key});
+  final Map extraData;
+
+  const NewPasswordScreen({super.key, this.extraData = const {}});
 
   @override
-  State createState() => _NewPasswordScreenState();
+  State<NewPasswordScreen> createState() => _NewPasswordScreenState();
 }
 
-class _NewPasswordScreenState extends State {
+class _NewPasswordScreenState extends State<NewPasswordScreen> {
+  // <-- 2. DEKLARASI API SERVICE DI SINI
+  final PartnerApiService _apiService = PartnerApiService();
+
   bool _obscurePass1 = true;
   bool _obscurePass2 = true;
+  bool _isLoading = false;
 
   final TextEditingController _passController1 = TextEditingController();
   final TextEditingController _passController2 = TextEditingController();
+
+  Map get _data => widget.extraData;
 
   @override
   void dispose() {
     _passController1.dispose();
     _passController2.dispose();
     super.dispose();
+  }
+
+  Future<void> _resetPasswordBackend() async {
+    String pass1 = _passController1.text;
+    String pass2 = _passController2.text;
+    String target = _data['target'] ?? _data['phoneNumber'] ?? '';
+    String code = _data['code'] ?? '';
+
+    if (pass1.isEmpty || pass2.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua kolom kata sandi harus diisi!')),
+      );
+      return;
+    }
+
+    if (pass1.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kata sandi minimal 6 karakter!')),
+      );
+      return;
+    }
+
+    if (pass1 != pass2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok!')),
+      );
+      return;
+    }
+
+    if (target.isEmpty || code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sesi pemulihan tidak valid, silakan ulangi proses.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await _apiService.resetPasswordOtp(
+      phoneNumber: target,
+      code: code,
+      newPassword: pass1,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Kata sandi berhasil diperbarui!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      context.go('/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal memperbarui kata sandi.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -64,12 +136,12 @@ class _NewPasswordScreenState extends State {
                   ),
                   const SizedBox(height: 16),
 
-                  // Masukan Kata Sandi Baru
                   const Text('Masukan Kata Sandi Baru', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _passController1,
                     obscureText: _obscurePass1,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Masukkan kata sandi',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -82,12 +154,12 @@ class _NewPasswordScreenState extends State {
                   ),
                   const SizedBox(height: 16),
 
-                  // Konfirmasi Sandi
                   const Text('Konfirmasi Sandi', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 12)),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: _passController2,
                     obscureText: _obscurePass2,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Masukkan kata sandi',
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -100,7 +172,6 @@ class _NewPasswordScreenState extends State {
                   ),
                   const SizedBox(height: 24),
 
-                  // Tombol Lanjut (Dengan Gradient Teal Cyan Sesuai Gambar)
                   Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -118,50 +189,23 @@ class _NewPasswordScreenState extends State {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (_passController1.text.isEmpty || _passController2.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Semua kolom kata sandi harus diisi!')),
-                          );
-                          return;
-                        }
-
-                        if (_passController1.text != _passController2.text) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok!')),
-                          );
-                          return;
-                        }
-
-                        bool success = await AuthLocalService.updatePassword(_passController1.text);
-
-                        if (!context.mounted) return;
-
-                        if (success) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Kata sandi berhasil diperbarui!')),
-                          );
-                          context.go('/login');
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Terjadi kesalahan, sesi pemulihan tidak valid.')),
-                          );
-                        }
-                      },
+                      onPressed: _isLoading ? null : _resetPasswordBackend,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Lanjut', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                        ],
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('Simpan & Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                SizedBox(width: 8),
+                                Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                              ],
+                            ),
                     ),
                   ),
                 ],

@@ -10,10 +10,10 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State {
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
@@ -27,93 +27,116 @@ class _LoginScreenState extends State {
     super.dispose();
   }
 
- // Ubah fungsi _prosesLoginBackend pada LoginScreen:
-Future _prosesLoginBackend() async {
-  String identifier = _identifierController.text.trim();
-  String password = _passwordController.text;
-
-  if (identifier.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
-    );
-    return;
+  // --- FUNGSI PEMBANTU NORMALISASI NOMOR HP / EMAIL / USERNAME ---
+  String _normalizeIdentifier(String input) {
+    String clean = input.trim();
+    // Jika input hanya berisi angka dan diawali angka 0 (Nomor HP Indonesia)
+    if (clean.startsWith('0') && RegExp(r'^[0-9]+$').hasMatch(clean)) {
+      return '62${clean.substring(1)}';
+    }
+    return clean;
   }
 
-  setState(() => _isLoading = true);
+  // --- FUNGSI INTEGRASI LOGIN KE BACKEND EXPRESS PARTNER ---
+  Future<void> _prosesLoginBackend() async {
+    String rawIdentifier = _identifierController.text.trim();
+    String password = _passwordController.text;
 
-  try {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
-    );
-
-    final response = await dio.post(
-      '/auth/login',
-      data: {
-        'identifier': identifier,
-        'password': password,
-      },
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final responseData = response.data;
-      
-      // Mengambil token dan user dari balik pembungkus data controller Express
-      final String? token = responseData['data']?['token'];
-      final dynamic userData = responseData['data']?['user'];
-
-      if (token != null) {
-        await AppStorage.saveToken(token);
-      }
-
-      if (userData != null) {
-        await AppStorage.saveUserData(userData);
-      }
-
-      if (!mounted) return;
-
-      String name = userData?['name'] ?? userData?['username'] ?? 'Mitra Partner';
-
+    if (rawIdentifier.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Berhasil masuk! Selamat datang, $name'),
-          backgroundColor: Colors.green,
+        const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
+      );
+      return;
+    }
+
+    // Otomatis ubah 08xxx menjadi 62xxx jika berupa nomor HP
+    String normalizedIdentifier = _normalizeIdentifier(rawIdentifier);
+
+    setState(() => _isLoading = true);
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
         ),
       );
 
-      context.go('/main', extra: {'name': name});
-    }
-  } on DioException catch (e) {
-    if (!mounted) return;
-    String errorMessage = 'Login gagal';
-    
-    if (e.response?.data != null) {
-      final responseData = e.response?.data;
-      errorMessage = responseData['message'] ?? errorMessage;
-    }
+      // KIRIM REQUEST LOGIN KHUSUS PARTNER (Ke /partners/login)
+      final response = await dio.post(
+        '/partners/login',
+        data: {
+          'identifier': normalizedIdentifier,
+          'password': password,
+        },
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(errorMessage),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
-    );
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+        
+        // Mengambil token dan user dari balik pembungkus data controller Express
+        final String? token = responseData['data']?['token'];
+        final dynamic userData = responseData['data']?['user'];
+
+        if (token != null) {
+          await AppStorage.saveToken(token);
+        }
+
+        if (userData != null) {
+          await AppStorage.saveUserData(userData);
+          // SIMPAN JUGA KE PROFILE STORAGE AGAR DIBACA OLEH PROFILE SCREEN
+          if (userData is Map) {
+            await AppStorage.saveProfile(Map.from(userData));
+          } else {
+            await AppStorage.saveProfile({
+              'name': userData['name'] ?? userData['username'] ?? 'Mitra Partner',
+              'email': userData['email'] ?? '',
+            });
+          }
+        }
+
+        if (!mounted) return;
+
+        String name = userData?['name'] ?? userData?['username'] ?? 'Mitra Partner';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Berhasil masuk! Selamat datang, $name'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        context.go('/main', extra: {'name': name});
+      }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      String errorMessage = 'Login gagal';
+      
+      if (e.response?.data != null) {
+        final responseData = e.response?.data;
+        errorMessage = responseData['message'] ?? errorMessage;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-}
   
   void _showGoogleAccountPicker() {
     showModalBottomSheet(
@@ -282,6 +305,12 @@ Future _prosesLoginBackend() async {
               onPressed: () async {
                 await AuthLocalService.googleSignIn(email: email, name: name);
                 
+                // SIMPAN NAMA & EMAIL GOOGLE KE APPSTORAGE
+                await AppStorage.saveProfile({
+                  'name': name,
+                  'email': email,
+                });
+
                 if (!context.mounted) return;
                 Navigator.pop(context);
 
