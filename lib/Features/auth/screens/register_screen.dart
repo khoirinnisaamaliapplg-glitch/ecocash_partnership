@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dio/dio.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/constants/api_constants.dart';
-import '../../../data/app_storage.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State createState() => _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State {
+class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
+  final PartnerApiService _apiService = PartnerApiService();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -32,91 +32,72 @@ class _RegisterScreenState extends State {
     super.dispose();
   }
 
-  // --- FUNGSI INTEGRASI REGISTER KE BACKEND EXPRESS ---
-Future _prosesRegisterBackend() async {
-  String name = _nameController.text.trim();
-  String username = _usernameController.text.trim();
-  String phone = _phoneController.text.trim();
-  String email = _emailController.text.trim();
-  String password = _passwordController.text;
-
-  if (name.isEmpty || username.isEmpty || phone.isEmpty || email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Semua kolom wajib diisi!')),
-    );
-    return;
+  // Helper untuk konversi otomatis 08xx menjadi 628xx
+  String _normalizePhoneNumber(String phone) {
+    String clean = phone.replaceAll(RegExp(r'\D'), '');
+    if (clean.startsWith('0')) {
+      return '62${clean.substring(1)}';
+    }
+    return clean;
   }
 
-  setState(() => _isLoading = true);
+  // --- FUNGSI REGISTER PARTNER TERINTEGRASI ---
+  Future<void> _prosesRegisterBackend() async {
+    String name = _nameController.text.trim();
+    String username = _usernameController.text.trim();
+    String rawPhone = _phoneController.text.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text;
 
-  final targetUrl = '${ApiConstants.baseUrl}/auth';
-  debugPrint('=== DEBUG START REGISTER ===');
-  debugPrint('TARGET URL: $targetUrl');
-  debugPrint('PAYLOAD: ${{
-    'name': name,
-    'username': username,
-    'email': email,
-    'password': password,
-    'phoneNumber': phone,
-  }}');
+    if (name.isEmpty || username.isEmpty || rawPhone.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua kolom wajib diisi!')),
+      );
+      return;
+    }
 
-  try {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ),
+    String formattedPhone = _normalizePhoneNumber(rawPhone);
+
+    setState(() => _isLoading = true);
+
+    final result = await _apiService.register(
+      name: name,
+      username: username,
+      email: email,
+      phoneNumber: formattedPhone,
+      password: password,
+      companyName: name,
+      type: 'WASTE_COLLECTOR',
     );
 
-    final response = await dio.post(
-      '/auth',
-      data: {
-        'name': name,
-        'username': username,
-        'email': email,
-        'password': password,
-        'phoneNumber': phone,
-      },
-    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
 
-    debugPrint('RESPONSE STATUS: ${response.statusCode}');
-    debugPrint('RESPONSE DATA: ${response.data}');
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Registrasi berhasil! Kode OTP telah dikirim.'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      if (!mounted) return;
+      // Navigasi ke halaman OTP Registrasi membawa data email & nomor HP
       context.go('/otp', extra: {
         'name': name,
         'email': email,
-        'phone': phone,
-        'phoneNumber': phone,
+        'phone': formattedPhone,
+        'phoneNumber': formattedPhone,
       });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Registrasi Partner gagal.'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
-  } on DioException catch (e) {
-    debugPrint('=== DIO ERROR DETECTED ===');
-    debugPrint('ERROR TYPE: ${e.type}');
-    debugPrint('ERROR MESSAGE: ${e.message}');
-    debugPrint('ERROR RESPONSE STATUS: ${e.response?.statusCode}');
-    debugPrint('ERROR RESPONSE DATA: ${e.response?.data}');
-    debugPrint('ERROR DETAIL: ${e.error}');
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: \({e.type} -\){e.message ?? e.error}'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } catch (e) {
-    debugPrint('UNKNOWN ERROR: $e');
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -327,50 +308,6 @@ Future _prosesRegisterBackend() async {
                               ],
                             ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'Atau masuk dengan',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _isLoading ? null : () {},
-                          icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 32),
-                          label: const Text('Google', style: TextStyle(color: AppColors.textPrimary)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _isLoading ? null : () {},
-                          icon: const Icon(Icons.apple, color: Colors.black, size: 24),
-                          label: const Text('Apple', style: TextStyle(color: AppColors.textPrimary)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
