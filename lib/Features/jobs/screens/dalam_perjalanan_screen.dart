@@ -3,27 +3,73 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
-class DalamPerjalananScreen extends StatelessWidget {
+class DalamPerjalananScreen extends StatefulWidget {
   final Map<String, dynamic> jobData;
 
   const DalamPerjalananScreen({super.key, required this.jobData});
 
   @override
+  State<DalamPerjalananScreen> createState() => _DalamPerjalananScreenState();
+}
+
+class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+  bool _isActionLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initStartRoute();
+  }
+
+  Future<void> _initStartRoute() async {
+    final dynamic jobId = widget.jobData['id'];
+    if (jobId != null) {
+      await _apiService.startRoute(jobId);
+    }
+  }
+
+  Future<void> _handleCheckIn() async {
+    final dynamic jobId = widget.jobData['id'];
+    if (jobId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anda telah sampai di lokasi penjemputan!')),
+      );
+      return;
+    }
+
+    setState(() => _isActionLoading = true);
+    final res = await _apiService.checkIn(jobId);
+    setState(() => _isActionLoading = false);
+
+    if (mounted) {
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Check-in lokasi berhasil tervalidasi!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['message'] ?? 'Gagal melakukan check-in')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String material = jobData['materialTag'] ?? 'PET (Botol)';
-    final String volume = jobData['volume'] ?? '44,80 kg';
+    final String material = widget.jobData['materialTag'] ?? 'PET (Botol)';
+    final String volume = widget.jobData['volume'] ?? '44,80 kg';
 
-    // Titik Koordinat Sesuai Referensi Gambar (Area Bandung)
-    final LatLng startLocation = const LatLng(-6.9220, 107.6100); // Titik Asal (Pin Merah)
-    final LatLng destinationLocation = const LatLng(-6.9200, 107.6350); // Titik Tujuan (Pin Hijau)
+    final LatLng startLocation = const LatLng(-6.9220, 107.6100);
+    final LatLng destinationLocation = const LatLng(-6.9200, 107.6350);
 
-    // Titik jalur rute siku-siku/berkelok mengikuti jalan raya di gambar
     final List<LatLng> routePoints = [
       startLocation,
-      const LatLng(-6.9150, 107.6100), // Belok ke utara
-      const LatLng(-6.9150, 107.6220), // Belok ke timur melewati Jl. Sunda/Jawa
-      const LatLng(-6.9210, 107.6250), // Belok ke tenggara menuju Jl. Laswi
+      const LatLng(-6.9150, 107.6100),
+      const LatLng(-6.9150, 107.6220),
+      const LatLng(-6.9210, 107.6250),
       destinationLocation,
     ];
 
@@ -41,7 +87,6 @@ class DalamPerjalananScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // --- 1. PETA INTERAKTIF LEAFLET DENGAN RUTE & LABEL ECO CASH ---
           Positioned.fill(
             bottom: 250,
             child: FlutterMap(
@@ -54,8 +99,6 @@ class DalamPerjalananScreen extends StatelessWidget {
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.ecocash_partnership',
                 ),
-                
-                // Garis Rute (Polyline) Berwarna Toska/Cyan Gelap
                 PolylineLayer(
                   polylines: [
                     Polyline(
@@ -65,11 +108,8 @@ class DalamPerjalananScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // Marker Pin & Label "EcoCash"
                 MarkerLayer(
                   markers: [
-                    // Marker Awal (Merah) dengan Label EcoCash
                     Marker(
                       point: startLocation,
                       width: 100,
@@ -82,18 +122,12 @@ class DalamPerjalananScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(4),
-                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
                             ),
-                            child: const Text(
-                              'EcoCash',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
-                            ),
+                            child: const Text('EcoCash', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                           ),
                         ],
                       ),
                     ),
-                    
-                    // Marker Tujuan (Hijau) dengan Label EcoCash
                     Marker(
                       point: destinationLocation,
                       width: 100,
@@ -106,12 +140,8 @@ class DalamPerjalananScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(4),
-                              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
                             ),
-                            child: const Text(
-                              'EcoCash',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
-                            ),
+                            child: const Text('EcoCash', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
                           ),
                         ],
                       ),
@@ -121,8 +151,6 @@ class DalamPerjalananScreen extends StatelessWidget {
               ],
             ),
           ),
-
-          // --- 2. KARTU INFORMASI DI BAGIAN BAWAH ---
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -169,20 +197,9 @@ class DalamPerjalananScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primaryCyan),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                        child: const Text('Menuju Lokasi', style: TextStyle(fontSize: 12, color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: Color(0xFFEEEEEE)),
-                  const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -225,47 +242,19 @@ class DalamPerjalananScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.alt_route, size: 16, color: AppColors.textPrimary),
-                          label: const Text('Lihat Rute', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            side: BorderSide(color: Colors.grey.shade400),
-                          ),
-                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: _isActionLoading ? null : _handleCheckIn,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryCyan,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryButtonGradient,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 3)),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Anda telah sampai di lokasi penjemputan!')),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Sudah Sampai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                    ],
+                      child: _isActionLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Sudah Sampai & Check-In', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
                   ),
                 ],
               ),
