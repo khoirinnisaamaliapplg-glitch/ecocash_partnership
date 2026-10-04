@@ -3,10 +3,37 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 
 class SuccessWithdrawScreen extends StatelessWidget {
-  const SuccessWithdrawScreen({super.key});
+  final Map<String, dynamic>? withdrawalData;
+
+  const SuccessWithdrawScreen({super.key, this.withdrawalData});
+
+  String _formatRupiah(dynamic rawAmount) {
+    if (rawAmount == null) return 'Rp 0';
+    double amount = double.tryParse(rawAmount.toString()) ?? 0;
+    // Format sederhana dengan titik pemisah ribuan
+    String formatted = amount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+    return 'Rp $formatted';
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Ekstraksi data dinamis dari backend dengan fallback jika data kosong
+    final data = withdrawalData ?? {};
+    final String amountText = _formatRupiah(data['amount'] ?? 0);
+    final String trxId = data['id'] != null ? 'TRX-${data['id']}' : 'TRX-${DateTime.now().millisecondsSinceEpoch}';
+    
+    final bankObj = data['bankAccount'] as Map<String, dynamic>?;
+    final String bankName = bankObj?['bankName'] ?? 'Bank';
+    final String accNum = bankObj?['accountNumber'] ?? '-';
+    final String bankInfo = '$bankName - $accNum';
+
+    final String timeText = data['createdAt'] != null 
+        ? data['createdAt'].toString().replaceFirst('T', ' ').substring(0, 16)
+        : 'Hari ini';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -54,9 +81,11 @@ class SuccessWithdrawScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Rp 250.000',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                
+                // Nominal Dinamis
+                Text(
+                  amountText,
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 20),
 
@@ -70,12 +99,12 @@ class SuccessWithdrawScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      _buildDetailRow('Waktu Transaksi', '24 Okt 2025, 14:30'),
+                      _buildDetailRow('Waktu Transaksi', timeText),
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Divider(height: 1, color: Color(0xFFEEEEEE)),
                       ),
-                      _buildDetailRow('Bank Tujuan', 'BCA - 1234567890'),
+                      _buildDetailRow('Bank Tujuan', bankInfo),
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 10),
                         child: Divider(height: 1, color: Color(0xFFEEEEEE)),
@@ -86,11 +115,11 @@ class SuccessWithdrawScreen extends StatelessWidget {
                           const Text('ID Transaksi', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           Row(
                             children: [
-                              const Text('TRX-987654321', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                              Text(trxId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                               const SizedBox(width: 6),
                               InkWell(
                                 onTap: () {
-                                  Clipboard.setData(const ClipboardData(text: 'TRX-987654321'));
+                                  Clipboard.setData(ClipboardData(text: trxId));
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('ID Transaksi disalin!'), duration: Duration(seconds: 1)),
                                   );
@@ -114,7 +143,7 @@ class SuccessWithdrawScreen extends StatelessWidget {
                     icon: const Icon(Icons.share, color: Colors.white, size: 16),
                     label: const Text('Bagikan Resi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF28859B), // Warna disesuaikan
+                      backgroundColor: const Color(0xFF28859B),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,

@@ -18,17 +18,28 @@ class PartnerApiService {
       ),
     );
 
-    // Interceptor untuk otomatis menyisipkan Token JWT dari AppStorage
+    // Interceptor untuk menyisipkan Token JWT + LOGGING DEBUG KONEKSI
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await AppStorage.getToken();
+          print('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
+          print('>>> [API TOKEN] $token');
+          print('>>> [API PAYLOAD] ${options.data}');
+          
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          print('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
+          print('<<< [API DATA] ${response.data}');
+          return handler.next(response);
+        },
         onError: (DioException e, handler) {
+          print('<<< [API RESPONSE ERROR] Status: ${e.response?.statusCode}');
+          print('<<< [API ERROR DETAIL] ${e.response?.data}');
           return handler.next(e);
         },
       ),
@@ -51,8 +62,9 @@ class PartnerApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data;
-        final String? token = responseData['data']?['token'];
-        final dynamic userData = responseData['data']?['user'];
+        // Fleksibel: Membaca token baik jika dibungkus 'data' maupun di root
+        final String? token = responseData['data']?['token'] ?? responseData['token'];
+        final dynamic userData = responseData['data']?['user'] ?? responseData['user'] ?? responseData['data'];
 
         if (token != null) {
           await AppStorage.saveToken(token);
@@ -64,7 +76,7 @@ class PartnerApiService {
         return {
           'success': true,
           'message': responseData['message'] ?? 'Login berhasil',
-          'data': responseData['data'],
+          'data': responseData['data'] ?? responseData,
         };
       }
 
@@ -126,7 +138,7 @@ class PartnerApiService {
   Future<Map<String, dynamic>> sendOtp({
     String? phoneNumber,
     String? email,
-    String channel = 'EMAIL', // Definisikan channel 'EMAIL' atau 'WHATSAPP'
+    String channel = 'EMAIL',
     String purpose = 'REGISTRATION',
   }) async {
     try {
@@ -158,7 +170,7 @@ class PartnerApiService {
     }
   }
 
-  /// Verifikasi Kode OTP (Mendukung WHATSAPP dan EMAIL)
+  /// 4. Verifikasi Kode OTP
   Future<Map<String, dynamic>> verifyOtp({
     String? phoneNumber,
     String? email,
@@ -194,7 +206,7 @@ class PartnerApiService {
     }
   }
 
-  /// 5. Reset Password Menggunakan OTP (POST /partners/reset-password/otp)
+  /// 5. Reset Password Menggunakan OTP
   Future<Map<String, dynamic>> resetPasswordOtp({
     required String phoneNumber,
     required String code,
@@ -221,7 +233,7 @@ class PartnerApiService {
     }
   }
 
-  /// 6. Ambil Profil Partner yang Sedang Login (GET /partners/me)
+  /// 6. Ambil Profil Partner yang Sedang Login
   Future<Map<String, dynamic>> getMe() async {
     try {
       final response = await _dio.get('/partners/me');
@@ -240,11 +252,10 @@ class PartnerApiService {
     }
   }
 
-  /// 7. Logout (POST /auth/logout)
+  /// 7. Logout
   Future<Map<String, dynamic>> logout() async {
     try {
       await _dio.post('/auth/logout');
-      // Hapus token penyimpanan (ganti clearAll jika tidak ada)
       await AppStorage.saveToken('');
 
       return {
@@ -259,7 +270,74 @@ class PartnerApiService {
     }
   }
 
-  /// Helper untuk merapikan pesan error dari Express Validator / AppError
+  /// 8. Fetch Daftar Rekening Bank Milik Mitra
+  Future<Map<String, dynamic>> getBankAccounts() async {
+    try {
+      final response = await _dio.get('/partners/me/bank-accounts');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil data rekening: $e'};
+    }
+  }
+
+  /// 9. Tambah Rekening Bank Baru
+  Future<Map<String, dynamic>> addBankAccount({
+    required String bankName,
+    required String accountNumber,
+    required String accountHolderName,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/partners/me/bank-accounts',
+        data: {
+          'bankName': bankName,
+          'accountNumber': accountNumber,
+          'accountHolder': accountHolderName,
+          'accountHolderName': accountHolderName,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Rekening berhasil ditambahkan',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menambahkan rekening: $e'};
+    }
+  }
+
+  /// 10. Ajukan Pencairan Saldo Dompet
+  Future<Map<String, dynamic>> requestWithdrawal({
+    required double amount,
+    required String bankAccountId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/partners/me/withdrawals',
+        data: {
+          'amount': amount,
+          'bankAccountId': bankAccountId,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Pengajuan penarikan berhasil dikirim',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengajukan penarikan: $e'};
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
