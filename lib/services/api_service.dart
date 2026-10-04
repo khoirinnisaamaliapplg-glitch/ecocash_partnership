@@ -62,7 +62,6 @@ class PartnerApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data;
-        // Fleksibel: Membaca token baik jika dibungkus 'data' maupun di root
         final String? token = responseData['data']?['token'] ?? responseData['token'];
         final dynamic userData = responseData['data']?['user'] ?? responseData['user'] ?? responseData['data'];
 
@@ -335,6 +334,161 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal mengajukan penarikan: $e'};
+    }
+  }
+
+  // ======================================================
+  // MODUL JOBS & OPERASIONAL LAPANGAN (TAMBAHAN FITUR BARU)
+  // ======================================================
+
+  /// 11. Ambil daftar pekerjaan publik / tersedia (GET /jobs/available)
+  Future<Map<String, dynamic>> getAvailableJobs() async {
+    try {
+      final response = await _dio.get('/jobs/available');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil daftar pekerjaan: $e'};
+    }
+  }
+
+  /// 12. Ambil detail satu pekerjaan berdasarkan ID (GET /jobs/:id)
+  Future<Map<String, dynamic>> getJobDetail(dynamic jobId) async {
+    try {
+      final response = await _dio.get('/jobs/$jobId');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil detail pekerjaan: $e'};
+    }
+  }
+
+  /// 13. Menerima / Klaim Pekerjaan oleh Partner (POST /jobs/:id/accept)
+  Future<Map<String, dynamic>> acceptJob(dynamic jobId) async {
+    try {
+      final response = await _dio.post('/jobs/$jobId/accept');
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Pekerjaan berhasil diambil',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil pekerjaan: $e'};
+    }
+  }
+
+  /// 14. Membatalkan pekerjaan yang sedang aktif (POST /jobs/:id/cancel)
+  Future<Map<String, dynamic>> cancelJob(dynamic jobId, {String? reason}) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/cancel',
+        data: reason != null ? {'reason': reason} : {},
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Pekerjaan berhasil dibatalkan',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal membatalkan pekerjaan: $e'};
+    }
+  }
+
+  /// 15. Memulai rute perjalanan menuju lokasi (PATCH /jobs/:id/start-route)
+  Future<Map<String, dynamic>> startRoute(dynamic jobId) async {
+    try {
+      final response = await _dio.patch('/jobs/$jobId/start-route');
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Perjalanan dimulai',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memulai rute: $e'};
+    }
+  }
+
+  /// 16. Check-in di lokasi via QR/GPS (POST /jobs/:id/checkin)
+  Future<Map<String, dynamic>> checkIn(
+    dynamic jobId, {
+    String? qrCode,
+    String? manualCode,
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/checkin',
+        data: {
+          if (qrCode != null) 'qrCode': qrCode,
+          if (manualCode != null) 'manualCode': manualCode,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Check-in berhasil divalidasi',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal check-in: $e'};
+    }
+  }
+
+  /// 17. Input rincian berat timbangan (POST /jobs/:id/pickup)
+  Future<Map<String, dynamic>> submitPickup(
+    dynamic jobId, {
+    required List<Map<String, dynamic>> materials,
+    String? notes,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/pickup',
+        data: {
+          'materials': materials,
+          if (notes != null) 'notes': notes,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Data timbangan berhasil disimpan',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyimpan data timbangan: $e'};
+    }
+  }
+
+  /// 18. Generate QR Handover (POST /jobs/:id/handover/generate-qr)
+  Future<Map<String, dynamic>> generateHandoverQr(dynamic jobId) async {
+    try {
+      final response = await _dio.post('/jobs/$jobId/handover/generate-qr');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal membuat QR Handover: $e'};
     }
   }
 
