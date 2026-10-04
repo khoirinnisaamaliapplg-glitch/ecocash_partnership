@@ -35,6 +35,9 @@ import 'package:ecocash_partnership/features/jobs/screens/dalam_perjalanan_scree
 
 import '../features/dashboard/screens/riwayat_pekerjaan_screen.dart';
 
+import '../features/jobs/screens/detail_pekerjaan_rumah_screen.dart';
+import '../features/jobs/screens/dalam_perjalanan_rumah_screen.dart';
+
 class AppRoutes {
   static final router = GoRouter(
     initialLocation: '/splash',
@@ -236,6 +239,24 @@ class AppRoutes {
           );
         },
       ),
+
+      // Detail Pekerjaan Rumah Warga
+GoRoute(
+  path: '/detail-pekerjaan-rumah',
+  builder: (context, state) {
+    final extra = state.extra as Map? ?? {};
+    return DetailPekerjaanRumahScreen(jobData: extra);
+  },
+),
+
+// Alur Multi-Step Penjemputan Rumah Warga
+GoRoute(
+  path: '/dalam-perjalanan-rumah',
+  builder: (context, state) {
+    final extra = state.extra as Map? ?? {};
+    return DalamPerjalananRumahScreen(extraData: extra);
+  },
+),
     ],
   );
 }

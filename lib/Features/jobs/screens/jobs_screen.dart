@@ -139,7 +139,7 @@ class _JobsScreenState extends State {
     );
   }
 
-  // Widget Kartu Penjemputan Warga (Ibu Ratna Dewi)
+  // Widget Kartu Penjemputan Warga (Ibu Ratna Dewi) - RUMAH
   Widget _buildResidentJobCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -274,12 +274,13 @@ class _JobsScreenState extends State {
                   height: 42,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      context.push('/detail-pekerjaan', extra: {
-                        'title': 'Ibu Ratna Dewi',
+                      // MEMANGGIL RUTE UNTUK PENJEMPUTAN RUMAH
+                      context.push('/detail-pekerjaan-rumah', extra: {
+                        'title': 'Rumah Ibu Ratna #BDG11',
                         'address': 'Komplek Permata Blok C2/14',
                         'materialTag': 'Karton / Plastik PET',
                         'volume': '20 kg',
-                        'price': 'Rp 45.000',
+                        'price': 'Rp45.000',
                       });
                     },
                     icon: const Icon(Icons.navigation_outlined, size: 16, color: Colors.white),
@@ -428,6 +429,7 @@ class _JobsScreenState extends State {
                 height: 38,
                 child: ElevatedButton(
                   onPressed: () {
+                    // TETAP MEMANGGIL RUTE SMART CONTAINER SEBELUMNYA
                     context.push(
                       '/detail-pekerjaan',
                       extra: {
