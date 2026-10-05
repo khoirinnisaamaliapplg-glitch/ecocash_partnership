@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/app_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:image_picker/image_picker.dart';
 
 class PartnerApiService {
   late final Dio _dio;
@@ -386,6 +388,86 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal memperbarui data kendaraan: $e'};
+    }
+  }
+
+  // ======================================================
+  // UPLOAD BERKAS & MANAJEMEN KENDARAAN
+  // ======================================================
+
+  /// 19. Upload Berkas Tunggal (POST /upload/single)
+  Future<Map<String, dynamic>> uploadSingleFile(
+    String filePath, {
+    XFile? xFile,
+    String category = 'document',
+  }) async {
+    try {
+      MultipartFile file;
+      if (kIsWeb && xFile != null) {
+        final bytes = await xFile.readAsBytes();
+        file = MultipartFile.fromBytes(bytes, filename: xFile.name);
+      } else {
+        file = await MultipartFile.fromFile(filePath);
+      }
+
+      final formData = FormData.fromMap({
+        'file': file,
+        'category': category,
+      });
+
+      final response = await _dio.post('/upload/single', data: formData);
+      return {
+        'success': true,
+        'url': response.data['data']?['url'] ?? response.data['url'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengunggah berkas: $e'};
+    }
+  }
+
+  /// 20. Ambil Data Kendaraan Mitra (GET /partners/me/vehicle)
+  Future<Map<String, dynamic>> getMyVehicle() async {
+    try {
+      final response = await _dio.get('/partners/me/vehicle');
+      return {
+        'success': true,
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil data kendaraan: $e'};
+    }
+  }
+
+  /// 21. Daftarkan atau Perbarui Kendaraan Mitra (PUT /partners/me/vehicle)
+  Future<Map<String, dynamic>> registerOrUpdateVehicle({
+    required String type, // MOTORCYCLE | CAR | CART
+    String? plateNumber,
+    String? stnkPhotoUrl,
+    String? vehiclePhotoUrl,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/partners/me/vehicle',
+        data: {
+          'type': type,
+          if (plateNumber != null && plateNumber.isNotEmpty) 'plateNumber': plateNumber,
+          if (stnkPhotoUrl != null && stnkPhotoUrl.isNotEmpty) 'stnkPhotoUrl': stnkPhotoUrl,
+          if (vehiclePhotoUrl != null && vehiclePhotoUrl.isNotEmpty) 'vehiclePhotoUrl': vehiclePhotoUrl,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Data kendaraan berhasil disimpan',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyimpan kendaraan: $e'};
     }
   }
 
