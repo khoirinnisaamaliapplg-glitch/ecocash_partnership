@@ -1,22 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class JobsScreen extends StatefulWidget {
   const JobsScreen({super.key});
 
   @override
-  State createState() => _JobsScreenState();
+  State<JobsScreen> createState() => _JobsScreenState();
 }
 
-class _JobsScreenState extends State {
-  String _selectedFilter = 'Smart Container'; // Set default ke Smart Container sesuai screenshot
+class _JobsScreenState extends State<JobsScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+  String _selectedFilter = 'Semua';
+  
+  List<dynamic> _jobsList = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
 
   static const Color _navyColor = Color(0xFF0F2C59);
   static const Color _tealColor = Color(0xFF1E88A8);
 
   @override
+  void initState() {
+    super.initState();
+    _fetchAvailableJobs();
+  }
+
+  Future<void> _fetchAvailableJobs() async {
+    setState(() => _isLoading = true);
+    final result = await _apiService.getAvailableJobs();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (result['success'] == true) {
+          _jobsList = result['data'] is List ? result['data'] : [];
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Filter pencarian dan chip
+    final filteredJobs = _jobsList.where((job) {
+      final String title = (job['title'] ?? job['machine']?['name'] ?? '').toString().toLowerCase();
+      final String address = (job['address'] ?? job['machine']?['address'] ?? '').toString().toLowerCase();
+      final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
+
+      bool matchesSearch = title.contains(_searchQuery.toLowerCase()) || address.contains(_searchQuery.toLowerCase());
+      bool matchesFilter = true;
+
+      if (_selectedFilter == 'Rumah') {
+        matchesFilter = type == 'RESIDENTIAL' || type == 'RUMAH';
+      } else if (_selectedFilter == 'Smart Container') {
+        matchesFilter = type == 'SMART_CONTAINER' || type == 'RVM';
+      }
+
+      return matchesSearch && matchesFilter;
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -31,13 +75,14 @@ class _JobsScreenState extends State {
       ),
       body: Column(
         children: [
-          // --- KOTAK PENCARIAN & FILTER CHIPS ---
+          // --- SEARCH BAR & FILTER CHIPS ---
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
                 TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: 'Cari pekerjaan...',
                     hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
@@ -63,54 +108,40 @@ class _JobsScreenState extends State {
           ),
           const Divider(height: 1, color: Color(0xFFE0E0E0)),
 
-          // --- DAFTAR KARTU TUGAS ---
+          // --- DAFTAR TUGAS DINAMIS ---
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                // 1. KARTU PENJEMPUTAN WARGA (Hanya tampil di filter 'Semua' & 'Rumah')
-                if (_selectedFilter == 'Semua' || _selectedFilter == 'Rumah') ...[
-                  _buildResidentJobCard(context),
-                  const SizedBox(height: 14),
-                ],
-
-                // 2. KARTU SMART CONTAINER 1 - EcoCash Valen (Tampil di 'Semua' & 'Smart Container')
-                if (_selectedFilter == 'Semua' || _selectedFilter == 'Smart Container') ...[
-                  _buildJobCard(
-                    context: context,
-                    materialTag: 'PET (Botol)',
-                    title: 'EcoCash Valen #BGD-021',
-                    address: 'Institut Teknologi Bandung',
-                    volume: '42 kg',
-                    distance: '2,3 km',
-                    estimate: '15 mnt',
-                    price: 'Rp82.000',
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : RefreshIndicator(
+                    onRefresh: _fetchAvailableJobs,
+                    child: filteredJobs.isEmpty
+                        ? ListView(
+                            children: const [
+                              SizedBox(height: 100),
+                              Center(
+                                child: Text(
+                                  'Tidak ada pekerjaan tersedia saat ini.',
+                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16.0),
+                            itemCount: filteredJobs.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 14),
+                            itemBuilder: (context, index) {
+                              final job = filteredJobs[index];
+                              return _buildDynamicJobCard(context, job);
+                            },
+                          ),
                   ),
-                  const SizedBox(height: 14),
-                ],
-
-                // 3. KARTU SMART CONTAINER 2 - EcoCash Residen (Tampil di 'Semua' & 'Smart Container')
-                if (_selectedFilter == 'Semua' || _selectedFilter == 'Smart Container') ...[
-                  _buildJobCard(
-                    context: context,
-                    materialTag: 'Campur (Plastik/Kertas)',
-                    title: 'EcoCash Residen #CMA-012',
-                    address: 'Kawasan Perumahan Cimahi',
-                    volume: '28 kg',
-                    distance: '1,2 km',
-                    estimate: '8 mnt',
-                    price: 'Rp35.500',
-                  ),
-                ],
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  // Widget Filter Chip Horizontal
   Widget _buildFilterChip(String label) {
     bool isSelected = _selectedFilter == label;
     return GestureDetector(
@@ -139,220 +170,17 @@ class _JobsScreenState extends State {
     );
   }
 
-  // Widget Kartu Penjemputan Warga (Ibu Ratna Dewi) - RUMAH
-  Widget _buildResidentJobCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipOval(
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.grey.shade300,
-                    child: const Icon(Icons.person, color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Ibu Ratna Dewi',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(color: Colors.teal, shape: BoxShape.circle),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: const [
-                        Icon(Icons.location_on_outlined, size: 12, color: AppColors.textSecondary),
-                        SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            'Komplek Permata Blok C2/14 (0.8 km)',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: const [
-                  Text(
-                    'EST. REWARD',
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Rp 45.000',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1B8A90)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _buildMaterialChip(Icons.inventory_2_outlined, 'Karton Box 8 kg'),
-              _buildMaterialChip(Icons.autorenew, 'Plastik PET 12 kg'),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEBF3FC),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.track_changes, size: 18, color: Color(0xFF1E88A8)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 11, color: AppColors.textPrimary),
-                      children: [
-                        TextSpan(
-                          text: 'TUJUAN SETOR MITRA\n',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E88A8), fontSize: 10),
-                        ),
-                        TextSpan(
-                          text: 'Mesin RVM Coblong A-02 • ',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        TextSpan(
-                          text: '1.2 km dari warga',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 42,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // MEMANGGIL RUTE UNTUK PENJEMPUTAN RUMAH
-                      context.push('/detail-pekerjaan-rumah', extra: {
-                        'title': 'Rumah Ibu Ratna #BDG11',
-                        'address': 'Komplek Permata Blok C2/14',
-                        'materialTag': 'Karton / Plastik PET',
-                        'volume': '20 kg',
-                        'price': 'Rp45.000',
-                      });
-                    },
-                    icon: const Icon(Icons.navigation_outlined, size: 16, color: Colors.white),
-                    label: const Text(
-                      'Terima & Mulai Rute',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _tealColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEBF3FC),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.phone_outlined, size: 18, color: _navyColor),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Menghubungi Ibu Ratna Dewi...')),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildDynamicJobCard(BuildContext context, Map<String, dynamic> job) {
+    final dynamic jobId = job['id'];
+    final String title = job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
+    final String address = job['address'] ?? job['machine']?['address'] ?? job['machine']?['placeName'] ?? 'Lokasi Penjemputan';
+    final String materialTag = job['materialTag'] ?? job['materialCategory'] ?? 'Plastik / Karton';
+    final String volume = job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : (job['volume'] ?? '20 kg');
+    final String price = job['estimatedReward'] != null ? 'Rp${job['estimatedReward']}' : (job['price'] ?? 'Rp45.000');
+    final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
 
-  // Helper Badge Material
-  Widget _buildMaterialChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEBF3FC),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: _navyColor),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _navyColor),
-          ),
-        ],
-      ),
-    );
-  }
+    final bool isResidential = type == 'RESIDENTIAL' || type == 'RUMAH';
 
-  // Widget Kartu Tugas Standar (Smart Container)
-  Widget _buildJobCard({
-    required BuildContext context,
-    required String materialTag,
-    required String title,
-    required String address,
-    required String volume,
-    required String distance,
-    required String estimate,
-    required String price,
-  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -368,13 +196,17 @@ class _JobsScreenState extends State {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: isResidential ? Colors.cyan.shade50 : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: isResidential ? AppColors.primaryCyan : Colors.grey.shade300),
             ),
             child: Text(
-              materialTag,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              isResidential ? 'Penjemputan Warga' : materialTag,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isResidential ? AppColors.primaryCyan : AppColors.textSecondary,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -388,29 +220,15 @@ class _JobsScreenState extends State {
               const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                child: Text(
+                  address,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildDetailColumn('Volume', volume),
-                Container(height: 20, width: 1, color: Colors.grey.shade300),
-                _buildDetailColumn('Jarak', distance),
-                Container(height: 20, width: 1, color: Colors.grey.shade300),
-                _buildDetailColumn('Estimasi', estimate),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -421,7 +239,7 @@ class _JobsScreenState extends State {
                   const SizedBox(height: 2),
                   Text(
                     price,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _navyColor),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor),
                   ),
                 ],
               ),
@@ -429,15 +247,17 @@ class _JobsScreenState extends State {
                 height: 38,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TETAP MEMANGGIL RUTE SMART CONTAINER SEBELUMNYA
+                    final targetRoute = isResidential ? '/detail-pekerjaan-rumah' : '/detail-pekerjaan';
                     context.push(
-                      '/detail-pekerjaan',
+                      targetRoute,
                       extra: {
+                        'id': jobId,
                         'title': title,
                         'address': address,
                         'materialTag': materialTag,
                         'volume': volume,
                         'price': price,
+                        'rawJob': job,
                       },
                     );
                   },
@@ -448,7 +268,7 @@ class _JobsScreenState extends State {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Terima Pekerjaan',
+                    'Lihat Detail',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
@@ -457,16 +277,6 @@ class _JobsScreenState extends State {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDetailColumn(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-      ],
     );
   }
 }

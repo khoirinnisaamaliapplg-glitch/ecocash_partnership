@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // <-- WAJIB IMPORT GO_ROUTER
+import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart'; 
 import 'package:latlong2/latlong.dart';     
 import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
-class DetailPekerjaanScreen extends StatelessWidget {
+class DetailPekerjaanScreen extends StatefulWidget {
   final Map<String, dynamic> jobData;
 
   const DetailPekerjaanScreen({super.key, required this.jobData});
 
   @override
-  Widget build(BuildContext context) {
-    final String title = jobData['title'] ?? 'EcoCash Valen #BGD-021';
-    final String address = jobData['address'] ?? 'Institut Teknologi Bandung';
-    final String material = jobData['materialTag'] ?? 'PET (Botol)';
-    final String volume = jobData['volume'] ?? '42 kg';
-    final String price = jobData['price'] ?? 'Rp82.000';
+  State<DetailPekerjaanScreen> createState() => _DetailPekerjaanScreenState();
+}
 
-    // Koordinat contoh
+class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final String title = widget.jobData['title'] ?? 'EcoCash Valen #BGD-021';
+    final String address = widget.jobData['address'] ?? 'Institut Teknologi Bandung';
+    final String material = widget.jobData['materialTag'] ?? 'PET (Botol)';
+    final String volume = widget.jobData['volume'] ?? '42 kg';
+    final String price = widget.jobData['price'] ?? 'Rp82.000';
+    final dynamic jobId = widget.jobData['id'];
+
     final LatLng pickupLocation = const LatLng(-6.9175, 107.6191);
 
     return Scaffold(
@@ -37,7 +46,6 @@ class DetailPekerjaanScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 1. HEADER INFORMASI TUGAS ---
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -58,7 +66,7 @@ class DetailPekerjaanScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // --- 2. INTEGRASI LEAFLET MAP ---
+            // Map Preview
             Container(
               height: 180,
               width: double.infinity,
@@ -84,11 +92,7 @@ class DetailPekerjaanScreen extends StatelessWidget {
                           point: pickupLocation,
                           width: 40,
                           height: 40,
-                          child: const Icon(
-                            Icons.location_pin,
-                            color: Colors.red,
-                            size: 40,
-                          ),
+                          child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
                         ),
                       ],
                     ),
@@ -98,7 +102,7 @@ class DetailPekerjaanScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // --- 3. KARTU MATERIAL DINAMIS ---
+            // Material Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -132,7 +136,7 @@ class DetailPekerjaanScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // --- 4. ESTIMASI PENDAPATAN ---
+            // Reward Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -150,62 +154,14 @@ class DetailPekerjaanScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-
-            // --- 5. JENDELA WAKTU PENGAMBILAN ---
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.access_time, color: AppColors.textSecondary),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Jendela Waktu Pengambilan', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      SizedBox(height: 2),
-                      Text('12:00 - 15:00', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // --- 6. KOTAK PERINGATAN / INFO ---
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F5FF),
-                borderRadius: BorderRadius.circular(12),
-                border: const Border(left: BorderSide(color: Colors.green, width: 4)),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.info_outline, color: Colors.green, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Pastikan material diverifikasi sebelum pengambilan.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 24),
 
-            // --- 7. TOMBOL AKSI (TOLAK & TERIMA) ---
+            // Action Buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => context.pop(),
+                    onPressed: _isLoading ? null : () => context.pop(),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -220,22 +176,40 @@ class DetailPekerjaanScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: AppColors.primaryButtonGradient,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 3)),
-                      ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        // DIPERBAIKI: Menggunakan context.push GoRouter agar navigasi stabil
-                        context.push('/dalam-perjalanan', extra: jobData);
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              if (jobId == null) {
+                                context.push('/dalam-perjalanan', extra: widget.jobData);
+                                return;
+                              }
+                              setState(() => _isLoading = true);
+                              final res = await _apiService.acceptJob(jobId);
+                              setState(() => _isLoading = false);
+
+                              if (res['success'] == true) {
+                                if (mounted) {
+                                  context.push('/dalam-perjalanan', extra: widget.jobData);
+                                }
+                              } else {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(res['message'] ?? 'Gagal mengambil pekerjaan')),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text('Terima Pekerjaan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: _isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Terima Pekerjaan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 ),

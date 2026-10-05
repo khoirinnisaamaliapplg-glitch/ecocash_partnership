@@ -4,16 +4,44 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
 
-class DetailPekerjaanRumahScreen extends StatelessWidget {
+class DetailPekerjaanRumahScreen extends StatefulWidget {
   final Map jobData;
 
   const DetailPekerjaanRumahScreen({super.key, required this.jobData});
 
   @override
+  State<DetailPekerjaanRumahScreen> createState() => _DetailPekerjaanRumahScreenState();
+}
+
+class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen> {
+  bool _isLoading = false;
+
+  // SIMULASI TERIMA PEKERJAAN RUMAH (DUMMY MODE)
+  Future<void> _handleAcceptJob() async {
+    setState(() => _isLoading = true);
+
+    // Simulasi delay jaringan 500ms
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('[DEMO] Pekerjaan penjemputan warga berhasil diterima!'),
+        backgroundColor: Colors.teal,
+      ),
+    );
+
+    // Pindah ke alur multi-step penjemputan rumah warga (Mode Demo)
+    context.push('/dalam-perjalanan-rumah', extra: widget.jobData);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String title = jobData['title'] ?? 'Rumah Ibu Ratna #BDG11';
-    final String address = jobData['address'] ?? 'Komplek Permata Blok C2/14';
-    final String price = jobData['price'] ?? 'Rp45.000';
+    final String title = widget.jobData['title'] ?? 'Rumah Ibu Ratna #BDG11';
+    final String address = widget.jobData['address'] ?? 'Komplek Permata Blok C2/14';
+    final String price = widget.jobData['price'] ?? 'Rp45.000';
 
     final LatLng pickupLocation = const LatLng(-6.9175, 107.6191);
 
@@ -26,7 +54,10 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Detail Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Detail Pekerjaan (Rumah)',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -35,14 +66,17 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Badge Pekerjaan Tersedia
+              // Badge Jenis Pekerjaan
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.cyan.shade50,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text('Pekerjaan Tersedia', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryCyan)),
+                child: const Text(
+                  'Penjemputan Warga (Demo Mode)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryCyan),
+                ),
               ),
               const SizedBox(height: 8),
               Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -104,7 +138,7 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
                       children: [
                         const Icon(Icons.recycling, color: AppColors.primaryCyan, size: 20),
                         const SizedBox(width: 8),
-                        const Text('Material', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                        const Text('Estimasi Material', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -112,12 +146,12 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildChip(Icons.inventory_2_outlined, 'Plastik PET 12 kg'),
-                        _buildChip(Icons.autorenew, 'Karton Box 8 kg'),
+                        _buildChip(Icons.inventory_2_outlined, 'Plastik PET ~12 kg'),
+                        _buildChip(Icons.autorenew, 'Karton Box ~8 kg'),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Text('20 kg', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const Text('~20 kg', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                   ],
                 ),
               ),
@@ -166,29 +200,6 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Info Warning Box
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F5FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: const Border(left: BorderSide(color: Colors.teal, width: 4)),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.info_outline, color: Colors.teal, size: 20),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Pastikan material diverifikasi sebelum pengambilan.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 24),
 
               // Tombol Tolak & Terima Pekerjaan
@@ -196,7 +207,7 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => context.pop(),
+                      onPressed: _isLoading ? null : () => context.pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -214,17 +225,20 @@ class DetailPekerjaanRumahScreen extends StatelessWidget {
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 3))],
                       ),
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Pindah ke Alur Multi-Step Penjemputan Rumah Warga
-                          context.push('/dalam-perjalanan-rumah', extra: jobData);
-                        },
+                        onPressed: _isLoading ? null : _handleAcceptJob,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text('Terima Pekerjaan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Terima Pekerjaan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                   ),
