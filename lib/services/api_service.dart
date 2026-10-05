@@ -347,6 +347,48 @@ class PartnerApiService {
     }
   }
 
+<<<<<<< HEAD
+  /// 11. Ambil Data Kendaraan Mitra Login (GET /partners/me/vehicle)
+  Future<Map<String, dynamic>> getMyVehicle() async {
+    try {
+      final response = await _dio.get('/partners/me/vehicle');
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data['data'],
+        };
+      }
+      return {'success': false, 'message': 'Gagal mengambil data kendaraan'};
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return {'success': true, 'data': null};
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
+  /// 12. Daftarkan atau Perbarui Data Kendaraan Mitra (PUT /partners/me/vehicle)
+ Future<Map<String, dynamic>> registerOrUpdateVehicle({
+    required String type,
+    String? plateNumber,
+    String? stnkPhotoUrl,
+    String? vehiclePhotoUrl, // PASTIKAN PARAMETER DARI VERSI ANDA INI TETAP ADA
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/partners/me/vehicle',
+        data: {
+          'type': type,
+          'plateNumber': type != 'CART' ? plateNumber : null,
+          'stnkPhotoUrl': type != 'CART' ? stnkPhotoUrl : null,
+          'vehiclePhotoUrl': vehiclePhotoUrl,
+        },
+      );
+
+=======
   // ==========================================
   // JOBS OPERASIONAL
   // ==========================================
@@ -543,6 +585,7 @@ class PartnerApiService {
         '/partners/me/vehicle',
         data: payload,
       );
+>>>>>>> origin/develop
       return {
         'success': true,
         'message': response.data['message'] ?? 'Data kendaraan berhasil disimpan',
@@ -551,7 +594,11 @@ class PartnerApiService {
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
+<<<<<<< HEAD
+      return {'success': false, 'message': 'Gagal memperbarui data kendaraan: $e'};
+=======
       return {'success': false, 'message': 'Gagal memperbarui kendaraan: $e'};
+>>>>>>> origin/develop
     }
   }
 
