@@ -519,6 +519,43 @@ class PartnerApiService {
     }
   }
 
+  // --- ECOCASH ACADEMY API ---
+  Future<Map<String, dynamic>> getAcademyCourses() async {
+    try {
+      final response = await _dio.get('/academy/courses');
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAcademyCourseById(String courseId) async {
+    try {
+      final response = await _dio.get('/academy/courses/$courseId');
+      return {'success': true, 'data': response.data['data']};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeAcademyModule(String courseId, String moduleId) async {
+    try {
+      final response = await _dio.post('/academy/courses/$courseId/modules/$moduleId/complete');
+      return {'success': true, 'message': response.data['message'], 'data': response.data['data']};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAcademyCertificates() async {
+    try {
+      final response = await _dio.get('/academy/certificates');
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
   // ==========================================
   // HELPER
   // ==========================================
