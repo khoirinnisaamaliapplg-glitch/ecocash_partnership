@@ -7,7 +7,7 @@ class AddVehicleScreen extends StatefulWidget {
   const AddVehicleScreen({super.key});
 
   @override
-  State createState() => _AddVehicleScreenState();
+  State<AddVehicleScreen> createState() => _AddVehicleScreenState();
 }
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
@@ -246,16 +246,14 @@ Future<void> _simpanKendaraan() async {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                      ],
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           _pickedXFile != null ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
@@ -285,8 +283,10 @@ Future<void> _simpanKendaraan() async {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
+              ),
+            ),
+            const SizedBox(height: 30),
 
             // --- 4. TOMBOL SIMPAN ---
             SizedBox(
@@ -308,68 +308,11 @@ Future<void> _simpanKendaraan() async {
                     : const Text('Simpan Kendaraan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
-          ),
+            const SizedBox(height: 20),
+          ],
         ),
-        // Loading Overlay
-        if (_isSubmitting)
-          Container(
-            color: Colors.black54,
-            child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-          ),
-      ],
+      ),
     );
-  }
-
-  // 5. Fungsi Fungsi Integrasi API
-  Future _submitKendaraan() async {
-    // Validasi Dasar
-    if (_modelController.text.isEmpty || _platController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mohon lengkapi data kendaraan!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    // Validasi STNK untuk non-gerobak
-    if (_selectedJenis != 'Gerobak' && _fileBytes == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mohon unggah foto STNK!'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    // MOCK UPLOAD FOTO (TAHAP 3.1)
-    // Karena belum ada endpoint upload, kita kirim string dummy/nama file dulu.
-    // Backend mengharapkan URL, jadi ini akan menyebabkan status 'PENDING' di backend.
-    String? stnkUrl;
-    if (_selectedJenis != 'Gerobak' && _fileName != null) {
-        // Dalam implementasi nyata, unggah _fileBytes dulu, dapatkan URL, lalu masukkan sini.
-        stnkUrl = "MOCK_URL_FROM_FRONTEND/$_fileName"; 
-    }
-
-    // Panggil API
-    final result = await _apiService.registerOrUpdateVehicle(
-      type: _mapJenisToBackend(_selectedJenis),
-      plateNumber: _platController.text,
-      stnkPhotoUrl: stnkUrl,
-      // vehiclePhotoUrl: null // Opsional untuk gerobak, abaikan dulu
-    );
-
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-
-      if (result['success'] == true) {
-        // Jika sukses, kembali ke layar list dan kirim sinyal 'true' agar list reload
-        Navigator.pop(context, true); 
-      } else {
-        // Jika gagal, tampilkan pesan error dari backend
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   Widget _buildJenisOption(String jenis, IconData icon) {
@@ -399,7 +342,7 @@ Future<void> _simpanKendaraan() async {
             Text(
               jenis,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: isSelected ? const Color(0xFF28859B) : AppColors.textPrimary,
               ),
