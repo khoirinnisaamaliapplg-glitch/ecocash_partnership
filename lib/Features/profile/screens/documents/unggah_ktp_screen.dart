@@ -1,16 +1,145 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class UnggahKtpScreen extends StatefulWidget {
   const UnggahKtpScreen({super.key});
 
   @override
-  State createState() => _UnggahKtpScreenState();
+  State<UnggahKtpScreen> createState() => _UnggahKtpScreenState();
 }
 
-class _UnggahKtpScreenState extends State {
+class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+  final ImagePicker _picker = ImagePicker();
+
+  XFile? _pickedXFile;
+  File? _selectedImage;
+  bool _isUploading = false;
   static const Color _navyColor = Color(0xFF0F2C59);
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _pickedXFile = pickedFile;
+          if (!kIsWeb) {
+            _selectedImage = File(pickedFile.path);
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memilih gambar: $e')),
+        );
+      }
+    }
+  }
+
+  void _showPickerBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: _navyColor),
+                title: const Text('Ambil Foto dari Kamera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: _navyColor),
+                title: const Text('Pilih dari Galeri'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitUploadKtp() async {
+    if (_pickedXFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silakan pilih foto KTP terlebih dahulu!')),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    // 1. Upload berkas fisik ke /upload/single
+    final uploadResult = await _apiService.uploadSingleFile(
+      _pickedXFile!.path,
+      xFile: _pickedXFile,
+      category: 'document',
+    );
+
+    if (uploadResult['success'] == true && uploadResult['url'] != null) {
+      final String uploadedUrl = uploadResult['url'];
+
+      // 2. Simpan ke tabel Prisma PartnerDocument (POST /partners/me/documents)
+      final docResult = await _apiService.uploadPartnerDocument(
+        documentType: 'KTP',
+        fileUrl: uploadedUrl,
+      );
+
+      // 3. Simpan URL KTP ke profil backend (PATCH /users/me)
+      await _apiService.updateProfile(
+        ktpImageUrl: uploadedUrl,
+      );
+
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+
+      if (docResult['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto KTP berhasil diunggah dan disimpan!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, uploadedUrl);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(docResult['message'] ?? 'Gagal menyimpan dokumen KTP ke database.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(uploadResult['message'] ?? 'Gagal mengunggah KTP.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +150,15 @@ class _UnggahKtpScreenState extends State {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: _isUploading
+              ? null
+              : () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
         ),
         title: const Text(
           'Unggah Dokumen',
@@ -40,7 +171,6 @@ class _UnggahKtpScreenState extends State {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- JUDUL & DESKRIPSI ---
             const Text(
               'KTP (Kartu Tanda Penduduk)',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _navyColor),
@@ -52,41 +182,66 @@ class _UnggahKtpScreenState extends State {
             ),
             const SizedBox(height: 20),
 
-            // --- AREA AMBIL FOTO KTP ---
             InkWell(
-              onTap: () {},
+              onTap: _isUploading ? null : _showPickerBottomSheet,
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 36),
+                height: 200,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF6F8FE),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFC5CEE0), width: 1.2),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: _navyColor,
-                        shape: BoxShape.circle,
+                child: _pickedXFile != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            kIsWeb
+                                ? Image.network(_pickedXFile!.path, fit: BoxFit.cover)
+                                : Image.file(_selectedImage!, fit: BoxFit.cover),
+                            Container(
+                              color: Colors.black26,
+                              alignment: Alignment.center,
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.edit, color: Colors.white, size: 18),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Ganti Foto',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: const BoxDecoration(
+                              color: _navyColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Ambil atau Pilih Foto KTP',
+                            style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Ambil Foto KTP',
-                      style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // --- KARTU PANDUAN FOTO ---
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -110,156 +265,41 @@ class _UnggahKtpScreenState extends State {
                     ],
                   ),
                   const SizedBox(height: 12),
-
                   _buildCheckItem('Foto harus jelas dan tidak buram.'),
                   _buildCheckItem('Semua sudut KTP harus terlihat.'),
                   _buildCheckItem('Tidak ada pantulan cahaya atau bayangan.'),
                   _buildCheckItem('KTP harus asli dan masih berlaku.'),
-
-                  const SizedBox(height: 16),
-
-                  // Contoh Foto Benar & Salah
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: _buildMiniKtp(isBlur: false),
-                                ),
-                                Positioned(
-                                  top: 6,
-                                  right: 6,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.green,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check, size: 12, color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Benar',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: _buildMiniKtp(isBlur: true),
-                                ),
-                                Positioned(
-                                  top: 6,
-                                  right: 6,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.close, size: 12, color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Salah\n(Buram/Terpotong)',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red, height: 1.1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
             const SizedBox(height: 28),
 
-            // --- TOMBOL SIMPAN DOKUMEN ---
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: _isUploading ? null : _submitUploadKtp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E88A8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text('Simpan Dokumen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                child: _isUploading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text(
+                        'Simpan & Unggah Dokumen',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
               ),
             ),
             const SizedBox(height: 20),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildMiniKtp({required bool isBlur}) {
-    return Container(
-      height: 85,
-      width: double.infinity,
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: isBlur ? const Color(0xFFCFD8DC) : const Color(0xFFBBE2EC),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: isBlur
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.blur_on, color: Colors.grey, size: 28),
-                SizedBox(height: 2),
-                Text('KTP Buram', style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold)),
-              ],
-            )
-          : Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD32F2F),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Icon(Icons.person, size: 22, color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(width: 55, height: 5, color: _navyColor),
-                      const SizedBox(height: 4),
-                      Container(width: 35, height: 4, color: Colors.black45),
-                      const SizedBox(height: 3),
-                      Container(width: 45, height: 4, color: Colors.black45),
-                    ],
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
