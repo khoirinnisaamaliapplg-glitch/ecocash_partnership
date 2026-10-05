@@ -62,7 +62,6 @@ class PartnerApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data;
-        // Fleksibel: Membaca token baik jika dibungkus 'data' maupun di root
         final String? token = responseData['data']?['token'] ?? responseData['token'];
         final dynamic userData = responseData['data']?['user'] ?? responseData['user'] ?? responseData['data'];
 
@@ -335,6 +334,58 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal mengajukan penarikan: $e'};
+    }
+  }
+
+  /// 11. Ambil Data Kendaraan Mitra Login (GET /partners/me/vehicle)
+  Future<Map<String, dynamic>> getMyVehicle() async {
+    try {
+      final response = await _dio.get('/partners/me/vehicle');
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data['data'],
+        };
+      }
+      return {'success': false, 'message': 'Gagal mengambil data kendaraan'};
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return {'success': true, 'data': null};
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
+  /// 12. Daftarkan atau Perbarui Data Kendaraan Mitra (PUT /partners/me/vehicle)
+  Future<Map<String, dynamic>> registerOrUpdateVehicle({
+    required String type, // Enum Backend: 'MOTORCYCLE', 'CAR', 'CART'
+    String? plateNumber,
+    String? stnkPhotoUrl,
+    String? vehiclePhotoUrl,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/partners/me/vehicle',
+        data: {
+          'type': type,
+          'plateNumber': type != 'CART' ? plateNumber : null,
+          'stnkPhotoUrl': type != 'CART' ? stnkPhotoUrl : null,
+          'vehiclePhotoUrl': vehiclePhotoUrl,
+        },
+      );
+
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Data kendaraan berhasil disimpan',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui data kendaraan: $e'};
     }
   }
 
