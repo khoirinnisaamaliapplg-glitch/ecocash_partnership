@@ -573,6 +573,27 @@ class PartnerApiService {
     }
   }
 
+  /// Mengambil data agregasi statistik material mitra
+  Future<Map<String, dynamic>> getMaterialStatistics() async {
+    try {
+      final response = await _dio.get('/material-statistics/me');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return {
+          'success': true,
+          'data': response.data['data'],
+        };
+      }
+      return {
+        'success': false,
+        'message': response.data['message'] ?? 'Gagal memuat statistik',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
   // ==========================================
   // HELPER
   // ==========================================
