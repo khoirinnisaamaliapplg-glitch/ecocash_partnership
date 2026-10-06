@@ -12,8 +12,10 @@ class JobsScreen extends StatefulWidget {
 
 class _JobsScreenState extends State<JobsScreen> {
   final PartnerApiService _apiService = PartnerApiService();
-  String _selectedFilter = 'Semua';
-  
+
+  String _selectedStatusTab = 'Tersedia'; // Options: 'Tersedia', 'Sedang Diproses', 'Selesai'
+  String _selectedCategoryFilter = 'Semua';
+
   List<dynamic> _jobsList = [];
   bool _isLoading = true;
   String _searchQuery = '';
@@ -24,18 +26,46 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAvailableJobs();
+    _fetchJobs();
   }
 
-  Future<void> _fetchAvailableJobs() async {
+  Future<void> _fetchJobs() async {
     setState(() => _isLoading = true);
-    final result = await _apiService.getAvailableJobs();
+
+    Map<String, dynamic> result;
+    if (_selectedStatusTab == 'Tersedia') {
+      result = await _apiService.getAvailableJobs();
+    } else {
+      result = await _apiService.getMyJobs();
+    }
 
     if (mounted) {
       setState(() {
         _isLoading = false;
-        if (result['success'] == true) {
-          _jobsList = result['data'] is List ? result['data'] : [];
+        if (result['success'] == true && result['data'] is List) {
+          final rawList = result['data'] as List;
+          final Map<dynamic, dynamic> uniqueJobsMap = {};
+
+          for (var item in rawList) {
+            Map<String, dynamic> jobData;
+            if (item is Map && item.containsKey('job')) {
+              jobData = Map<String, dynamic>.from(item['job']);
+              jobData['assignmentStatus'] = item['status'];
+            } else if (item is Map) {
+              jobData = Map<String, dynamic>.from(item);
+            } else {
+              continue;
+            }
+
+            final dynamic jobId = jobData['id'];
+            if (jobId != null && !uniqueJobsMap.containsKey(jobId)) {
+              uniqueJobsMap[jobId] = jobData;
+            }
+          }
+
+          _jobsList = uniqueJobsMap.values.toList();
+        } else {
+          _jobsList = [];
         }
       });
     }
@@ -43,22 +73,31 @@ class _JobsScreenState extends State<JobsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Filter pencarian dan chip
     final filteredJobs = _jobsList.where((job) {
       final String title = (job['title'] ?? job['machine']?['name'] ?? '').toString().toLowerCase();
       final String address = (job['address'] ?? job['machine']?['address'] ?? '').toString().toLowerCase();
       final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
+      final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
 
       bool matchesSearch = title.contains(_searchQuery.toLowerCase()) || address.contains(_searchQuery.toLowerCase());
-      bool matchesFilter = true;
 
-      if (_selectedFilter == 'Rumah') {
-        matchesFilter = type == 'RESIDENTIAL' || type == 'RUMAH';
-      } else if (_selectedFilter == 'Smart Container') {
-        matchesFilter = type == 'SMART_CONTAINER' || type == 'RVM';
+      bool matchesStatus = true;
+      if (_selectedStatusTab == 'Tersedia') {
+        matchesStatus = status == 'AVAILABLE' || status == 'OPEN' || status == 'PENDING';
+      } else if (_selectedStatusTab == 'Sedang Diproses') {
+        matchesStatus = status == 'ACCEPTED' || status == 'ON_THE_WAY' || status == 'CHECKED_IN' || status == 'PICKUP' || status == 'IN_TRANSIT' || status == 'HANDOVER';
+      } else if (_selectedStatusTab == 'Selesai') {
+        matchesStatus = status == 'COMPLETED';
       }
 
-      return matchesSearch && matchesFilter;
+      bool matchesCategory = true;
+      if (_selectedCategoryFilter == 'Rumah') {
+        matchesCategory = type == 'RESIDENTIAL' || type == 'RUMAH';
+      } else if (_selectedCategoryFilter == 'Smart Container') {
+        matchesCategory = type == 'SMART_CONTAINER' || type == 'RVM';
+      }
+
+      return matchesSearch && matchesStatus && matchesCategory;
     }).toList();
 
     return Scaffold(
@@ -66,63 +105,69 @@ class _JobsScreenState extends State<JobsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryCyan,
         elevation: 0,
-        title: const Text(
-          'Pekerjaan Tersedia',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        title: const Text('Daftar Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
-          // --- SEARCH BAR & FILTER CHIPS ---
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Cari pekerjaan...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                    filled: true,
-                    fillColor: const Color(0xFFF4F6F8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: TextField(
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    decoration: InputDecoration(
+                      hintText: 'Cari pekerjaan...',
+                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFFF4F6F8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildFilterChip('Semua'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Rumah'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Smart Container'),
+                    _buildTopTabItem('Tersedia'),
+                    _buildTopTabItem('Sedang Diproses'),
+                    _buildTopTabItem('Selesai'),
                   ],
                 ),
               ],
             ),
           ),
           const Divider(height: 1, color: Color(0xFFE0E0E0)),
-
-          // --- DAFTAR TUGAS DINAMIS ---
+          Container(
+            width: double.infinity,
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCategoryChip('Semua'),
+                const SizedBox(width: 8),
+                _buildCategoryChip('Rumah'),
+                const SizedBox(width: 8),
+                _buildCategoryChip('Smart Container'),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE0E0E0)),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : RefreshIndicator(
-                    onRefresh: _fetchAvailableJobs,
+                    onRefresh: _fetchJobs,
                     child: filteredJobs.isEmpty
                         ? ListView(
                             children: const [
                               SizedBox(height: 100),
                               Center(
-                                child: Text(
-                                  'Tidak ada pekerjaan tersedia saat ini.',
-                                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                                ),
+                                child: Text('Tidak ada pekerjaan yang sesuai dengan filter.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                               ),
                             ],
                           )
@@ -142,17 +187,42 @@ class _JobsScreenState extends State<JobsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    bool isSelected = _selectedFilter == label;
+  Widget _buildTopTabItem(String label) {
+    bool isSelected = _selectedStatusTab == label;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedStatusTab = label;
+          });
+          _fetchJobs();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: isSelected ? AppColors.primaryCyan : Colors.transparent, width: 3.0)),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? AppColors.primaryCyan : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String label) {
+    bool isSelected = _selectedCategoryFilter == label;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = label;
-        });
-      },
+      onTap: () => setState(() => _selectedCategoryFilter = label),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? _navyColor : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -170,7 +240,7 @@ class _JobsScreenState extends State<JobsScreen> {
     );
   }
 
-  Widget _buildDynamicJobCard(BuildContext context, Map<String, dynamic> job) {
+  Widget _buildDynamicJobCard(BuildContext context, Map job) {
     final dynamic jobId = job['id'];
     final String title = job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
     final String address = job['address'] ?? job['machine']?['address'] ?? job['machine']?['placeName'] ?? 'Lokasi Penjemputan';
@@ -178,7 +248,6 @@ class _JobsScreenState extends State<JobsScreen> {
     final String volume = job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : (job['volume'] ?? '20 kg');
     final String price = job['estimatedReward'] != null ? 'Rp${job['estimatedReward']}' : (job['price'] ?? 'Rp45.000');
     final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
-
     final bool isResidential = type == 'RESIDENTIAL' || type == 'RUMAH';
 
     return Container(
@@ -186,9 +255,7 @@ class _JobsScreenState extends State<JobsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,30 +269,17 @@ class _JobsScreenState extends State<JobsScreen> {
             ),
             child: Text(
               isResidential ? 'Penjemputan Warga' : materialTag,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isResidential ? AppColors.primaryCyan : AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isResidential ? AppColors.primaryCyan : AppColors.textSecondary),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
-          ),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
           const SizedBox(height: 4),
           Row(
             children: [
               const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  address,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+              Expanded(child: Text(address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: 14),
@@ -237,18 +291,23 @@ class _JobsScreenState extends State<JobsScreen> {
                 children: [
                   const Text('Estimasi Pendapatan', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   const SizedBox(height: 2),
-                  Text(
-                    price,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor),
-                  ),
+                  Text(price, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor)),
                 ],
               ),
               SizedBox(
                 height: 38,
                 child: ElevatedButton(
-                  onPressed: () {
-                    final targetRoute = isResidential ? '/detail-pekerjaan-rumah' : '/detail-pekerjaan';
-                    context.push(
+                  onPressed: () async {
+                    final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
+                    String targetRoute;
+                    
+                    if (status == 'ACCEPTED' || status == 'ON_THE_WAY' || status == 'CHECKED_IN' || status == 'PICKUP' || status == 'IN_TRANSIT' || status == 'HANDOVER') {
+                      targetRoute = isResidential ? '/dalam-perjalanan-rumah' : '/dalam-perjalanan';
+                    } else {
+                      targetRoute = isResidential ? '/detail-pekerjaan-rumah' : '/detail-pekerjaan';
+                    }
+
+                    await context.push(
                       targetRoute,
                       extra: {
                         'id': jobId,
@@ -260,6 +319,7 @@ class _JobsScreenState extends State<JobsScreen> {
                         'rawJob': job,
                       },
                     );
+                    _fetchJobs();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _tealColor,
@@ -267,9 +327,9 @@ class _JobsScreenState extends State<JobsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Lihat Detail',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                  child: Text(
+                    _selectedStatusTab == 'Sedang Diproses' ? 'Lanjutkan' : 'Lihat Detail',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
               ),

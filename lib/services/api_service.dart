@@ -487,6 +487,20 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getMyJobs({String? status}) async {
+    try {
+      final response = await _dio.get(
+        '/jobs/my-jobs',
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil pekerjaan saya: $e'};
+    }
+  }
+
   // ==========================================
   // 6. UPLOAD FILE
   // ==========================================
@@ -519,7 +533,10 @@ class PartnerApiService {
     }
   }
 
-  // --- ECOCASH ACADEMY API ---
+  // ==========================================
+  // 7. ECOCASH ACADEMY
+  // ==========================================
+
   Future<Map<String, dynamic>> getAcademyCourses() async {
     try {
       final response = await _dio.get('/academy/courses');
