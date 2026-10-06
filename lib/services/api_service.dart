@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/app_storage.dart';
 
@@ -338,7 +340,7 @@ class PartnerApiService {
   }
 
   // ======================================================
-  // MODUL JOBS & OPERASIONAL LAPANGAN (TAMBAHAN FITUR BARU)
+  // MODUL JOBS & OPERASIONAL LAPANGAN
   // ======================================================
 
   /// 11. Ambil daftar pekerjaan publik / tersedia (GET /jobs/available)
@@ -492,12 +494,7 @@ class PartnerApiService {
     }
   }
 
-<<<<<<< Updated upstream
-=======
-  // ==========================================
-  // 6. UPLOAD FILE
-  // ==========================================
-
+  /// 19. Upload Single File (POST /upload/single)
   Future<Map<String, dynamic>> uploadSingleFile(
     String filePath, {
     XFile? xFile,
@@ -526,6 +523,7 @@ class PartnerApiService {
     }
   }
 
+  /// 20. Ambil Daftar Pekerjaan Saya (GET /jobs/my-jobs)
   Future<Map<String, dynamic>> getMyJobs({String? status}) async {
     try {
       final response = await _dio.get(
@@ -544,7 +542,6 @@ class PartnerApiService {
   // HELPER
   // ==========================================
 
->>>>>>> Stashed changes
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
