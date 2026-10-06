@@ -41,6 +41,8 @@ import 'package:ecocash_partnership/features/profile/screens/academy/ecocash_aca
 import 'package:ecocash_partnership/features/profile/screens/academy/detail_pelatihan_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/academy/sertifikat_pelatihan_screen.dart';
 
+import 'package:ecocash_partnership/features/profile/screens/riwayat_laporan_screen.dart';
+
 class AppRoutes {
   static final router = GoRouter(
     initialLocation: '/splash',
@@ -212,6 +214,11 @@ class AppRoutes {
         path: '/academy/sertifikat',
         builder: (context, state) => const SertifikatPelatihanScreen(),
       ),
+
+      GoRoute(
+  path: '/riwayat-laporan',
+  builder: (context, state) => const RiwayatLaporanScreen(),
+),
     ],
   );
 }
