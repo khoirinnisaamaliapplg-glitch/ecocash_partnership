@@ -593,6 +593,21 @@ class PartnerApiService {
     }
   }
 
+  /// Ambil Ringkasan Dampak Saya (GET /partners/me/impact)
+  Future<Map<String, dynamic>> getMyImpact() async {
+    try {
+      final response = await _dio.get('/partners/me/impact');
+      return {
+        'success': true,
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil data dampak: $e'};
+    }
+  }
+
   // ==========================================
   // 8. TIKET PENGADUAN & BANTUAN
   // ==========================================
