@@ -14,8 +14,9 @@ dependencies:
   mobile_scanner: ^5.1.1
   flutter_map: ^6.1.0    # Paket Leaflet untuk Flutter
   latlong2: 0.9.1
-  image_picker: ^1.0.7
+  image_picker: ^1.2.3
   dio: ^5.11.1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

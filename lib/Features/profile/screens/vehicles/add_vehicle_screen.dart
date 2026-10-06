@@ -1,10 +1,7 @@
-import 'dart:io';
-import 'dart:convert'; // Tambahkan import ini untuk base64Encode
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../services/api_service.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   const AddVehicleScreen({super.key});
@@ -14,40 +11,116 @@ class AddVehicleScreen extends StatefulWidget {
 }
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
-  String _selectedJenis = 'Motor';
-  final TextEditingController _modelController = TextEditingController();
-  final TextEditingController _platController = TextEditingController();
-  final TextEditingController _kapasitasController = TextEditingController();
-  
+  final PartnerApiService _apiService = PartnerApiService();
   final ImagePicker _picker = ImagePicker();
-  String? _fileName;
-  Uint8List? _fileBytes;
+
+  String _selectedJenis = 'Motor'; // Motor, Mobil, Roda Tiga, Gerobak
+  final TextEditingController _brandModelController = TextEditingController();
+  final TextEditingController _platController = TextEditingController();
+
+  XFile? _pickedXFile;
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _modelController.dispose();
+    _brandModelController.dispose();
     _platController.dispose();
-    _kapasitasController.dispose();
     super.dispose();
   }
 
-  // Fungsi untuk memilih berkas dari perangkat
-  Future<void> _pilihBerkasSTNK() async {
+  Future<void> _pilihBerkas() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (image != null) {
-        final bytes = await image.readAsBytes();
         setState(() {
-          _fileName = image.name;
-          _fileBytes = bytes;
+          _pickedXFile = image;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dokumen STNK berhasil dipilih!'), backgroundColor: Colors.green),
-        );
       }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memilih berkas: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+Future<void> _simpanKendaraan() async {
+    // 1. Mapping jenis ke enum backend
+    String backendType = 'MOTORCYCLE';
+    if (_selectedJenis == 'Mobil') {
+      backendType = 'CAR';
+    } else if (_selectedJenis == 'Roda Tiga') {
+      backendType = 'MOTORCYCLE';
+    } else if (_selectedJenis == 'Gerobak') {
+      backendType = 'CART';
+    }
+
+    // 2. Validasi input
+    if (backendType != 'CART') {
+      if (_platController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nomor plat wajib diisi!'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      if (_pickedXFile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto STNK wajib diunggah!'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+    } else {
+      if (_pickedXFile == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Foto fisik gerobak wajib diunggah!'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+    }
+
+    setState(() => _isLoading = true);
+
+    // 3. Upload berkas
+    String? uploadedUrl;
+    if (_pickedXFile != null) {
+      final uploadRes = await _apiService.uploadSingleFile(
+        _pickedXFile!.path,
+        xFile: _pickedXFile,
+        category: 'document',
+      );
+
+      if (uploadRes['success'] == true && uploadRes['url'] != null) {
+        uploadedUrl = uploadRes['url'];
+      } else {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(uploadRes['message'] ?? 'Gagal mengunggah foto.'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+    }
+
+    // 4. Kirim ke API PUT /partners/me/vehicle (PERBAIKAN DI SINI: plateNumber murni plat saja)
+    final result = await _apiService.registerOrUpdateVehicle(
+      type: backendType,
+      plateNumber: backendType != 'CART' ? _platController.text.trim() : null,
+      stnkPhotoUrl: backendType != 'CART' ? uploadedUrl : null,
+      vehiclePhotoUrl: backendType == 'CART' ? uploadedUrl : null,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memilih berkas: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text(result['message'] ?? 'Data kendaraan berhasil disimpan!'), backgroundColor: Colors.green),
+      );
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? 'Gagal menyimpan kendaraan.'), backgroundColor: Colors.red),
       );
     }
   }
@@ -71,7 +144,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Tambahkan kendaraan yang akan digunakan untuk operasional pengangkutan material daur ulang.',
+              'Pilih jenis dan lengkapi spesifikasi kendaraan operasional pengangkutan Anda.',
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
@@ -79,18 +152,23 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             // --- 1. PILIH JENIS KENDARAAN ---
             const Text('Jenis Kendaraan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             const SizedBox(height: 10),
-            Row(
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.2,
               children: [
-                Expanded(child: _buildJenisOption('Motor', Icons.two_wheeler)),
-                const SizedBox(width: 10),
-                Expanded(child: _buildJenisOption('Mobil', Icons.local_shipping)),
-                const SizedBox(width: 10),
-                Expanded(child: _buildJenisOption('Gerobak', Icons.shopping_cart)),
+                _buildJenisOption('Motor', Icons.two_wheeler),
+                _buildJenisOption('Mobil', Icons.local_shipping),
+                _buildJenisOption('Roda Tiga', Icons.electric_rickshaw),
+                _buildJenisOption('Gerobak', Icons.shopping_cart),
               ],
             ),
             const SizedBox(height: 20),
 
-            // --- 2. FORM KARTU INPUT DETAIL KENDARAAN ---
+            // --- 2. DETAIL KENDARAAN ---
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -103,12 +181,14 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Nama/Model Kendaraan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  const Text('Nama / Merk / Model Kendaraan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 6),
                   TextField(
-                    controller: _modelController,
+                    controller: _brandModelController,
                     decoration: InputDecoration(
-                      hintText: 'Contoh: Honda Beat / Suzuki Carry',
+                      hintText: _selectedJenis == 'Roda Tiga' 
+                          ? 'Contoh: ViAR Karya 200 / Tossa' 
+                          : (_selectedJenis == 'Motor' ? 'Contoh: Honda Beat 2022' : 'Contoh: Suzuki Carry / Gerobak Kayu'),
                       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                       filled: true,
                       fillColor: Colors.white,
@@ -117,44 +197,30 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text('Nomor Plat / ID', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _platController,
-                    decoration: InputDecoration(
-                      hintText: 'Contoh: B 1234 XYZ',
-                      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  if (_selectedJenis != 'Gerobak') ...[
+                    const SizedBox(height: 16),
+                    const Text('Nomor Plat Kendaraan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _platController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: InputDecoration(
+                        hintText: 'Contoh: B 1234 XYZ',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Kapasitas Maksimum (kg)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _kapasitasController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Contoh: 150',
-                      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                      suffixText: 'kg',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // --- 3. UPLOAD DOKUMEN KENDARAAN (STNK) ---
+            // --- 3. UPLOAD DOKUMEN / FOTO ---
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -167,9 +233,17 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Dokumen Kendaraan (STNK)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  Text(
+                    _selectedJenis == 'Gerobak' ? 'Foto Fisik Gerobak' : 'Foto Dokumen STNK',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
                   const SizedBox(height: 6),
-                  const Text('Unggah foto STNK atau dokumen pendukung untuk verifikasi.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Text(
+                    _selectedJenis == 'Gerobak'
+                        ? 'Unggah foto fisik gerobak yang jelas untuk verifikasi.'
+                        : 'Unggah foto STNK asli kendaraan Roda Tiga/Motor/Mobil Anda.',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
@@ -182,28 +256,28 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     child: Column(
                       children: [
                         Icon(
-                          _fileName != null ? Icons.description : Icons.cloud_upload_outlined,
+                          _pickedXFile != null ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
                           size: 40,
-                          color: const Color(0xFF28859B),
+                          color: _pickedXFile != null ? Colors.green : const Color(0xFF28859B),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _fileName ?? 'Belum ada dokumen dipilih',
+                          _pickedXFile != null ? _pickedXFile!.name : 'Belum ada foto dipilih',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 2),
-                        const Text('Format: JPG, PNG, atau PDF (Maks. 5MB)', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
-                          onPressed: _pilihBerkasSTNK, // Memanggil fungsi picker
+                          onPressed: _isLoading ? null : _pilihBerkas,
                           icon: const Icon(Icons.folder_open, size: 14, color: Color(0xFF28859B)),
-                          label: Text(_fileName != null ? 'Ganti Berkas' : 'Pilih Berkas', style: const TextStyle(fontSize: 12, color: Color(0xFF28859B), fontWeight: FontWeight.bold)),
+                          label: Text(
+                            _pickedXFile != null ? 'Ganti Foto' : 'Pilih Foto',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF28859B), fontWeight: FontWeight.bold),
+                          ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xFF28859B)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           ),
                         ),
                       ],
@@ -217,44 +291,21 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             // --- 4. TOMBOL SIMPAN ---
             SizedBox(
               width: double.infinity,
+              height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  if (_modelController.text.isEmpty || _platController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Mohon lengkapi data kendaraan!'), backgroundColor: Colors.red),
-                    );
-                    return;
-                  }
-
-                  IconData selectedIcon = Icons.two_wheeler;
-                  if (_selectedJenis == 'Mobil') {
-                    selectedIcon = Icons.local_shipping;
-                  } else if (_selectedJenis == 'Gerobak') {
-                    selectedIcon = Icons.shopping_cart;
-                  }
-
-                  final newVehicleData = {
-                    'title': _modelController.text,
-                    'subtitle': '$_selectedJenis • ${_platController.text}',
-                    'type': _selectedJenis == 'Motor' ? 'Sepeda Motor' : (_selectedJenis == 'Mobil' ? 'Mobil Pick-up' : 'Gerobak'),
-                    'plat': _platController.text,
-                    'capacity': '${_kapasitasController.text.isEmpty ? '100' : _kapasitasController.text} kg',
-                    'tahun': '2026',
-                    'iconCode': selectedIcon.codePoint,
-                    'stnk': _fileName ?? 'STNK_${_modelController.text.replaceAll(' ', '_')}.jpg',
-                    // BARIS INI YANG DITAMBAHKAN AGAR GAMBAR TERSIMPAN:
-                    'stnkBytes': _fileBytes != null ? base64Encode(_fileBytes!) : null,
-                  };
-
-                  Navigator.pop(context, newVehicleData);
-                },
+                onPressed: _isLoading ? null : _simpanKendaraan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF28859B),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
-                child: const Text('Simpan Kendaraan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text('Simpan Kendaraan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
             const SizedBox(height: 20),
@@ -270,10 +321,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       onTap: () {
         setState(() {
           _selectedJenis = jenis;
+          _pickedXFile = null;
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -282,10 +334,11 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             width: isSelected ? 1.5 : 1,
           ),
         ),
-        child: Column(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? const Color(0xFF28859B) : AppColors.textSecondary, size: 24),
-            const SizedBox(height: 6),
+            Icon(icon, color: isSelected ? const Color(0xFF28859B) : AppColors.textSecondary, size: 20),
+            const SizedBox(width: 6),
             Text(
               jenis,
               style: TextStyle(

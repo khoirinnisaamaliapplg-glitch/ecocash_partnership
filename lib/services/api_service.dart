@@ -20,15 +20,11 @@ class PartnerApiService {
       ),
     );
 
-    // Interceptor untuk menyisipkan Token JWT + LOGGING DEBUG KONEKSI
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await AppStorage.getToken();
           print('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
-          print('>>> [API TOKEN] $token');
-          print('>>> [API PAYLOAD] ${options.data}');
-          
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -36,7 +32,6 @@ class PartnerApiService {
         },
         onResponse: (response, handler) {
           print('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
-          print('<<< [API DATA] ${response.data}');
           return handler.next(response);
         },
         onError: (DioException e, handler) {
@@ -48,7 +43,10 @@ class PartnerApiService {
     );
   }
 
-  /// 1. Login Khusus Partner (POST /partners/login)
+  // ==========================================
+  // 1. AUTH & PROFIL
+  // ==========================================
+
   Future<Map<String, dynamic>> login({
     required String identifier,
     required String password,
@@ -56,10 +54,7 @@ class PartnerApiService {
     try {
       final response = await _dio.post(
         '/partners/login',
-        data: {
-          'identifier': identifier,
-          'password': password,
-        },
+        data: {'identifier': identifier, 'password': password},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -67,12 +62,8 @@ class PartnerApiService {
         final String? token = responseData['data']?['token'] ?? responseData['token'];
         final dynamic userData = responseData['data']?['user'] ?? responseData['user'] ?? responseData['data'];
 
-        if (token != null) {
-          await AppStorage.saveToken(token);
-        }
-        if (userData != null) {
-          await AppStorage.saveUserData(userData);
-        }
+        if (token != null) await AppStorage.saveToken(token);
+        if (userData != null) await AppStorage.saveUserData(userData);
 
         return {
           'success': true,
@@ -80,11 +71,7 @@ class PartnerApiService {
           'data': responseData['data'] ?? responseData,
         };
       }
-
-      return {
-        'success': false,
-        'message': response.data['message'] ?? 'Gagal melakukan login',
-      };
+      return {'success': false, 'message': response.data['message'] ?? 'Gagal login'};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -92,7 +79,6 @@ class PartnerApiService {
     }
   }
 
-  /// 2. Register Partner Baru (POST /partners/register)
   Future<Map<String, dynamic>> register({
     required String name,
     required String username,
@@ -117,17 +103,9 @@ class PartnerApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return {
-          'success': true,
-          'message': response.data['message'] ?? 'Registrasi berhasil',
-          'data': response.data['data'],
-        };
+        return {'success': true, 'message': response.data['message'] ?? 'Registrasi berhasil', 'data': response.data['data']};
       }
-
-      return {
-        'success': false,
-        'message': response.data['message'] ?? 'Gagal melakukan registrasi',
-      };
+      return {'success': false, 'message': response.data['message'] ?? 'Gagal registrasi'};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -135,7 +113,6 @@ class PartnerApiService {
     }
   }
 
-  /// 3. Minta Kode OTP via WhatsApp / Email (POST /partners/otp/send)
   Future<Map<String, dynamic>> sendOtp({
     String? phoneNumber,
     String? email,
@@ -143,27 +120,12 @@ class PartnerApiService {
     String purpose = 'REGISTRATION',
   }) async {
     try {
-      final Map<String, dynamic> body = {
-        'channel': channel,
-        'purpose': purpose,
-      };
+      final Map<String, dynamic> body = {'channel': channel, 'purpose': purpose};
+      if (email != null && email.isNotEmpty) body['email'] = email;
+      else if (phoneNumber != null && phoneNumber.isNotEmpty) body['phoneNumber'] = phoneNumber;
 
-      if (email != null && email.isNotEmpty) {
-        body['email'] = email;
-      } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
-        body['phoneNumber'] = phoneNumber;
-      }
-
-      final response = await _dio.post(
-        '/partners/otp/send',
-        data: body,
-      );
-
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Kode OTP berhasil dikirim',
-        'data': response.data['data'],
-      };
+      final response = await _dio.post('/partners/otp/send', data: body);
+      return {'success': true, 'message': response.data['message'] ?? 'Kode OTP dikirim', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -171,7 +133,6 @@ class PartnerApiService {
     }
   }
 
-  /// 4. Verifikasi Kode OTP
   Future<Map<String, dynamic>> verifyOtp({
     String? phoneNumber,
     String? email,
@@ -179,27 +140,12 @@ class PartnerApiService {
     String purpose = 'REGISTRATION',
   }) async {
     try {
-      final Map<String, dynamic> body = {
-        'code': code,
-        'purpose': purpose,
-      };
+      final Map<String, dynamic> body = {'code': code, 'purpose': purpose};
+      if (email != null && email.isNotEmpty) body['email'] = email;
+      else if (phoneNumber != null && phoneNumber.isNotEmpty) body['phoneNumber'] = phoneNumber;
 
-      if (email != null && email.isNotEmpty) {
-        body['email'] = email;
-      } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
-        body['phoneNumber'] = phoneNumber;
-      }
-
-      final response = await _dio.post(
-        '/partners/otp/verify',
-        data: body,
-      );
-
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Verifikasi OTP berhasil',
-        'data': response.data['data'],
-      };
+      final response = await _dio.post('/partners/otp/verify', data: body);
+      return {'success': true, 'message': response.data['message'] ?? 'Verifikasi OTP berhasil', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -207,7 +153,6 @@ class PartnerApiService {
     }
   }
 
-  /// 5. Reset Password Menggunakan OTP
   Future<Map<String, dynamic>> resetPasswordOtp({
     required String phoneNumber,
     required String code,
@@ -216,36 +161,23 @@ class PartnerApiService {
     try {
       final response = await _dio.post(
         '/partners/reset-password/otp',
-        data: {
-          'phoneNumber': phoneNumber,
-          'code': code,
-          'newPassword': newPassword,
-        },
+        data: {'phoneNumber': phoneNumber, 'code': code, 'newPassword': newPassword},
       );
-
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Kata sandi berhasil diperbarui',
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Kata sandi diperbarui'};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': 'Gagal mereset kata sandi: $e'};
+      return {'success': false, 'message': 'Gagal reset kata sandi: $e'};
     }
   }
 
-  /// 6. Ambil Profil Partner yang Sedang Login
   Future<Map<String, dynamic>> getMe() async {
     try {
       final response = await _dio.get('/partners/me');
-
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': response.data['data'],
-        };
+        return {'success': true, 'data': response.data['data']};
       }
-      return {'success': false, 'message': 'Gagal mengambil data profil partner'};
+      return {'success': false, 'message': 'Gagal mengambil profil'};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -253,16 +185,40 @@ class PartnerApiService {
     }
   }
 
-  /// 7. Logout
+  Future<Map<String, dynamic>> updateProfile({
+    String? ktpImageUrl,
+    String? name,
+    String? phoneNumber,
+  }) async {
+    try {
+      final userData = await AppStorage.getUserData();
+      final String existingName = name ??
+          userData?['name'] ??
+          userData?['user']?['name'] ??
+          userData?['username'] ??
+          'Mitra EcoCash';
+
+      final Map<String, dynamic> payload = {'name': existingName};
+      if (ktpImageUrl != null) {
+        payload['ktpImageUrl'] = ktpImageUrl;
+        payload['ktpUrl'] = ktpImageUrl;
+      }
+      if (phoneNumber != null) payload['phoneNumber'] = phoneNumber;
+
+      final response = await _dio.patch('/users/me', data: payload);
+      return {'success': true, 'message': response.data['message'] ?? 'Profil diperbarui', 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui profil: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> logout() async {
     try {
       await _dio.post('/auth/logout');
       await AppStorage.saveToken('');
-
-      return {
-        'success': true,
-        'message': 'Logout berhasil',
-      };
+      return {'success': true, 'message': 'Logout berhasil'};
     } on DioException catch (e) {
       await AppStorage.saveToken('');
       return {'success': false, 'message': _extractErrorMessage(e)};
@@ -271,14 +227,51 @@ class PartnerApiService {
     }
   }
 
-  /// 8. Fetch Daftar Rekening Bank Milik Mitra
+  // ==========================================
+  // 2. DOKUMEN & KYC
+  // ==========================================
+
+  Future<Map<String, dynamic>> uploadPartnerDocument({
+    required String documentType,
+    required String fileUrl,
+    String? documentNumber,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/partners/me/documents',
+        data: {
+          'documentType': documentType,
+          if (documentNumber != null && documentNumber.isNotEmpty) 'documentNumber': documentNumber,
+          'fileUrl': fileUrl,
+        },
+      );
+      return {'success': true, 'message': response.data['message'] ?? 'Dokumen diunggah', 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengunggah dokumen: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyDocuments() async {
+    try {
+      final response = await _dio.get('/partners/me/documents');
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil dokumen: $e'};
+    }
+  }
+
+  // ==========================================
+  // 3. BANK & WITHDRAWAL
+  // ==========================================
+
   Future<Map<String, dynamic>> getBankAccounts() async {
     try {
       final response = await _dio.get('/partners/me/bank-accounts');
-      return {
-        'success': true,
-        'data': response.data['data'] ?? response.data,
-      };
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -286,7 +279,6 @@ class PartnerApiService {
     }
   }
 
-  /// 9. Tambah Rekening Bank Baru
   Future<Map<String, dynamic>> addBankAccount({
     required String bankName,
     required String accountNumber,
@@ -302,11 +294,7 @@ class PartnerApiService {
           'accountHolderName': accountHolderName,
         },
       );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Rekening berhasil ditambahkan',
-        'data': response.data['data'],
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Rekening ditambahkan', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -314,7 +302,6 @@ class PartnerApiService {
     }
   }
 
-  /// 10. Ajukan Pencairan Saldo Dompet
   Future<Map<String, dynamic>> requestWithdrawal({
     required double amount,
     required String bankAccountId,
@@ -322,16 +309,9 @@ class PartnerApiService {
     try {
       final response = await _dio.post(
         '/partners/me/withdrawals',
-        data: {
-          'amount': amount,
-          'bankAccountId': bankAccountId,
-        },
+        data: {'amount': amount, 'bankAccountId': bankAccountId},
       );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Pengajuan penarikan berhasil dikirim',
-        'data': response.data['data'],
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Pengajuan penarikan dikirim', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -339,18 +319,72 @@ class PartnerApiService {
     }
   }
 
-  // ======================================================
-  // MODUL JOBS & OPERASIONAL LAPANGAN
-  // ======================================================
+  // ==========================================
+  // 4. KENDARAAN (VEHICLE)
+  // ==========================================
 
-  /// 11. Ambil daftar pekerjaan publik / tersedia (GET /jobs/available)
+  Future<Map<String, dynamic>> getMyVehicle() async {
+    try {
+      final response = await _dio.get('/partners/me/vehicle');
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data['data'] ?? response.data};
+      }
+      return {'success': false, 'message': 'Gagal mengambil data kendaraan'};
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return {'success': true, 'data': null};
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> registerOrUpdateVehicle({
+    required String type,
+    String? plateNumber,
+    String? stnkPhotoUrl,
+    String? vehiclePhotoUrl,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/partners/me/vehicle',
+        data: {
+          'type': type,
+          'plateNumber': type != 'CART' ? plateNumber?.trim().toUpperCase() : null,
+          'stnkPhotoUrl': type != 'CART' ? stnkPhotoUrl : null,
+          'vehiclePhotoUrl': vehiclePhotoUrl,
+        },
+      );
+      return {'success': true, 'message': response.data['message'] ?? 'Data kendaraan disimpan', 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui data kendaraan: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateVehicle({
+    required String type,
+    String? plateNumber,
+    String? imageUrl,
+  }) async {
+    return registerOrUpdateVehicle(
+      type: type,
+      plateNumber: plateNumber,
+      stnkPhotoUrl: imageUrl,
+      vehiclePhotoUrl: imageUrl,
+    );
+  }
+
+  // ==========================================
+  // 5. JOBS OPERASIONAL
+  // ==========================================
+
   Future<Map<String, dynamic>> getAvailableJobs() async {
     try {
       final response = await _dio.get('/jobs/available');
-      return {
-        'success': true,
-        'data': response.data['data'] ?? response.data,
-      };
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -358,14 +392,10 @@ class PartnerApiService {
     }
   }
 
-  /// 12. Ambil detail satu pekerjaan berdasarkan ID (GET /jobs/:id)
   Future<Map<String, dynamic>> getJobDetail(dynamic jobId) async {
     try {
       final response = await _dio.get('/jobs/$jobId');
-      return {
-        'success': true,
-        'data': response.data['data'] ?? response.data,
-      };
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -373,15 +403,10 @@ class PartnerApiService {
     }
   }
 
-  /// 13. Menerima / Klaim Pekerjaan oleh Partner (POST /jobs/:id/accept)
   Future<Map<String, dynamic>> acceptJob(dynamic jobId) async {
     try {
       final response = await _dio.post('/jobs/$jobId/accept');
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Pekerjaan berhasil diambil',
-        'data': response.data['data'],
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Pekerjaan diambil', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -389,17 +414,10 @@ class PartnerApiService {
     }
   }
 
-  /// 14. Membatalkan pekerjaan yang sedang aktif (POST /jobs/:id/cancel)
   Future<Map<String, dynamic>> cancelJob(dynamic jobId, {String? reason}) async {
     try {
-      final response = await _dio.post(
-        '/jobs/$jobId/cancel',
-        data: reason != null ? {'reason': reason} : {},
-      );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Pekerjaan berhasil dibatalkan',
-      };
+      final response = await _dio.post('/jobs/$jobId/cancel', data: reason != null ? {'reason': reason} : {});
+      return {'success': true, 'message': response.data['message'] ?? 'Pekerjaan dibatalkan'};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -407,15 +425,10 @@ class PartnerApiService {
     }
   }
 
-  /// 15. Memulai rute perjalanan menuju lokasi (PATCH /jobs/:id/start-route)
   Future<Map<String, dynamic>> startRoute(dynamic jobId) async {
     try {
       final response = await _dio.patch('/jobs/$jobId/start-route');
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Perjalanan dimulai',
-        'data': response.data['data'],
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Perjalanan dimulai', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -423,7 +436,6 @@ class PartnerApiService {
     }
   }
 
-  /// 16. Check-in di lokasi via QR/GPS (POST /jobs/:id/checkin)
   Future<Map<String, dynamic>> checkIn(
     dynamic jobId, {
     String? qrCode,
@@ -441,11 +453,7 @@ class PartnerApiService {
           if (longitude != null) 'longitude': longitude,
         },
       );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Check-in berhasil divalidasi',
-        'data': response.data['data'],
-      };
+      return {'success': true, 'message': response.data['message'] ?? 'Check-in berhasil', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -453,25 +461,14 @@ class PartnerApiService {
     }
   }
 
-  /// 17. Input rincian berat timbangan (POST /jobs/:id/pickup)
   Future<Map<String, dynamic>> submitPickup(
     dynamic jobId, {
     required List<Map<String, dynamic>> materials,
     String? notes,
   }) async {
     try {
-      final response = await _dio.post(
-        '/jobs/$jobId/pickup',
-        data: {
-          'materials': materials,
-          if (notes != null) 'notes': notes,
-        },
-      );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Data timbangan berhasil disimpan',
-        'data': response.data['data'],
-      };
+      final response = await _dio.post('/jobs/$jobId/pickup', data: {'materials': materials, if (notes != null) 'notes': notes});
+      return {'success': true, 'message': response.data['message'] ?? 'Timbangan disimpan', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -479,14 +476,10 @@ class PartnerApiService {
     }
   }
 
-  /// 18. Generate QR Handover (POST /jobs/:id/handover/generate-qr)
   Future<Map<String, dynamic>> generateHandoverQr(dynamic jobId) async {
     try {
       final response = await _dio.post('/jobs/$jobId/handover/generate-qr');
-      return {
-        'success': true,
-        'data': response.data['data'] ?? response.data,
-      };
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -494,7 +487,24 @@ class PartnerApiService {
     }
   }
 
-  /// 19. Upload Single File (POST /upload/single)
+  Future<Map<String, dynamic>> getMyJobs({String? status}) async {
+    try {
+      final response = await _dio.get(
+        '/jobs/my-jobs',
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil pekerjaan saya: $e'};
+    }
+  }
+
+  // ==========================================
+  // 6. UPLOAD FILE
+  // ==========================================
+
   Future<Map<String, dynamic>> uploadSingleFile(
     String filePath, {
     XFile? xFile,
@@ -523,18 +533,43 @@ class PartnerApiService {
     }
   }
 
-  /// 20. Ambil Daftar Pekerjaan Saya (GET /jobs/my-jobs)
-  Future<Map<String, dynamic>> getMyJobs({String? status}) async {
+  // ==========================================
+  // 7. ECOCASH ACADEMY
+  // ==========================================
+
+  Future<Map<String, dynamic>> getAcademyCourses() async {
     try {
-      final response = await _dio.get(
-        '/jobs/my-jobs',
-        queryParameters: status != null ? {'status': status} : null,
-      );
+      final response = await _dio.get('/academy/courses');
       return {'success': true, 'data': response.data['data'] ?? []};
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': 'Gagal mengambil pekerjaan saya: $e'};
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAcademyCourseById(String courseId) async {
+    try {
+      final response = await _dio.get('/academy/courses/$courseId');
+      return {'success': true, 'data': response.data['data']};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeAcademyModule(String courseId, String moduleId) async {
+    try {
+      final response = await _dio.post('/academy/courses/$courseId/modules/$moduleId/complete');
+      return {'success': true, 'message': response.data['message'], 'data': response.data['data']};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getAcademyCertificates() async {
+    try {
+      final response = await _dio.get('/academy/certificates');
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } catch (e) {
+      return {'success': false, 'message': '$e'};
     }
   }
 
@@ -545,12 +580,8 @@ class PartnerApiService {
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
-      if (data['errors'] != null) {
-        return data['errors'].toString();
-      }
-      if (data['message'] != null) {
-        return data['message'].toString();
-      }
+      if (data['errors'] != null) return data['errors'].toString();
+      if (data['message'] != null) return data['message'].toString();
     }
     return 'Terjadi kesalahan jaringan/server (${e.response?.statusCode ?? 'No Connection'})';
   }

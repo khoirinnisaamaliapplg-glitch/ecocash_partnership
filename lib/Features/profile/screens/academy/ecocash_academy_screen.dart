@@ -1,21 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../services/api_service.dart';
 import 'detail_pelatihan_screen.dart';
-import 'detail_pelatihan_keselamatan_screen.dart';
 import 'sertifikat_pelatihan_screen.dart';
-import 'detail_pelatihan_rute_screen.dart'; // <--- Import file baru di sini
 
 class EcocashAcademyScreen extends StatefulWidget {
   const EcocashAcademyScreen({super.key});
 
   @override
-  State createState() => _EcocashAcademyScreenState();
+  State<EcocashAcademyScreen> createState() => _EcocashAcademyScreenState();
 }
 
-class _EcocashAcademyScreenState extends State {
+class _EcocashAcademyScreenState extends State<EcocashAcademyScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
   static const Color _navyColor = Color(0xFF0F2C59);
+
   int _selectedFilterIndex = 0; // 0: Semua, 1: Dalam Proses, 2: Selesai
+  bool _isLoading = true;
+  List<dynamic> _courses = [];
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    setState(() => _isLoading = true);
+    final result = await _apiService.getAcademyCourses();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (result['success'] == true && result['data'] is List) {
+          _courses = result['data'];
+        }
+      });
+    }
+  }
+
+  List<dynamic> get _filteredCourses {
+    return _courses.where((course) {
+      final String status = (course['status'] ?? 'NOT_STARTED').toString();
+      final String title = (course['title'] ?? '').toString().toLowerCase();
+      final bool matchesSearch = title.contains(_searchQuery.toLowerCase());
+
+      if (_selectedFilterIndex == 1) {
+        return matchesSearch && (status == 'IN_PROGRESS' || status == 'NOT_STARTED');
+      } else if (_selectedFilterIndex == 2) {
+        return matchesSearch && status == 'COMPLETED';
+      }
+      return matchesSearch;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +81,14 @@ class _EcocashAcademyScreenState extends State {
       ),
       body: Column(
         children: [
-          // --- BARIS PENCARIAN & FILTER ---
+          // BARIS PENCARIAN & FILTER
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: Column(
               children: [
                 TextField(
+                  onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: 'Cari materi pembelajaran...',
                     hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
@@ -76,88 +116,72 @@ class _EcocashAcademyScreenState extends State {
             ),
           ),
 
-          // --- DAFTAR KARTU MATERI PEMBELAJARAN ---
+          // LIST MATERI DARI BACKEND
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20.0),
-              children: [
-                // KARTU 1: Pengenalan Material & Sortasi
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 1)
-                  _buildCourseCard(
-                    imageUrl: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=60',
-                    title: 'Pengenalan Material & Sortasi',
-                    subtitle: 'Modul Dasar • 4 Bab',
-                    progressText: '45%',
-                    progressValue: 0.45,
-                    isCompleted: false,
-                    buttonLabel: 'Lanjutkan',
-                    buttonIcon: Icons.arrow_forward,
-                    onCardTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DetailPelatihanScreen()),
-                      );
-                    },
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DetailPelatihanScreen()),
-                      );
-                    },
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+                : RefreshIndicator(
+                    onRefresh: _fetchCourses,
+                    child: _filteredCourses.isEmpty
+                        ? const Center(child: Text('Belum ada materi pembelajaran.', style: TextStyle(color: AppColors.textSecondary)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(20.0),
+                            itemCount: _filteredCourses.length,
+                            itemBuilder: (context, index) {
+                              final course = _filteredCourses[index];
+                              final String courseId = course['id'].toString();
+                              final String title = course['title'] ?? 'Pelatihan EcoCash';
+                              final String category = course['category'] ?? 'Modul Pelatihan';
+                              final String bannerUrl = course['bannerUrl'] ??
+                                  'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=60';
+                              final num progressPercentage = course['progressPercentage'] ?? 0;
+                              final String status = (course['status'] ?? 'NOT_STARTED').toString();
+                              final bool isCompleted = status == 'COMPLETED';
+                              final bool isNotStarted = status == 'NOT_STARTED';
 
-                // KARTU 2: Keselamatan Kerja Lapangan
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 2)
-                  _buildCourseCard(
-                    imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=60',
-                    title: 'Keselamatan Kerja Lapangan',
-                    subtitle: 'Sertifikasi Wajib • Selesai 12 Okt',
-                    progressText: '100%',
-                    progressValue: 1.0,
-                    isCompleted: true,
-                    buttonLabel: 'Lihat Sertifikat',
-                    buttonIcon: Icons.workspace_premium_outlined,
-                    onCardTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DetailPelatihanKeselamatanScreen()),
-                      );
-                    },
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SertifikatPelatihanScreen()),
-                      );
-                    },
+                              return _buildCourseCard(
+                                imageUrl: bannerUrl,
+                                title: title,
+                                subtitle: category,
+                                progressText: '$progressPercentage%',
+                                progressValue: progressPercentage / 100.0,
+                                isCompleted: isCompleted,
+                                isNotStarted: isNotStarted,
+                                buttonLabel: isCompleted
+                                    ? 'Lihat Sertifikat'
+                                    : (isNotStarted ? 'Mulai Belajar' : 'Lanjutkan'),
+                                buttonIcon: isCompleted
+                                    ? Icons.workspace_premium_outlined
+                                    : (isNotStarted ? Icons.play_circle_outline : Icons.arrow_forward),
+                                onCardTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailPelatihanScreen(courseId: courseId),
+                                    ),
+                                  );
+                                  _fetchCourses();
+                                },
+                                onPressed: () async {
+                                  if (isCompleted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const SertifikatPelatihanScreen()),
+                                    );
+                                  } else {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DetailPelatihanScreen(courseId: courseId),
+                                      ),
+                                    );
+                                    _fetchCourses();
+                                  }
+                                },
+                              );
+                            },
+                          ),
                   ),
-
-                // KARTU 3: Optimasi Rute Pengangkutan (Klik Kartu / Tombol -> Ke Detail Rute)
-                if (_selectedFilterIndex == 0 || _selectedFilterIndex == 1)
-                  _buildCourseCard(
-                    imageUrl: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=600&auto=format&fit=crop&q=60',
-                    title: 'Optimasi Rute Pengangkutan',
-                    subtitle: 'Modul Lanjutan • 3 Bab',
-                    progressText: '0%',
-                    progressValue: 0.0,
-                    isCompleted: false,
-                    isNotStarted: true,
-                    buttonLabel: 'Mulai Belajar',
-                    buttonIcon: Icons.play_circle_outline,
-                    onCardTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DetailPelatihanRuteScreen()),
-                      );
-                    },
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const DetailPelatihanRuteScreen()),
-                      );
-                    },
-                  ),
-              ],
-            ),
           ),
         ],
       ),
@@ -167,20 +191,14 @@ class _EcocashAcademyScreenState extends State {
   Widget _buildFilterChip(int index, String label) {
     bool isSelected = _selectedFilterIndex == index;
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedFilterIndex = index;
-        });
-      },
+      onTap: () => setState(() => _selectedFilterIndex = index),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? _navyColor : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? _navyColor : Colors.grey.shade300,
-          ),
+          border: Border.all(color: isSelected ? _navyColor : Colors.grey.shade300),
         ),
         child: Text(
           label,
@@ -213,11 +231,7 @@ class _EcocashAcademyScreenState extends State {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3)),
         ],
       ),
       child: InkWell(
@@ -236,9 +250,7 @@ class _EcocashAcademyScreenState extends State {
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.grey.shade300,
-                    child: const Center(
-                      child: Icon(Icons.image, size: 40, color: Colors.grey),
-                    ),
+                    child: const Center(child: Icon(Icons.image, size: 40, color: Colors.grey)),
                   ),
                 ),
               ),
@@ -257,20 +269,13 @@ class _EcocashAcademyScreenState extends State {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  ),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 14),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -284,9 +289,7 @@ class _EcocashAcademyScreenState extends State {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: isNotStarted
-                              ? AppColors.textSecondary
-                              : (isCompleted ? Colors.green : AppColors.primaryCyan),
+                          color: isNotStarted ? AppColors.textSecondary : (isCompleted ? Colors.green : AppColors.primaryCyan),
                         ),
                       ),
                     ],
@@ -297,9 +300,7 @@ class _EcocashAcademyScreenState extends State {
                     child: LinearProgressIndicator(
                       value: progressValue,
                       backgroundColor: const Color(0xFFE8ECEF),
-                      valueColor: AlwaysStoppedAnimation(
-                        isCompleted ? const Color(0xFF1B8A90) : AppColors.primaryCyan,
-                      ),
+                      valueColor: AlwaysStoppedAnimation(isCompleted ? Colors.green : AppColors.primaryCyan),
                       minHeight: 6,
                     ),
                   ),
@@ -307,47 +308,16 @@ class _EcocashAcademyScreenState extends State {
                   SizedBox(
                     width: double.infinity,
                     height: 42,
-                    child: isCompleted
-                        ? OutlinedButton.icon(
-                            onPressed: onPressed,
-                            icon: Icon(buttonIcon, size: 18, color: _navyColor),
-                            label: Text(
-                              buttonLabel,
-                              style: const TextStyle(
-                                color: _navyColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF6F8FE),
-                              side: const BorderSide(color: Color(0xFFC5CEE0)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: onPressed,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E88A8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              elevation: 0,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  buttonLabel,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(buttonIcon, size: 18, color: Colors.white),
-                              ],
-                            ),
-                          ),
+                    child: ElevatedButton.icon(
+                      onPressed: onPressed,
+                      icon: Icon(buttonIcon, size: 18, color: Colors.white),
+                      label: Text(buttonLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88A8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
                   ),
                 ],
               ),
