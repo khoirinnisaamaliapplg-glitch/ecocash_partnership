@@ -573,7 +573,6 @@ class PartnerApiService {
     }
   }
 
-  /// Mengambil data agregasi statistik material mitra
   Future<Map<String, dynamic>> getMaterialStatistics() async {
     try {
       final response = await _dio.get('/material-statistics/me');
@@ -606,6 +605,63 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal mengambil data dampak: $e'};
+    }
+  }
+
+  // ==========================================
+  // 8. TIKET PENGADUAN & BANTUAN
+  // ==========================================
+
+  Future<Map<String, dynamic>> createTicket({
+    required String category,
+    required String subject,
+    required String description,
+    XFile? attachmentFile,
+    String priority = 'MEDIUM',
+  }) async {
+    try {
+      final Map<String, dynamic> formMap = {
+        'category': category,
+        'subject': subject,
+        'description': description,
+        'priority': priority,
+      };
+
+      if (attachmentFile != null) {
+        if (kIsWeb) {
+          final bytes = await attachmentFile.readAsBytes();
+          formMap['attachment'] = MultipartFile.fromBytes(bytes, filename: attachmentFile.name);
+        } else {
+          formMap['attachment'] = await MultipartFile.fromFile(attachmentFile.path, filename: attachmentFile.name);
+        }
+      }
+
+      final formData = FormData.fromMap(formMap);
+      final response = await _dio.post('/tickets', data: formData);
+
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Tiket berhasil dibuat',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengirim laporan: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyTickets() async {
+    try {
+      final response = await _dio.get('/tickets/me');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? [],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil riwayat laporan: $e'};
     }
   }
 
