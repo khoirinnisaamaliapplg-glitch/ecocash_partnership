@@ -492,6 +492,59 @@ class PartnerApiService {
     }
   }
 
+<<<<<<< Updated upstream
+=======
+  // ==========================================
+  // 6. UPLOAD FILE
+  // ==========================================
+
+  Future<Map<String, dynamic>> uploadSingleFile(
+    String filePath, {
+    XFile? xFile,
+    String category = 'document',
+  }) async {
+    try {
+      final MultipartFile multipartFile;
+      if (kIsWeb && xFile != null) {
+        final bytes = await xFile.readAsBytes();
+        multipartFile = MultipartFile.fromBytes(bytes, filename: xFile.name);
+      } else {
+        final fileName = filePath.split('/').last;
+        multipartFile = await MultipartFile.fromFile(filePath, filename: fileName);
+      }
+
+      final formData = FormData.fromMap({'category': category, 'file': multipartFile});
+      final response = await _dio.post('/upload/single', data: formData);
+      final responseData = response.data;
+      final String? fileUrl = responseData['data']?['url'] ?? responseData['url'];
+
+      return {'success': true, 'url': fileUrl, 'data': responseData};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengunggah berkas: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getMyJobs({String? status}) async {
+    try {
+      final response = await _dio.get(
+        '/jobs/my-jobs',
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil pekerjaan saya: $e'};
+    }
+  }
+
+  // ==========================================
+  // HELPER
+  // ==========================================
+
+>>>>>>> Stashed changes
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
