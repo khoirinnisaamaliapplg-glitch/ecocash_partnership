@@ -534,7 +534,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 7. ECOCASH ACADEMY & STATISTIK / DAMPAK
+  // 7. ECOCASH ACADEMY
   // ==========================================
 
   Future<Map<String, dynamic>> getAcademyCourses() async {
@@ -593,9 +593,30 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getDashboard() async {
+    try {
+      final response = await _dio.get('/partners/me/dashboard');
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data['data'] ?? response.data,
+        };
+      }
+      return {
+        'success': false,
+        'message': response.data['message'] ?? 'Gagal memuat data dashboard',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
+  /// Ambil Ringkasan Dampak Saya (GET /partners/me/impact)
   Future<Map<String, dynamic>> getMyImpact() async {
     try {
-      final response = await _dio.get('/material-statistics/me');
+      final response = await _dio.get('/partners/me/impact');
       if (response.statusCode == 200) {
         return {
           'success': true,
@@ -667,58 +688,53 @@ class PartnerApiService {
     }
   }
 
-  // ==========================================
-  // 9. CHAT CUSTOMER SERVICE
-  // ==========================================
-
-  Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
-    try {
-      final response = await _dio.get('/chat/room/$partnerId');
-      return {'success': true, 'data': response.data['data']};
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal mengambil chat room: $e'};
-    }
+Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
+  try {
+    final response = await _dio.get('/chat/room/$partnerId');
+    return {'success': true, 'data': response.data['data']};
+  } on DioException catch (e) {
+    return {'success': false, 'message': _extractErrorMessage(e)};
+  } catch (e) {
+    return {'success': false, 'message': 'Gagal mengambil chat room: $e'};
   }
+}
 
-  Future<Map<String, dynamic>> getChatHistory(String roomId) async {
-    try {
-      final response = await _dio.get('/chat/history/$roomId');
-      return {'success': true, 'data': response.data['data'] ?? []};
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal mengambil riwayat chat: $e'};
-    }
+Future<Map<String, dynamic>> getChatHistory(String roomId) async {
+  try {
+    final response = await _dio.get('/chat/history/$roomId');
+    return {'success': true, 'data': response.data['data'] ?? []};
+  } on DioException catch (e) {
+    return {'success': false, 'message': _extractErrorMessage(e)};
+  } catch (e) {
+    return {'success': false, 'message': 'Gagal mengambil riwayat chat: $e'};
   }
+}
 
-  Future<Map<String, dynamic>> sendChatMessage({
-    required String roomId,
-    required int senderId,
-    required String message,
-    String senderType = 'PARTNER',
-    String? attachmentUrl,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/chat/message',
-        data: {
-          'roomId': roomId,
-          'senderId': senderId,
-          'message': message,
-          'senderType': senderType,
-          'attachmentUrl': attachmentUrl,
-        },
-      );
-      return {'success': true, 'data': response.data['data']};
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal mengirim pesan: $e'};
-    }
+Future<Map<String, dynamic>> sendChatMessage({
+  required String roomId,
+  required int senderId,
+  required String message,
+  String senderType = 'PARTNER',
+  String? attachmentUrl,
+}) async {
+  try {
+    final response = await _dio.post(
+      '/chat/message',
+      data: {
+        'roomId': roomId,
+        'senderId': senderId,
+        'message': message,
+        'senderType': senderType,
+        'attachmentUrl': attachmentUrl,
+      },
+    );
+    return {'success': true, 'data': response.data['data']};
+  } on DioException catch (e) {
+    return {'success': false, 'message': _extractErrorMessage(e)};
+  } catch (e) {
+    return {'success': false, 'message': 'Gagal mengirim pesan: $e'};
   }
-
+}
   // ==========================================
   // HELPER
   // ==========================================

@@ -4,7 +4,9 @@ import '../../../core/theme/app_colors.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
 class JobsScreen extends StatefulWidget {
-  const JobsScreen({super.key});
+  final bool isFromDashboard; // 1. Tambahkan baris ini
+
+  const JobsScreen({super.key, this.isFromDashboard = false});
 
   @override
   State<JobsScreen> createState() => _JobsScreenState();
@@ -13,7 +15,8 @@ class JobsScreen extends StatefulWidget {
 class _JobsScreenState extends State<JobsScreen> {
   final PartnerApiService _apiService = PartnerApiService();
 
-  String _selectedStatusTab = 'Tersedia'; // Options: 'Tersedia', 'Sedang Diproses', 'Selesai'
+  String _selectedStatusTab =
+      'Tersedia'; // Options: 'Tersedia', 'Sedang Diproses', 'Selesai'
   String _selectedCategoryFilter = 'Semua';
 
   List<dynamic> _jobsList = [];
@@ -74,18 +77,36 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredJobs = _jobsList.where((job) {
-      final String title = (job['title'] ?? job['machine']?['name'] ?? '').toString().toLowerCase();
-      final String address = (job['address'] ?? job['machine']?['address'] ?? '').toString().toLowerCase();
-      final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
-      final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
+      final String title = (job['title'] ?? job['machine']?['name'] ?? '')
+          .toString()
+          .toLowerCase();
+      final String address =
+          (job['address'] ?? job['machine']?['address'] ?? '')
+              .toString()
+              .toLowerCase();
+      final String type = (job['type'] ?? 'SMART_CONTAINER')
+          .toString()
+          .toUpperCase();
+      final String status = (job['status'] ?? 'AVAILABLE')
+          .toString()
+          .toUpperCase();
 
-      bool matchesSearch = title.contains(_searchQuery.toLowerCase()) || address.contains(_searchQuery.toLowerCase());
+      bool matchesSearch =
+          title.contains(_searchQuery.toLowerCase()) ||
+          address.contains(_searchQuery.toLowerCase());
 
       bool matchesStatus = true;
       if (_selectedStatusTab == 'Tersedia') {
-        matchesStatus = status == 'AVAILABLE' || status == 'OPEN' || status == 'PENDING';
+        matchesStatus =
+            status == 'AVAILABLE' || status == 'OPEN' || status == 'PENDING';
       } else if (_selectedStatusTab == 'Sedang Diproses') {
-        matchesStatus = status == 'ACCEPTED' || status == 'ON_THE_WAY' || status == 'CHECKED_IN' || status == 'PICKUP' || status == 'IN_TRANSIT' || status == 'HANDOVER';
+        matchesStatus =
+            status == 'ACCEPTED' ||
+            status == 'ON_THE_WAY' ||
+            status == 'CHECKED_IN' ||
+            status == 'PICKUP' ||
+            status == 'IN_TRANSIT' ||
+            status == 'HANDOVER';
       } else if (_selectedStatusTab == 'Selesai') {
         matchesStatus = status == 'COMPLETED';
       }
@@ -105,9 +126,22 @@ class _JobsScreenState extends State<JobsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryCyan,
         elevation: 0,
-        title: const Text('Daftar Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
         automaticallyImplyLeading: false,
+        leading: widget.isFromDashboard
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              )
+            : null,
+        title: const Text(
+          'Daftar Pekerjaan',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -121,11 +155,21 @@ class _JobsScreenState extends State<JobsScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: 'Cari pekerjaan...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF4F6F8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
@@ -167,14 +211,21 @@ class _JobsScreenState extends State<JobsScreen> {
                             children: const [
                               SizedBox(height: 100),
                               Center(
-                                child: Text('Tidak ada pekerjaan yang sesuai dengan filter.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                child: Text(
+                                  'Tidak ada pekerjaan yang sesuai dengan filter.',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ],
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.all(16.0),
                             itemCount: filteredJobs.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 14),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 14),
                             itemBuilder: (context, index) {
                               final job = filteredJobs[index];
                               return _buildDynamicJobCard(context, job);
@@ -200,7 +251,12 @@ class _JobsScreenState extends State<JobsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: isSelected ? AppColors.primaryCyan : Colors.transparent, width: 3.0)),
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? AppColors.primaryCyan : Colors.transparent,
+                width: 3.0,
+              ),
+            ),
           ),
           child: Text(
             label,
@@ -208,7 +264,9 @@ class _JobsScreenState extends State<JobsScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.primaryCyan : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.primaryCyan
+                  : AppColors.textSecondary,
             ),
           ),
         ),
@@ -226,7 +284,9 @@ class _JobsScreenState extends State<JobsScreen> {
         decoration: BoxDecoration(
           color: isSelected ? _navyColor : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? _navyColor : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? _navyColor : Colors.grey.shade300,
+          ),
         ),
         child: Text(
           label,
@@ -242,12 +302,24 @@ class _JobsScreenState extends State<JobsScreen> {
 
   Widget _buildDynamicJobCard(BuildContext context, Map job) {
     final dynamic jobId = job['id'];
-    final String title = job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
-    final String address = job['address'] ?? job['machine']?['address'] ?? job['machine']?['placeName'] ?? 'Lokasi Penjemputan';
-    final String materialTag = job['materialTag'] ?? job['materialCategory'] ?? 'Plastik / Karton';
-    final String volume = job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : (job['volume'] ?? '20 kg');
-    final String price = job['estimatedReward'] != null ? 'Rp${job['estimatedReward']}' : (job['price'] ?? 'Rp45.000');
-    final String type = (job['type'] ?? 'SMART_CONTAINER').toString().toUpperCase();
+    final String title =
+        job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
+    final String address =
+        job['address'] ??
+        job['machine']?['address'] ??
+        job['machine']?['placeName'] ??
+        'Lokasi Penjemputan';
+    final String materialTag =
+        job['materialTag'] ?? job['materialCategory'] ?? 'Plastik / Karton';
+    final String volume = job['estimatedWeight'] != null
+        ? '${job['estimatedWeight']} kg'
+        : (job['volume'] ?? '20 kg');
+    final String price = job['estimatedReward'] != null
+        ? 'Rp${job['estimatedReward']}'
+        : (job['price'] ?? 'Rp45.000');
+    final String type = (job['type'] ?? 'SMART_CONTAINER')
+        .toString()
+        .toUpperCase();
     final bool isResidential = type == 'RESIDENTIAL' || type == 'RUMAH';
 
     return Container(
@@ -255,7 +327,13 @@ class _JobsScreenState extends State<JobsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,21 +343,51 @@ class _JobsScreenState extends State<JobsScreen> {
             decoration: BoxDecoration(
               color: isResidential ? Colors.cyan.shade50 : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: isResidential ? AppColors.primaryCyan : Colors.grey.shade300),
+              border: Border.all(
+                color: isResidential
+                    ? AppColors.primaryCyan
+                    : Colors.grey.shade300,
+              ),
             ),
             child: Text(
               isResidential ? 'Penjemputan Warga' : materialTag,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isResidential ? AppColors.primaryCyan : AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isResidential
+                    ? AppColors.primaryCyan
+                    : AppColors.textSecondary,
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
-              Expanded(child: Text(address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  address,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -289,22 +397,46 @@ class _JobsScreenState extends State<JobsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Estimasi Pendapatan', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  const Text(
+                    'Estimasi Pendapatan',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(price, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor)),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: _navyColor,
+                    ),
+                  ),
                 ],
               ),
               SizedBox(
                 height: 38,
                 child: ElevatedButton(
                   onPressed: () async {
-                    final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
+                    final String status = (job['status'] ?? 'AVAILABLE')
+                        .toString()
+                        .toUpperCase();
                     String targetRoute;
-                    
-                    if (status == 'ACCEPTED' || status == 'ON_THE_WAY' || status == 'CHECKED_IN' || status == 'PICKUP' || status == 'IN_TRANSIT' || status == 'HANDOVER') {
-                      targetRoute = isResidential ? '/dalam-perjalanan-rumah' : '/dalam-perjalanan';
+
+                    if (status == 'ACCEPTED' ||
+                        status == 'ON_THE_WAY' ||
+                        status == 'CHECKED_IN' ||
+                        status == 'PICKUP' ||
+                        status == 'IN_TRANSIT' ||
+                        status == 'HANDOVER') {
+                      targetRoute = isResidential
+                          ? '/dalam-perjalanan-rumah'
+                          : '/dalam-perjalanan';
                     } else {
-                      targetRoute = isResidential ? '/detail-pekerjaan-rumah' : '/detail-pekerjaan';
+                      targetRoute = isResidential
+                          ? '/detail-pekerjaan-rumah'
+                          : '/detail-pekerjaan';
                     }
 
                     await context.push(
@@ -323,13 +455,21 @@ class _JobsScreenState extends State<JobsScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _tealColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     elevation: 0,
                   ),
                   child: Text(
-                    _selectedStatusTab == 'Sedang Diproses' ? 'Lanjutkan' : 'Lihat Detail',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                    _selectedStatusTab == 'Sedang Diproses'
+                        ? 'Lanjutkan'
+                        : 'Lihat Detail',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
