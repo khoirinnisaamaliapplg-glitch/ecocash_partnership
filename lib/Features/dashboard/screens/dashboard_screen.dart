@@ -64,7 +64,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Memproses pengambilan pekerjaan via API
   Future<void> _acceptJob(int jobId) async {
-    // Tampilkan loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -76,7 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final res = await _apiService.acceptJob(jobId);
 
     if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop(); // Tutup loading dialog
+    Navigator.of(context, rootNavigator: true).pop();
 
     if (res['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +84,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      // Refresh data dashboard & pindah ke riwayat pekerjaan
       _fetchDashboardData();
       context.push('/riwayat-pekerjaan');
     } else {
@@ -99,7 +97,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _formatCurrency(num amount) {
-    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp',
+      decimalDigits: 0,
+    );
     return formatter.format(amount);
   }
 
@@ -108,7 +110,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF4F6F8),
-        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryCyan),
+        ),
       );
     }
 
@@ -121,14 +125,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Colors.redAccent,
+                ),
                 const SizedBox(height: 12),
-                Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryCyan,
+                  ),
                   onPressed: _fetchDashboardData,
-                  child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -137,19 +154,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // Mapping Data dari Response API
     final profile = _dashboardData?['partnerProfile'] ?? {};
     final wallet = _dashboardData?['walletSummary'] ?? {};
     final stats = _dashboardData?['performanceStats'] ?? {};
 
-    final String namaUser = profile['name'] ?? widget.userData['name'] ?? widget.userData['nama'] ?? 'Mitra';
+    final String namaUser =
+        profile['name'] ??
+        widget.userData['name'] ??
+        widget.userData['nama'] ??
+        'Mitra';
     final num monthlyEarnings = wallet['monthlyEarnings'] ?? 0;
     final num totalWeight = stats['totalWeightCollectedKg'] ?? 0;
     final int jobsCompleted = stats['monthlyJobsCompleted'] ?? 0;
     final String level = profile['level'] ?? 'Silver';
     final int score = profile['score'] ?? 0;
     final int maxScore = profile['maxScore'] ?? 1000;
-    final double progressValue = maxScore > 0 ? (score / maxScore).clamp(0.0, 1.0) : 0.0;
+    final double progressValue = maxScore > 0
+        ? (score / maxScore).clamp(0.0, 1.0)
+        : 0.0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -161,7 +183,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- HEADER DENGAN GRADIENT & SAPAAN ---
               Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -170,7 +191,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Container(
                       width: double.infinity,
                       height: 240,
-                      decoration: const BoxDecoration(color: AppColors.primaryCyan),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryCyan,
+                      ),
                     ),
                   ),
                   ClipPath(
@@ -197,18 +220,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Text(
                           'Hi, $namaUser!',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Ready to recycle?',
-                          style: TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                   ),
-
-                  // KARTU TOTAL PENGHASILAN
                   Positioned(
                     top: 150,
                     left: 20,
@@ -233,15 +262,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Total Penghasilan Bulan Ini', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                            const Text(
+                              'Total Penghasilan Bulan Ini',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 6),
-                            Text(_formatCurrency(monthlyEarnings), style: const TextStyle(color: AppColors.textPrimary, fontSize: 28, fontWeight: FontWeight.bold)),
+                            Text(
+                              _formatCurrency(monthlyEarnings),
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: const [
-                                Icon(Icons.trending_up, color: Colors.green, size: 16),
+                                Icon(
+                                  Icons.trending_up,
+                                  color: Colors.green,
+                                  size: 16,
+                                ),
                                 SizedBox(width: 4),
-                                Text('Tercatat Real-time', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w500)),
+                                Text(
+                                  'Tercatat Real-time',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -254,7 +307,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 80),
 
-              // --- STATISTIK RINGKASAN ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Column(
@@ -287,7 +339,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // KARTU LEVEL PARTNER
                     InkWell(
                       onTap: () => context.push('/skor-partner'),
                       borderRadius: BorderRadius.circular(16),
@@ -297,7 +348,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
                           ],
                         ),
                         child: Column(
@@ -306,26 +361,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Level $level', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
-                                const Text('Gold', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
+                                Text(
+                                  'Level $level',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const Text(
+                                  'Gold',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.green,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Text('Skor Partner: $score/$maxScore', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text(
+                              'Skor Partner: $score/$maxScore',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                             const SizedBox(height: 10),
                             ClipRRect(
-                              borderRadius: const BorderRadius.all(Radius.circular(10)),
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
+                              ),
                               child: LinearProgressIndicator(
                                 value: progressValue,
                                 backgroundColor: const Color(0xFFE0E0E0),
-                                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryCyan,
+                                ),
                                 minHeight: 8,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Align(
                               alignment: Alignment.centerRight,
-                              child: Text('${maxScore - score} poin lagi ke Level Gold', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                              child: Text(
+                                '${maxScore - score} poin lagi ke Level Gold',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -333,17 +418,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // --- PEKERJAAN TERSEDIA ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Pekerjaan Tersedia',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         TextButton(
-                          onPressed: () => context.push('/riwayat-pekerjaan'),
-                          child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
+                          onPressed: () => context.push(
+                            '/daftar-pekerjaan',
+                            extra: {'fromDashboard': true},
+                          ),
+                          child: const Text(
+                            'Lihat Semua',
+                            style: TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -353,9 +450,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         child: const Center(
-                          child: Text('Belum ada pekerjaan tersedia saat ini', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                          child: Text(
+                            'Belum ada pekerjaan tersedia saat ini',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       )
                     else
@@ -364,14 +470,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: _availableJobs.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             final job = _availableJobs[index];
                             final machine = job['machine'] ?? {};
                             final int jobId = job['id'];
-                            final String code = job['code'] ?? 'JOB-#$jobId';
-                            final String title = job['title'] ?? 'Penjemputan Sampah';
-                            final String address = machine['placeName'] ?? machine['address'] ?? 'Lokasi Mesin';
+                            final String rawCode = job['code'] ?? 'JOB-#$jobId';
+                            final String code = rawCode.length > 10
+                                ? '#${rawCode.substring(0, 8).toUpperCase()}'
+                                : rawCode;
+                            final String title =
+                                job['title'] ?? 'Penjemputan Sampah';
+                            final String address =
+                                machine['placeName'] ??
+                                machine['address'] ??
+                                'Lokasi Mesin';
                             final String priority = job['priority'] ?? 'MEDIUM';
 
                             return _buildJobCard(
@@ -396,7 +510,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, String subtitle, IconData icon, Color iconColor, {VoidCallback? onTap}) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    String subtitle,
+    IconData icon,
+    Color iconColor, {
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -406,7 +527,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
         child: Column(
@@ -417,14 +542,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Icon(icon, color: iconColor, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.2)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                height: 1.2,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
@@ -446,7 +592,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -456,30 +606,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(code, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              Expanded(
+                child: Text(
+                  code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: priority == 'HIGH' || priority == 'URGENT' ? Colors.red.shade50 : Colors.blue.shade50,
+                  color: priority == 'HIGH' || priority == 'URGENT'
+                      ? Colors.red.shade50
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   priority,
                   style: TextStyle(
                     fontSize: 10,
-                    color: priority == 'HIGH' || priority == 'URGENT' ? Colors.red : Colors.blue,
+                    color: priority == 'HIGH' || priority == 'URGENT'
+                        ? Colors.red
+                        : Colors.blue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: AppColors.textPrimary,
+            ),
+          ),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
-              Expanded(child: Text(distance, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  distance,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           Row(
@@ -488,19 +676,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Estimasi', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                  Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryCyan)),
+                  const Text(
+                    'Estimasi',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppColors.primaryCyan,
+                    ),
+                  ),
                 ],
               ),
               ElevatedButton(
                 onPressed: () => _acceptJob(jobId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryCyan,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Ambil', style: TextStyle(fontSize: 12, color: Colors.white)),
+                child: const Text(
+                  'Ambil',
+                  style: TextStyle(fontSize: 12, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -518,11 +727,21 @@ class HeaderWaveClipper extends CustomClipper<Path> {
 
     var firstControlPoint = Offset(size.width / 4, size.height);
     var firstEndPoint = Offset(size.width / 2, size.height - 25);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
 
     var secondControlPoint = Offset(size.width * 3 / 4, size.height - 50);
     var secondEndPoint = Offset(size.width, size.height - 20);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+    path.quadraticBezierTo(
+      secondControlPoint.dx,
+      secondControlPoint.dy,
+      secondEndPoint.dx,
+      secondEndPoint.dy,
+    );
 
     path.lineTo(size.width, 0);
     path.close();
@@ -541,7 +760,12 @@ class CurvedColorWaveClipper extends CustomClipper<Path> {
 
     var controlPoint = Offset(size.width * 0.6, size.height * 0.45);
     var endPoint = Offset(size.width, size.height * 0.22);
-    path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+    path.quadraticBezierTo(
+      controlPoint.dx,
+      controlPoint.dy,
+      endPoint.dx,
+      endPoint.dy,
+    );
 
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
