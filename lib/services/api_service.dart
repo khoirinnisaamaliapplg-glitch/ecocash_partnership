@@ -738,7 +738,55 @@ Future<Map<String, dynamic>> sendChatMessage({
   // ==========================================
   // HELPER
   // ==========================================
+// ==========================================
+  // PROFIL PARTNER (GET & UPDATE)
+  // ==========================================
 
+  Future<Map<String, dynamic>> getPartnerProfile() async {
+    try {
+      final response = await _dio.get('/partners/me');
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data['data'] ?? response.data,
+        };
+      }
+      return {'success': false, 'message': 'Gagal mengambil profil partner'};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePartnerProfile({
+    String? name,
+    String? phoneNumber,
+    String? email,
+    String? address,
+    String? avatarUrl,
+  }) async {
+    try {
+      final Map<String, dynamic> payload = {};
+      if (name != null && name.isNotEmpty) payload['name'] = name;
+      if (phoneNumber != null && phoneNumber.isNotEmpty) payload['phoneNumber'] = phoneNumber;
+      if (email != null && email.isNotEmpty) payload['email'] = email;
+      if (address != null && address.isNotEmpty) payload['address'] = address;
+      if (avatarUrl != null && avatarUrl.isNotEmpty) payload['avatarUrl'] = avatarUrl;
+
+      // Endpoint disesuaikan ke /partners/me
+      final response = await _dio.patch('/partners/me', data: payload);
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Profil berhasil diperbarui',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui profil: $e'};
+    }
+  }
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
