@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/app_storage.dart';
+import '../../../services/api_service.dart';
 import 'vehicles/vehicle_list_screen.dart';
 import 'documents/dokumen_identitas_screen.dart';
 import 'academy/ecocash_academy_screen.dart';
@@ -18,8 +20,11 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Map _profileData = {};
+  final PartnerApiService _apiService = PartnerApiService();
+  Map<String, dynamic> _profileData = {};
   bool _isLoading = true;
+  String? _avatarUrl;
+  String _ktpStatus = 'NOT_UPLOADED';
 
   @override
   void initState() {
@@ -27,14 +32,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileData();
   }
 
-  Future<void> _loadProfileData() async {
-    final data = await AppStorage.getProfile();
-    if (mounted) {
-      setState(() {
-        _profileData = Map.from(data ?? {});
-        _isLoading = false;
-      });
+  String? _formatImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+
+    if (url.contains('localhost') || url.contains('127.0.0.1')) {
+      final Uri baseUri = Uri.parse(ApiConstants.baseUrl);
+      final Uri imgUri = Uri.parse(url);
+      return imgUri.replace(host: baseUri.host, port: baseUri.port).toString();
     }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+
+    final String cleanBase = ApiConstants.baseUrl.replaceAll('/api/v1', '');
+    return '$cleanBase${url.startsWith('/') ? '' : '/'}$url';
+  }
+
+  Future<void> _loadProfileData() async {
+    setState(() => _isLoading = true);
+
+    final results = await Future.wait([
+      _apiService.getPartnerProfile(),
+      _apiService.getMyDocuments(),
+    ]);
+
+    Map<String, dynamic> data = {};
+    if (results[0]['success'] == true && results[0]['data'] != null) {
+      data = Map<String, dynamic>.from(results[0]['data']);
+      await AppStorage.saveProfile(data);
+    } else {
+      final localData = await AppStorage.getProfile();
+      if (localData != null) data = Map<String, dynamic>.from(localData);
+    }
+
+    String ktpStat = 'NOT_UPLOADED';
+    if (results[1]['success'] == true && results[1]['data'] is List) {
+      final docs = results[1]['data'] as List;
+      final ktpDoc = docs.firstWhere(
+        (doc) => (doc['documentType'] ?? '').toString().toUpperCase() == 'KTP',
+        orElse: () => null,
+      );
+      if (ktpDoc != null && ktpDoc['fileUrl'] != null && (ktpDoc['fileUrl'] as String).isNotEmpty) {
+        ktpStat = (ktpDoc['status'] ?? 'PENDING').toString().toUpperCase();
+      }
+    }
+
+    if (!mounted) return;
+
+    final String? rawAvatar = data['avatarUrl'] ?? data['avatar'] ?? data['user']?['avatarUrl'];
+
+    setState(() {
+      _profileData = data;
+      _avatarUrl = _formatImageUrl(rawAvatar);
+      _ktpStatus = ktpStat;
+      _isLoading = false;
+    });
+  }
+
+  Widget _buildStatusBadge() {
+    String label;
+    Color color;
+    IconData icon;
+
+    if (_ktpStatus == 'APPROVED' || _ktpStatus == 'VERIFIED') {
+      label = 'Terverifikasi';
+      color = Colors.green;
+      icon = Icons.check_circle;
+    } else if (_ktpStatus == 'PENDING' || _ktpStatus == 'WAITING') {
+      label = 'Menunggu Verifikasi';
+      color = Colors.blue;
+      icon = Icons.hourglass_top;
+    } else if (_ktpStatus == 'REJECTED') {
+      label = 'Verifikasi Ditolak';
+      color = Colors.redAccent;
+      icon = Icons.cancel;
+    } else {
+      label = 'Belum Terverifikasi';
+      color = const Color(0xFFB78103);
+      icon = Icons.pending;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -56,9 +150,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
       );
     }
+
+    Widget avatarWidget(double size) {
+  if (imageBytes != null) {
+    return Image.memory(
+      imageBytes,
+      fit: BoxFit.cover,
+      width: size,
+      height: size,
+    );
+  }
+  if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
+    return Image.network(
+      _avatarUrl!,
+      fit: BoxFit.cover,
+      width: size,
+      height: size,
+      errorBuilder: (_, __, ___) => Image.asset(
+        'assets/images/logo.png', // Fallback jika URL server error/offline
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+      ),
+    );
+  }
+  // Fallback default jika partner belum mengunggah foto profil
+  return Image.asset(
+    'assets/images/logo.png',
+    fit: BoxFit.cover,
+    width: size,
+    height: size,
+  );
+}
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -71,13 +197,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             CircleAvatar(
               radius: 16,
               backgroundColor: Colors.white,
-              backgroundImage: imageBytes != null
-                  ? MemoryImage(imageBytes) as ImageProvider
-                  : const AssetImage('assets/images/logo.png'),
+              child: ClipOval(child: avatarWidget(32)),
             ),
             const SizedBox(width: 10),
             Text(
-              'Halo, ' + name,
+              'Halo, $name',
               style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ],
@@ -99,7 +223,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- JUDUL HALAMAN ---
             const Text(
               'Profil Partner',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
@@ -111,7 +234,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
 
-            // --- KARTU PROFIL UTAMA ---
+            // Kartu Profil Utama
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -131,11 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppColors.primaryCyan,
                       border: Border.all(color: AppColors.primaryCyan, width: 2),
                     ),
-                    child: ClipOval(
-                      child: imageBytes != null
-                          ? Image.memory(imageBytes, fit: BoxFit.cover, width: 72, height: 72)
-                          : const Icon(Icons.person, color: Colors.white, size: 40),
-                    ),
+                    child: ClipOval(child: avatarWidget(72)),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -144,25 +263,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _profileData['id'] != null ? 'ID: ' + _profileData['id'].toString() : 'ID: ECO-PA-001928',
+                    _profileData['id'] != null ? 'ID: ${_profileData['id']}' : 'ID: ECO-PA-001928',
                     style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, size: 12, color: Colors.green),
-                        SizedBox(width: 4),
-                        Text('Terverifikasi', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
+
+                  // Badge Status Dinamis
+                  _buildStatusBadge(),
+
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -186,7 +294,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
 
-            // --- KARTU SKOR PARTNER ---
+            // Kartu Skor Partner
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -251,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 20),
 
-            // --- KARTU STATISTIK KINERJA ---
+            // Kartu Statistik Kinerja
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -341,7 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
 
-            // --- DAFTAR MENU PENGATURAN (DIFIX DENGAN MATERIAL) ---
+            // Menu Pengaturan
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
@@ -407,7 +515,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
 
-            // --- TOMBOL KELUAR AKUN ---
             Center(
               child: TextButton.icon(
                 onPressed: () async {
