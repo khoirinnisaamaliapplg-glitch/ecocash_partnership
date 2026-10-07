@@ -22,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // State Data Dashboard
   Map<String, dynamic>? _dashboardData;
   List<dynamic> _availableJobs = [];
+  num _todayMaterialWeight = 0; // State untuk berat material hari ini
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _fetchDashboardData();
   }
 
-  /// Mengambil data dashboard dari endpoint GET /partners/me/dashboard
+  /// Mengambil data dashboard dan statistik material dari API
   Future<void> _fetchDashboardData() async {
     setState(() {
       _isLoading = true;
@@ -37,19 +38,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final res = await _apiService.getDashboard();
+      // Panggil API Dashboard dan API Statistik Material secara sejajar
+      final results = await Future.wait([
+        _apiService.getDashboard(),
+        _apiService.getMaterialStatistics(),
+      ]);
 
       if (!mounted) return;
 
-      if (res['success'] == true) {
+      final dashboardRes = results[0];
+      final statsRes = results[1];
+
+      if (dashboardRes['success'] == true) {
+        num weightToday = 0;
+
+        // Ambil data totalWeight hari ini dari response getMaterialStatistics
+        if (statsRes['success'] == true && statsRes['data']?['today'] != null) {
+          weightToday = statsRes['data']['today']['totalWeight'] ?? 0;
+        }
+
         setState(() {
-          _dashboardData = res['data'];
-          _availableJobs = res['data']?['availableJobsPreview'] ?? [];
+          _dashboardData = dashboardRes['data'];
+          _availableJobs = dashboardRes['data']?['availableJobsPreview'] ?? [];
+          _todayMaterialWeight = weightToday;
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = res['message'] ?? 'Gagal mengambil data dashboard';
+          _errorMessage = dashboardRes['message'] ?? 'Gagal mengambil data dashboard';
           _isLoading = false;
         });
       }
@@ -164,7 +180,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         widget.userData['nama'] ??
         'Mitra';
     final num monthlyEarnings = wallet['monthlyEarnings'] ?? 0;
-    final num totalWeight = stats['totalWeightCollectedKg'] ?? 0;
     final int jobsCompleted = stats['monthlyJobsCompleted'] ?? 0;
     final String level = profile['level'] ?? 'Silver';
     final int score = profile['score'] ?? 0;
@@ -317,8 +332,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Expanded(
                           child: _buildStatCard(
                             'Material',
-                            '${totalWeight.toString().replaceAll('.', ',')} kg',
-                            'Terkumpul',
+                            '${_todayMaterialWeight.toString().replaceAll('.', ',')} kg',
+                            'Hari ini',
                             Icons.recycling,
                             const Color(0xFF1565C0),
                             onTap: () => context.push('/statistik-material'),
