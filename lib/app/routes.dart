@@ -128,14 +128,20 @@ class AppRoutes {
         builder: (context, state) => const TambahRekeningScreen(),
       ),
       GoRoute(
-        path: '/detail-rekening',
-        builder: (context, state) {
-          final Map<String, String>? bankData = state.extra is Map
-              ? Map<String, String>.from(state.extra as Map)
-              : null;
-          return DetailRekeningScreen(bankData: bankData);
-        },
-      ),
+  path: '/detail-rekening',
+  builder: (context, state) {
+    final rawExtra = state.extra;
+    Map<String, String>? bankData;
+
+    if (rawExtra is Map) {
+      bankData = rawExtra.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    }
+
+    return DetailRekeningScreen(bankData: bankData);
+  },
+),
       GoRoute(
         path: '/pengaturan',
         builder: (context, state) => const PengaturanScreen(),

@@ -1,16 +1,419 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ecocash_partnership/core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class KeamananScreen extends StatefulWidget {
   const KeamananScreen({super.key});
 
   @override
-  State createState() => _KeamananScreenState();
+  State<KeamananScreen> createState() => _KeamananScreenState();
 }
 
-class _KeamananScreenState extends State {
+class _KeamananScreenState extends State<KeamananScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
   bool _isBiometricEnabled = true;
+
+  // --- MODAL DIALOG UBAH PIN TRANSAKSI BANK ---
+  void _showChangePinDialog() {
+    final TextEditingController oldPinController = TextEditingController();
+    final TextEditingController newPinController = TextEditingController();
+    final TextEditingController confirmPinController = TextEditingController();
+
+    bool isOldPinVisible = false;
+    bool isNewPinVisible = false;
+    bool isConfirmPinVisible = false;
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Ubah PIN Transaksi Bank',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'PIN ini digunakan untuk verifikasi penarikan saldo ke rekening bank Anda.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Input PIN Lama
+                    const Text('PIN Saat Ini', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: oldPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: !isOldPinVisible,
+                      enabled: !isSubmitting,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18, letterSpacing: 8, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '••••••',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        suffixIcon: IconButton(
+                          icon: Icon(isOldPinVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isOldPinVisible = !isOldPinVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Input PIN Baru
+                    const Text('PIN Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: newPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: !isNewPinVisible,
+                      enabled: !isSubmitting,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18, letterSpacing: 8, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '••••••',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        suffixIcon: IconButton(
+                          icon: Icon(isNewPinVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isNewPinVisible = !isNewPinVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Konfirmasi PIN Baru
+                    const Text('Konfirmasi PIN Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: confirmPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: !isConfirmPinVisible,
+                      enabled: !isSubmitting,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 18, letterSpacing: 8, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '••••••',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        suffixIcon: IconButton(
+                          icon: Icon(isConfirmPinVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isConfirmPinVisible = !isConfirmPinVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Tombol Submit
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                String oldPin = oldPinController.text.trim();
+                                String newPin = newPinController.text.trim();
+                                String confirmPin = confirmPinController.text.trim();
+
+                                if (oldPin.length < 6 || newPin.length < 6 || confirmPin.length < 6) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Semua PIN harus terdiri dari 6 digit angka!')),
+                                  );
+                                  return;
+                                }
+
+                                if (newPin != confirmPin) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('PIN Baru dan Konfirmasi PIN tidak cocok!'), backgroundColor: Colors.red),
+                                  );
+                                  return;
+                                }
+
+                                setModalState(() => isSubmitting = true);
+
+                                final result = await _apiService.changePin(
+                                  oldPin: oldPin,
+                                  newPin: newPin,
+                                );
+
+                                if (!context.mounted) return;
+                                setModalState(() => isSubmitting = false);
+
+                                if (result['success'] == true) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message'] ?? 'PIN transaksi berhasil diperbarui!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message'] ?? 'Gagal memperbarui PIN.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryCyan,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Text('Simpan PIN Baru', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // --- MODAL DIALOG UBAH KATA SANDI LOGIN ---
+  void _showChangePasswordDialog() {
+    final TextEditingController oldPassController = TextEditingController();
+    final TextEditingController newPassController = TextEditingController();
+    final TextEditingController confirmPassController = TextEditingController();
+
+    bool isOldPassVisible = false;
+    bool isNewPassVisible = false;
+    bool isConfirmPassVisible = false;
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Ubah Kata Sandi',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: isSubmitting ? null : () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Masukkan kata sandi saat ini dan kata sandi baru Anda.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Input Kata Sandi Lama
+                    const Text('Kata Sandi Saat Ini', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: oldPassController,
+                      obscureText: !isOldPassVisible,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        hintText: 'Masukkan kata sandi saat ini',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(isOldPassVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isOldPassVisible = !isOldPassVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Input Kata Sandi Baru
+                    const Text('Kata Sandi Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: newPassController,
+                      obscureText: !isNewPassVisible,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        hintText: 'Minimal 6 karakter',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(isNewPassVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isNewPassVisible = !isNewPassVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Konfirmasi Kata Sandi Baru
+                    const Text('Konfirmasi Kata Sandi Baru', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: confirmPassController,
+                      obscureText: !isConfirmPassVisible,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        hintText: 'Ulangi kata sandi baru',
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(isConfirmPassVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                          onPressed: () => setModalState(() => isConfirmPassVisible = !isConfirmPassVisible),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Tombol Submit
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                String oldPass = oldPassController.text.trim();
+                                String newPass = newPassController.text.trim();
+                                String confirmPass = confirmPassController.text.trim();
+
+                                if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Semua kolom kata sandi harus diisi!')),
+                                  );
+                                  return;
+                                }
+
+                                if (newPass.length < 6) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Kata sandi baru minimal 6 karakter!')),
+                                  );
+                                  return;
+                                }
+
+                                if (newPass != confirmPass) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Kata sandi baru dan konfirmasi tidak cocok!'), backgroundColor: Colors.red),
+                                  );
+                                  return;
+                                }
+
+                                setModalState(() => isSubmitting = true);
+
+                                final result = await _apiService.changePassword(
+                                  oldPassword: oldPass,
+                                  newPassword: newPass,
+                                );
+
+                                if (!context.mounted) return;
+                                setModalState(() => isSubmitting = false);
+
+                                if (result['success'] == true) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message'] ?? 'Kata sandi berhasil diperbarui!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(result['message'] ?? 'Gagal memperbarui kata sandi.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryCyan,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: isSubmitting
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Text('Simpan Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,30 +461,19 @@ class _KeamananScreenState extends State {
                 children: [
                   _buildSecurityItem(
                     icon: Icons.pin_outlined,
-                    title: 'Ubah PIN',
-                    subtitle: 'Perbarui PIN 6 digit Anda secara berkala',
-                    onTap: () {},
+                    title: 'Ubah PIN Transaksi',
+                    subtitle: 'Perbarui PIN 6 digit akun bank Anda',
+                    onTap: _showChangePinDialog,
                   ),
                   _buildDivider(),
                   _buildSecurityItem(
                     icon: Icons.lock_outline,
                     title: 'Ubah Kata Sandi',
                     subtitle: 'Gunakan kata sandi yang kuat dan unik',
-                    onTap: () {},
+                    onTap: _showChangePasswordDialog,
                   ),
                   _buildDivider(),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.fingerprint, color: AppColors.textSecondary, size: 24),
-                    title: const Text('Login Biometrik', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-                    subtitle: const Text('Gunakan FaceID atau Sidik Jari untuk login', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    value: _isBiometricEnabled,
-                    activeColor: AppColors.primaryCyan,
-                    onChanged: (bool value) {
-                      setState(() {
-                        _isBiometricEnabled = value;
-                      });
-                    },
-                  ),
+                
                 ],
               ),
             ),

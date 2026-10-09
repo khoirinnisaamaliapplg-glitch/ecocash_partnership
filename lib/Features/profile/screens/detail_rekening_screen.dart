@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class DetailRekeningScreen extends StatelessWidget {
-  final Map<String, String>? bankData; // Menerima data kiriman
+  final Map<String, String>? bankData;
+  final PartnerApiService _apiService = PartnerApiService();
 
-  const DetailRekeningScreen({super.key, this.bankData});
+  DetailRekeningScreen({super.key, this.bankData});
 
   @override
   Widget build(BuildContext context) {
-    // Data default jika dibuka bukan dari form tambah rekening
-    final data = bankData ?? {
-      'bankName': 'Bank BCA',
-      'accountNumber': '1234567890',
-      'accountName': 'BUDI SANTOSO',
-      'cabang': 'KCP Braga',
-      'tipe': 'Tabungan',
-    };
+    final String bankName = bankData?['bankName'] ?? 'Bank BCA';
+    final String accountNumber = bankData?['accountNumber'] ?? '1234567890';
+    final String accountName = bankData?['accountName'] ?? 'BUDI SANTOSO';
+    final String cabang = bankData?['cabang'] ?? 'KCP Utama';
+    final String tipe = bankData?['tipe'] ?? 'Tabungan';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -67,9 +67,9 @@ class DetailRekeningScreen extends StatelessWidget {
                           color: Colors.cyan.shade50,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             Icon(Icons.check_circle, size: 12, color: AppColors.primaryCyan),
                             SizedBox(width: 4),
                             Text('Terverifikasi', style: TextStyle(fontSize: 11, color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
@@ -87,14 +87,15 @@ class DetailRekeningScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        data['accountNumber']!,
+                        accountNumber,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary, letterSpacing: 1.2),
                       ),
                       IconButton(
                         icon: const Icon(Icons.copy, size: 18, color: AppColors.primaryCyan),
                         onPressed: () {
+                          Clipboard.setData(ClipboardData(text: accountNumber));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nomor rekening disalin!')),
+                            const SnackBar(content: Text('Nomor rekening berhasil disalin!')),
                           );
                         },
                       ),
@@ -106,7 +107,7 @@ class DetailRekeningScreen extends StatelessWidget {
                   const Text('Nama Pemilik', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
                   Text(
-                    data['accountName']!,
+                    accountName,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   const Divider(height: 24, color: Color(0xFFEEEEEE)),
@@ -114,11 +115,11 @@ class DetailRekeningScreen extends StatelessWidget {
                   // Informasi Rekening Dinamis
                   const Text('Informasi Rekening', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
                   const SizedBox(height: 12),
-                  _buildInfoRow('Bank', data['bankName']!),
+                  _buildInfoRow('Bank', bankName),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Cabang', data['cabang']!),
+                  _buildInfoRow('Cabang', cabang),
                   const SizedBox(height: 8),
-                  _buildInfoRow('Tipe Akun', data['tipe']!),
+                  _buildInfoRow('Tipe Akun', tipe),
                 ],
               ),
             ),
@@ -131,23 +132,52 @@ class DetailRekeningScreen extends StatelessWidget {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
+                    builder: (dialogCtx) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       title: const Text('Hapus Rekening'),
                       content: const Text('Apakah Anda yakin ingin menghapus rekening ini?'),
                       actions: [
                         TextButton(
-                          onPressed: () => context.pop(),
+                          onPressed: () => Navigator.pop(dialogCtx),
                           child: const Text('Batal'),
                         ),
                         TextButton(
-                          onPressed: () {
-                            context.pop();
-                            context.pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Rekening berhasil dihapus')),
-                            );
+                          onPressed: () async {
+                            Navigator.pop(dialogCtx);
+
+                            final String? bankAccountId = bankData?['id'];
+                            if (bankAccountId == null || bankAccountId.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('ID Rekening tidak ditemukan!'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final result = await _apiService.deleteBankAccount(bankAccountId);
+
+                            if (context.mounted) {
+                              if (result['success'] == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result['message'] ?? 'Rekening berhasil dihapus'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                context.pop(true);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result['message'] ?? 'Gagal menghapus rekening.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
                           },
-                          child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                          child: const Text('Hapus', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),

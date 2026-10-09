@@ -48,7 +48,8 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     }
   }
 
-  Future<void> _submitWithdrawal() async {
+  // Validasi Awal sebelum Membuka Dialog PIN
+  void _onConfirmWithdrawal() {
     String rawAmount = _amountController.text.replaceAll('.', '').replaceAll(',', '').trim();
     double? amount = double.tryParse(rawAmount);
 
@@ -66,6 +67,122 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       return;
     }
 
+    _showPinDialog(amount);
+  }
+
+  // Popup Dialog Input PIN Transaksi
+  void _showPinDialog(double amount) {
+    final TextEditingController pinController = TextEditingController();
+    bool isPinVisible = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Masukkan PIN Transaksi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _navyColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Demi keamanan akun Anda, silakan masukkan 6 digit PIN untuk mengonfirmasi penarikan ini.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    obscureText: !isPinVisible,
+                    autofocus: true,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: '••••••',
+                      hintStyle: const TextStyle(letterSpacing: 8, color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      suffixIcon: IconButton(
+                        icon: Icon(isPinVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setModalState(() => isPinVisible = !isPinVisible),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        String pin = pinController.text.trim();
+                        if (pin.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('PIN harus terdiri dari 6 digit!')),
+                          );
+                          return;
+                        }
+                        Navigator.pop(ctx); // Tutup Dialog PIN
+                        _submitWithdrawal(amount, pin);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88A8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Konfirmasi & Tarik Saldo',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Proses Kirim Request Penarikan ke Backend
+  Future<void> _submitWithdrawal(double amount, String pin) async {
     setState(() => _isSubmitting = true);
 
     final result = await _apiService.requestWithdrawal(
@@ -76,16 +193,16 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
-   if (result['success'] == true) {
+    if (result['success'] == true) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => SuccessWithdrawScreen(
-            withdrawalData: result['data'], // Send data dari backend
+            withdrawalData: result['data'],
           ),
         ),
       );
-    }else {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Gagal mengajukan penarikan.'),
@@ -219,7 +336,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitWithdrawal,
+                  onPressed: _isSubmitting ? null : _onConfirmWithdrawal,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E88A8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

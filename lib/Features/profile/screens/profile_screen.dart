@@ -88,6 +88,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // --- POPUP KONFIRMASI KELUAR AKUN ---
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red),
+              SizedBox(width: 10),
+              Text(
+                'Konfirmasi Keluar',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Apakah Anda yakin ingin keluar dari akun EcoCash Partner ini?',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext); // Tutup dialog
+                await AppStorage.saveToken('');
+                await AppStorage.saveUserData({});
+                await AppStorage.saveProfile({});
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              child: const Text(
+                'Ya, Keluar',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildStatusBadge() {
     String label;
     Color color;
@@ -155,36 +212,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     Widget avatarWidget(double size) {
-  if (imageBytes != null) {
-    return Image.memory(
-      imageBytes,
-      fit: BoxFit.cover,
-      width: size,
-      height: size,
-    );
-  }
-  if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
-    return Image.network(
-      _avatarUrl!,
-      fit: BoxFit.cover,
-      width: size,
-      height: size,
-      errorBuilder: (_, __, ___) => Image.asset(
-        'assets/images/logo.png', // Fallback jika URL server error/offline
+      if (imageBytes != null) {
+        return Image.memory(
+          imageBytes,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+        );
+      }
+      if (_avatarUrl != null && _avatarUrl!.isNotEmpty) {
+        return Image.network(
+          _avatarUrl!,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+          errorBuilder: (_, __, ___) => Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.cover,
+            width: size,
+            height: size,
+          ),
+        );
+      }
+      return Image.asset(
+        'assets/images/logo.png',
         fit: BoxFit.cover,
         width: size,
         height: size,
-      ),
-    );
-  }
-  // Fallback default jika partner belum mengunggah foto profil
-  return Image.asset(
-    'assets/images/logo.png',
-    fit: BoxFit.cover,
-    width: size,
-    height: size,
-  );
-}
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -268,7 +324,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Badge Status Dinamis
                   _buildStatusBadge(),
 
                   const SizedBox(height: 16),
@@ -474,7 +529,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     }),
                     _buildDivider(),
-                    _buildMenuItem(Icons.school_outlined, 'Echo Cahs Academy', () {
+                    _buildMenuItem(Icons.school_outlined, 'EcoCash Academy', () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const EcocashAcademyScreen()),
@@ -515,16 +570,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Tombol Keluar Akun dengan Popup Dialog
             Center(
               child: TextButton.icon(
-                onPressed: () async {
-                  await AppStorage.saveToken('');
-                  await AppStorage.saveUserData({});
-                  await AppStorage.saveProfile({});
-                  if (context.mounted) {
-                    context.go('/login');
-                  }
-                },
+                onPressed: () => _showLogoutDialog(context),
                 icon: const Icon(Icons.logout, color: Colors.red, size: 18),
                 label: const Text('Keluar Akun', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
               ),
