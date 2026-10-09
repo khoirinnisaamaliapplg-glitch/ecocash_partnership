@@ -171,6 +171,30 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/partners/me/password',
+        data: {
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Kata sandi berhasil diperbarui',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui kata sandi: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> getMe() async {
     try {
       final response = await _dio.get('/partners/me');
@@ -283,6 +307,7 @@ class PartnerApiService {
     required String bankName,
     required String accountNumber,
     required String accountHolderName,
+    String? pin,
   }) async {
     try {
       final response = await _dio.post(
@@ -292,6 +317,7 @@ class PartnerApiService {
           'accountNumber': accountNumber,
           'accountHolder': accountHolderName,
           'accountHolderName': accountHolderName,
+          if (pin != null && pin.isNotEmpty) 'pin': pin,
         },
       );
       return {'success': true, 'message': response.data['message'] ?? 'Rekening ditambahkan', 'data': response.data['data']};
@@ -302,14 +328,57 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> deleteBankAccount(String bankAccountId) async {
+    try {
+      final response = await _dio.delete('/partners/me/bank-accounts/$bankAccountId');
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Rekening berhasil dihapus',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menghapus rekening: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> changePin({
+    required String oldPin,
+    required String newPin,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '/partners/me/pin',
+        data: {
+          'oldPin': oldPin,
+          'newPin': newPin,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'PIN transaksi berhasil diperbarui',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memperbarui PIN: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> requestWithdrawal({
     required double amount,
     required String bankAccountId,
+    String? pin,
   }) async {
     try {
       final response = await _dio.post(
         '/partners/me/withdrawals',
-        data: {'amount': amount, 'bankAccountId': bankAccountId},
+        data: {
+          'amount': amount,
+          'bankAccountId': bankAccountId,
+          if (pin != null && pin.isNotEmpty) 'pin': pin,
+        },
       );
       return {'success': true, 'message': response.data['message'] ?? 'Pengajuan penarikan dikirim', 'data': response.data['data']};
     } on DioException catch (e) {
@@ -688,57 +757,55 @@ class PartnerApiService {
     }
   }
 
-Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
-  try {
-    final response = await _dio.get('/chat/room/$partnerId');
-    return {'success': true, 'data': response.data['data']};
-  } on DioException catch (e) {
-    return {'success': false, 'message': _extractErrorMessage(e)};
-  } catch (e) {
-    return {'success': false, 'message': 'Gagal mengambil chat room: $e'};
+  Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
+    try {
+      final response = await _dio.get('/chat/room/$partnerId');
+      return {'success': true, 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil chat room: $e'};
+    }
   }
-}
 
-Future<Map<String, dynamic>> getChatHistory(String roomId) async {
-  try {
-    final response = await _dio.get('/chat/history/$roomId');
-    return {'success': true, 'data': response.data['data'] ?? []};
-  } on DioException catch (e) {
-    return {'success': false, 'message': _extractErrorMessage(e)};
-  } catch (e) {
-    return {'success': false, 'message': 'Gagal mengambil riwayat chat: $e'};
+  Future<Map<String, dynamic>> getChatHistory(String roomId) async {
+    try {
+      final response = await _dio.get('/chat/history/$roomId');
+      return {'success': true, 'data': response.data['data'] ?? []};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil riwayat chat: $e'};
+    }
   }
-}
 
-Future<Map<String, dynamic>> sendChatMessage({
-  required String roomId,
-  required int senderId,
-  required String message,
-  String senderType = 'PARTNER',
-  String? attachmentUrl,
-}) async {
-  try {
-    final response = await _dio.post(
-      '/chat/message',
-      data: {
-        'roomId': roomId,
-        'senderId': senderId,
-        'message': message,
-        'senderType': senderType,
-        'attachmentUrl': attachmentUrl,
-      },
-    );
-    return {'success': true, 'data': response.data['data']};
-  } on DioException catch (e) {
-    return {'success': false, 'message': _extractErrorMessage(e)};
-  } catch (e) {
-    return {'success': false, 'message': 'Gagal mengirim pesan: $e'};
+  Future<Map<String, dynamic>> sendChatMessage({
+    required String roomId,
+    required int senderId,
+    required String message,
+    String senderType = 'PARTNER',
+    String? attachmentUrl,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/chat/message',
+        data: {
+          'roomId': roomId,
+          'senderId': senderId,
+          'message': message,
+          'senderType': senderType,
+          'attachmentUrl': attachmentUrl,
+        },
+      );
+      return {'success': true, 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengirim pesan: $e'};
+    }
   }
-}
+
   // ==========================================
-  // HELPER
-  // ==========================================
-// ==========================================
   // PROFIL PARTNER (GET & UPDATE)
   // ==========================================
 
@@ -774,7 +841,6 @@ Future<Map<String, dynamic>> sendChatMessage({
       if (address != null && address.isNotEmpty) payload['address'] = address;
       if (avatarUrl != null && avatarUrl.isNotEmpty) payload['avatarUrl'] = avatarUrl;
 
-      // Endpoint disesuaikan ke /partners/me
       final response = await _dio.patch('/partners/me', data: payload);
       return {
         'success': true,
@@ -787,6 +853,7 @@ Future<Map<String, dynamic>> sendChatMessage({
       return {'success': false, 'message': 'Gagal memperbarui profil: $e'};
     }
   }
+
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;

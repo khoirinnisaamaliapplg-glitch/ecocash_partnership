@@ -214,13 +214,18 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'detail') {
-                context.push('/detail-rekening', extra: {
+                final refreshNeeded = await context.push<bool>('/detail-rekening', extra: {
+                  'id': item['id'].toString(),
                   'bankName': bankName,
                   'accountNumber': accountNumber,
                   'accountName': accountHolderName,
                 });
+
+                if (refreshNeeded == true) {
+                  _fetchBankAccounts();
+                }
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[

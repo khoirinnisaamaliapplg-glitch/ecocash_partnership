@@ -25,8 +25,8 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
     super.dispose();
   }
 
-  // --- FUNGSI SUBMIT DENGAN LOGGING DEBUGGING LANGSUNG ---
-  Future<void> _submitTambahRekening() async {
+  // --- VALIDASI AWAL SEBELUM POPUP PIN ---
+  void _onSavePressed() {
     String noRek = _noRekController.text.trim();
     String nama = _namaController.text.trim();
 
@@ -37,16 +37,137 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
       return;
     }
 
+    _showRegisterPinDialog();
+  }
+
+  // --- POPUP MODAL DAFTAR PIN TRANSAKSI ---
+  void _showRegisterPinDialog() {
+    final TextEditingController pinController = TextEditingController();
+    bool isPinVisible = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Buat PIN Transaksi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Daftarkan 6 digit PIN Transaksi Anda. PIN ini akan digunakan untuk mengonfirmasi setiap penarikan saldo ke rekening ini.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    obscureText: !isPinVisible,
+                    autofocus: true,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: '••••••',
+                      hintStyle: const TextStyle(letterSpacing: 8, color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      suffixIcon: IconButton(
+                        icon: Icon(isPinVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setModalState(() => isPinVisible = !isPinVisible),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        String pin = pinController.text.trim();
+                        if (pin.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('PIN harus terdiri dari 6 digit angka!')),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(ctx); // Tutup modal PIN
+                        _submitTambahRekening(pin); // Jalankan submit dengan PIN
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryCyan,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Simpan PIN & Rekening',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // --- FUNGSI SUBMIT DENGAN PARAMETER PIN ---
+  Future<void> _submitTambahRekening(String pin) async {
+    String noRek = _noRekController.text.trim();
+    String nama = _namaController.text.trim();
+
     setState(() => _isLoading = true);
 
     debugPrint('=== [SUBMIT BANK ACCOUNT] ===');
-    debugPrint('Bank: $_selectedBank, No.Rek: $noRek, AccountHolder: $nama');
+    debugPrint('Bank: $_selectedBank, No.Rek: $noRek, AccountHolder: $nama, PIN: $pin');
 
     try {
       final result = await _apiService.addBankAccount(
         bankName: _selectedBank!,
         accountNumber: noRek,
         accountHolderName: nama,
+        pin: pin, // Mengirimkan PIN ke backend
       );
 
       debugPrint('=== [RESULT API] ===');
@@ -59,11 +180,10 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Rekening berhasil ditambahkan!'),
+            content: Text(result['message'] ?? 'Rekening & PIN berhasil ditambahkan!'),
             backgroundColor: Colors.green,
           ),
         );
-        // Kembalikan nilai true untuk merefresh daftar di AkunBankScreen
         context.pop(true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,7 +198,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
       debugPrint('=== [ERROR SUBMIT] ===: $e');
       if (!mounted) return;
       setState(() => _isLoading = false);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Terjadi kesalahan: $e'),
@@ -280,7 +400,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _submitTambahRekening,
+                onPressed: _isLoading ? null : _onSavePressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryCyan,
                   shape: RoundedRectangleBorder(

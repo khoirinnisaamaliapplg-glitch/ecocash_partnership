@@ -41,28 +41,7 @@ class PusatBantuanScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari bantuan...',
-                hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF94A3B8)),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primaryCyan),
-                ),
-              ),
-            ),
+            
             const SizedBox(height: 24),
 
             // --- BANTUAN CEPAT ---
@@ -109,30 +88,7 @@ class PusatBantuanScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // --- KATEGORI TOPIK ---
-            const Text(
-              'Kategori Topik',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF334155),
-              ),
-            ),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 2.3,
-              children: [
-                _buildCategoryCard(Icons.person_rounded, 'Akun & Profil'),
-                _buildCategoryCard(Icons.account_balance_wallet_rounded, 'Pembayaran &\nWallet'),
-                _buildCategoryCard(Icons.assignment_rounded, 'Tugas &\nPekerjaan'),
-                _buildCategoryCard(Icons.shield_rounded, 'Keamanan'),
-              ],
-            ),
-            const SizedBox(height: 24),
+            
 
             // --- PERTANYAAN POPULER ---
             const Text(
