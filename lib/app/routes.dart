@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/widgets/main_layout.dart';
@@ -12,7 +11,6 @@ import '../features/auth/screens/forgot_password_screen.dart';
 import '../features/auth/screens/forgot_otp_screen.dart';
 import '../features/auth/screens/new_password_screen.dart';
 
-import 'package:ecocash_partnership/features/dashboard/screens/dashboard_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/detail_penghasilan_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/statistik_material_screen.dart';
 import 'package:ecocash_partnership/features/dashboard/screens/skor_partner_screen.dart';
@@ -30,16 +28,19 @@ import 'package:ecocash_partnership/features/profile/screens/pusat_bantuan_scree
 import 'package:ecocash_partnership/features/profile/screens/chat_cs_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/laporkan_masalah_screen.dart';
 
+import 'package:ecocash_partnership/features/jobs/screens/jobs_screen.dart';
 import 'package:ecocash_partnership/features/jobs/screens/detail_pekerjaan_screen.dart';
 import 'package:ecocash_partnership/features/jobs/screens/dalam_perjalanan_screen.dart';
 import '../features/dashboard/screens/riwayat_pekerjaan_screen.dart';
 import '../features/jobs/screens/detail_pekerjaan_rumah_screen.dart';
 import '../features/jobs/screens/dalam_perjalanan_rumah_screen.dart';
 
-// PERBAIKAN IMPORT PATH (ditambahkan /profile/):
+
 import 'package:ecocash_partnership/features/profile/screens/academy/ecocash_academy_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/academy/detail_pelatihan_screen.dart';
 import 'package:ecocash_partnership/features/profile/screens/academy/sertifikat_pelatihan_screen.dart';
+
+import 'package:ecocash_partnership/features/profile/screens/riwayat_laporan_screen.dart';
 
 class AppRoutes {
   static final router = GoRouter(
@@ -127,14 +128,20 @@ class AppRoutes {
         builder: (context, state) => const TambahRekeningScreen(),
       ),
       GoRoute(
-        path: '/detail-rekening',
-        builder: (context, state) {
-          final Map<String, String>? bankData = state.extra is Map
-              ? Map<String, String>.from(state.extra as Map)
-              : null;
-          return DetailRekeningScreen(bankData: bankData);
-        },
-      ),
+  path: '/detail-rekening',
+  builder: (context, state) {
+    final rawExtra = state.extra;
+    Map<String, String>? bankData;
+
+    if (rawExtra is Map) {
+      bankData = rawExtra.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      );
+    }
+
+    return DetailRekeningScreen(bankData: bankData);
+  },
+),
       GoRoute(
         path: '/pengaturan',
         builder: (context, state) => const PengaturanScreen(),
@@ -158,6 +165,14 @@ class AppRoutes {
       GoRoute(
         path: '/laporkan-masalah',
         builder: (context, state) => const LaporkanMasalahScreen(),
+      ),
+      GoRoute(
+        path: '/daftar-pekerjaan',
+        builder: (context, state) {
+          final extra = state.extra as Map? ?? {};
+          final bool fromDashboard = extra['fromDashboard'] == true;
+          return JobsScreen(isFromDashboard: fromDashboard);
+        },
       ),
       GoRoute(
         path: '/riwayat-pekerjaan',
@@ -195,8 +210,6 @@ class AppRoutes {
           return DalamPerjalananRumahScreen(extraData: extra);
         },
       ),
-
-      // --- ROUTES ACADEMY ---
       GoRoute(
         path: '/academy',
         builder: (context, state) => const EcocashAcademyScreen(),
@@ -211,6 +224,10 @@ class AppRoutes {
       GoRoute(
         path: '/academy/sertifikat',
         builder: (context, state) => const SertifikatPelatihanScreen(),
+      ),
+      GoRoute(
+        path: '/riwayat-laporan',
+        builder: (context, state) => const RiwayatLaporanScreen(),
       ),
     ],
   );

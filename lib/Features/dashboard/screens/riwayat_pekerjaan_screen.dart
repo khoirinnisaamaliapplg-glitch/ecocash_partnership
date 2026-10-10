@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/api_service.dart';
 import 'detail_qr_screen.dart';
@@ -15,14 +16,15 @@ class RiwayatPekerjaanScreen extends StatefulWidget {
 
 class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     with SingleTickerProviderStateMixin {
-  final PartnerApiService _apiService = PartnerApiService();
   late TabController _tabController;
+  final PartnerApiService _apiService = PartnerApiService();
 
   List<Map<String, dynamic>> _listSelesai = [];
   List<Map<String, dynamic>> _listDiproses = [];
   List<Map<String, dynamic>> _listDibatalkan = [];
 
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -31,7 +33,12 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     _loadJobHistory();
   }
 
-  // Helper agar aman terhadap konversi String / int / double / Decimal dari Prisma
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   double _toDouble(dynamic val) {
     if (val == null) return 0.0;
     if (val is num) return val.toDouble();
@@ -41,6 +48,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   Future<void> _loadJobHistory() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
@@ -75,10 +83,11 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         });
       }
     } catch (e, stack) {
-      debugPrint('[RiwayatPekerjaan] ERROR PARSING: $e');
+      debugPrint('[RiwayatPekerjaan] ERROR: $e');
       debugPrint('$stack');
       if (mounted) {
         setState(() {
+          _errorMessage = 'Gagal memuat riwayat pekerjaan: $e';
           _isLoading = false;
         });
       }
@@ -113,8 +122,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     if (dateStr.isNotEmpty) {
       try {
         final dt = DateTime.parse(dateStr).toLocal();
-        dateStr =
-            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} • ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} WIB';
+        dateStr = DateFormat('dd MMM yyyy • HH:mm').format(dt);
       } catch (_) {}
     }
 
@@ -127,11 +135,11 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       'assignmentId': assignment['id'],
       'company': locationName,
       'material': materialText,
-      'weight': '${totalKg.toStringAsFixed(1)} kg',
+      'weight': '${totalKg.toStringAsFixed(1).replaceAll('.', ',')} kg',
       'date': dateStr,
       'price': priceText,
       'status': _mapJobStatus(job['status'] ?? assignment['status']),
-      'kode': machine?['machineCode'] ?? 'JOB-#${job['id']}',
+      'kode': machine?['machineCode'] ?? job['code'] ?? 'JOB-#${job['id']}',
       'alasan': assignment['cancelReason'],
     };
   }
@@ -148,13 +156,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _tampilkanDialogPembatalan(dynamic jobId, int index) {
+  void _tampilkanDialogPembatalan(dynamic jobId) {
     final TextEditingController alasanController = TextEditingController();
     String? dialogError;
 
@@ -165,7 +167,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
           builder: (context, setStateDialog) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Alasan Pembatalan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              title: const Text('Alasan Pembatalan',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -180,6 +183,9 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                       errorText: dialogError,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
+                    onChanged: (_) {
+                      if (dialogError != null) setStateDialog(() => dialogError = null);
+                    },
                   ),
                 ],
               ),
@@ -191,8 +197,13 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                 ElevatedButton(
                   onPressed: () async {
                     final String alasan = alasanController.text.trim();
+                    final words = alasan.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
                     if (alasan.isEmpty) {
                       setStateDialog(() => dialogError = 'Alasan tidak boleh kosong.');
+                      return;
+                    } else if (words.length < 3) {
+                      setStateDialog(() => dialogError = 'Alasan terlalu singkat (min. 3 kata).');
                       return;
                     }
 
@@ -226,12 +237,6 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -241,49 +246,70 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => context.canPop() ? context.pop() : Navigator.pop(context),
         ),
-        title: const Text('Riwayat Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Riwayat Pekerjaan',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadJobHistory,
-        color: AppColors.primaryCyan,
-        child: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: AppColors.primaryCyan,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.primaryCyan,
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                tabs: [
-                  Tab(text: 'Selesai (${_listSelesai.length})'),
-                  Tab(text: 'Diproses (${_listDiproses.length})'),
-                  Tab(text: 'Dibatalkan (${_listDibatalkan.length})'),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFE0E0E0)),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildJobListTab(_listSelesai),
-                  _buildJobListTab(_listDiproses, isProcessing: true),
-                  _buildJobListTab(_listDibatalkan, isCancelled: true),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                      const SizedBox(height: 12),
+                      Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+                        onPressed: _loadJobHistory,
+                        child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadJobHistory,
+                  color: AppColors.primaryCyan,
+                  child: Column(
+                    children: [
+                      Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: AppColors.primaryCyan,
+                          unselectedLabelColor: AppColors.textSecondary,
+                          indicatorColor: AppColors.primaryCyan,
+                          indicatorWeight: 3,
+                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          tabs: [
+                            Tab(text: 'Selesai (${_listSelesai.length})'),
+                            Tab(text: 'Diproses (${_listDiproses.length})'),
+                            Tab(text: 'Dibatalkan (${_listDibatalkan.length})'),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildJobListTab(_listSelesai),
+                            _buildJobListTab(_listDiproses, isProcessing: true),
+                            _buildJobListTab(_listDibatalkan, isCancelled: true),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 
-  Widget _buildJobListTab(List<Map<String, dynamic>> list, {bool isProcessing = false, bool isCancelled = false}) {
+  Widget _buildJobListTab(List<Map<String, dynamic>> list,
+      {bool isProcessing = false, bool isCancelled = false}) {
     if (list.isEmpty) {
       return ListView(
         children: const [
@@ -319,10 +345,11 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                     );
                   }
                 : null,
+            borderRadius: BorderRadius.circular(16),
             child: _buildJobHistoryCard(
               item,
               showCancelButton: isProcessing,
-              onCancel: () => _tampilkanDialogPembatalan(item['id'], index),
+              onCancel: () => _tampilkanDialogPembatalan(item['id']),
             ),
           ),
         );
@@ -330,7 +357,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     );
   }
 
-  Widget _buildJobHistoryCard(Map<String, dynamic> item, {bool showCancelButton = false, VoidCallback? onCancel}) {
+  Widget _buildJobHistoryCard(Map<String, dynamic> item,
+      {bool showCancelButton = false, VoidCallback? onCancel}) {
     final String status = item['status'] ?? '';
     final bool isCancelled = status == 'Dibatalkan';
     Color badgeColor = Colors.green.shade50;
@@ -352,7 +380,10 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +392,12 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(item['company'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+                child: Text(
+                  item['company'],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -370,7 +406,10 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                   children: [
                     Icon(badgeIcon, size: 12, color: textColor),
                     const SizedBox(width: 4),
-                    Text(status, style: TextStyle(fontSize: 11, color: textColor, fontWeight: FontWeight.bold)),
+                    Text(
+                      status,
+                      style: TextStyle(fontSize: 11, color: textColor, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ),
@@ -383,16 +422,21 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Material', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    const SizedBox(height: 2),
-                    Text(item['material'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Material', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      const SizedBox(height: 2),
+                      Text(item['material'],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                    ],
+                  ),
                 ),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text('Berat', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     const SizedBox(height: 2),
@@ -416,7 +460,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Pendapatan', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  const Text('Estimasi', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                   Text(
                     item['price'],
                     style: TextStyle(
@@ -443,7 +487,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Alasan Pembatalan:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red)),
+                  const Text('Alasan Pembatalan:',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red)),
                   const SizedBox(height: 2),
                   Text(item['alasan'], style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
                 ],

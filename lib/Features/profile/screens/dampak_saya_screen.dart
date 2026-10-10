@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/api_service.dart';
 
-class DampakSayaScreen extends StatelessWidget {
+class DampakSayaScreen extends StatefulWidget {
   const DampakSayaScreen({super.key});
+
+  @override
+  State<DampakSayaScreen> createState() => _DampakSayaScreenState();
+}
+
+class _DampakSayaScreenState extends State<DampakSayaScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+  bool _isLoading = true;
+  Map<String, dynamic>? _impactData;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchImpactData();
+  }
+
+  Future<void> _fetchImpactData() async {
+    final result = await _apiService.getMyImpact();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (result['success'] == true) {
+          _impactData = result['data'];
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,162 +49,164 @@ class DampakSayaScreen extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- HEADER INFO ---
-            const Text(
-              'Dampak Saya',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Kontribusi Anda untuk ekonomi sirkular.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          : RefreshIndicator(
+              onRefresh: _fetchImpactData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- HEADER INFO ---
+                    const Text(
+                      'Dampak Saya',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Kontribusi Anda untuk ekonomi sirkular.',
+                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 20),
 
-            // --- KARTU UTAMA DENGAN LATAR GRADASI/CYAN LEMBUT ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryCyan.withOpacity(0.22),
-                    AppColors.primaryCyan.withOpacity(0.05),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.primaryCyan.withOpacity(0.2)),
-              ),
-              child: Column(
-                children: [
-                  // --- BADGE SEJAK BERGABUNG ---
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryCyan,
-                          shape: BoxShape.circle,
+                    // --- KARTU UTAMA DENGAN LATAR GRADASI ---
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primaryCyan.withOpacity(0.22),
+                            AppColors.primaryCyan.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        child: const Icon(Icons.military_tech, color: Colors.white, size: 22),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.primaryCyan.withOpacity(0.2)),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('Sejak Bergabung', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-                          SizedBox(height: 2),
-                          Text('Pahlawan Lingkungan Level 3', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryCyan,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.military_tech, color: Colors.white, size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Sejak Bergabung', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _impactData?['levelBadge'] ?? 'Pahlawan Lingkungan',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          _buildInnerImpactCard(
+                            icon: Icons.recycling,
+                            title: 'MATERIAL TERKUMPUL',
+                            value: '${_impactData?['totalMaterialKg'] ?? 0}',
+                            unit: 'kg',
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInnerImpactCard(
+                            icon: Icons.delete_outline,
+                            title: 'SAMPAH DIALIHKAN',
+                            value: '${_impactData?['divertedWasteTon'] ?? 0}',
+                            unit: 'Ton',
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInnerImpactCard(
+                            icon: Icons.cloud_outlined,
+                            title: 'CO2E EMISI DIKURANGI',
+                            value: '${_impactData?['co2ReducedTon'] ?? 0}',
+                            unit: 'Ton',
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInnerImpactCard(
+                            icon: Icons.school_outlined,
+                            title: 'PELATIHAN SELESAI',
+                            value: '${_impactData?['completedTrainings'] ?? 0}',
+                            unit: '',
+                          ),
                         ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 24),
 
-                  // --- 4 KARTU PUTIH STATISTIK ---
-                  _buildInnerImpactCard(
-                    icon: Icons.recycling,
-                    title: 'MATERIAL TERKUMPUL',
-                    value: '8.420',
-                    unit: 'kg',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInnerImpactCard(
-                    icon: Icons.delete_outline,
-                    title: 'SAMPAH DIALIHKAN',
-                    value: '8,4',
-                    unit: 'Ton',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInnerImpactCard(
-                    icon: Icons.cloud_outlined,
-                    title: 'CO2E EMISI DIKURANGI',
-                    value: '24,6',
-                    unit: 'Ton',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInnerImpactCard(
-                    icon: Icons.school_outlined,
-                    title: 'PELATIHAN SELESAI',
-                    value: '17',
-                    unit: '',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+                    // --- SECTION RIWAYAT DAMPAK ---
+                    const Text(
+                      'Riwayat Dampak',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Lihat rincian detail kontribusi harian Anda.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          context.push('/statistik-material');
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.primaryCyan),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Lihat Detail', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
-            // --- SECTION RIWAYAT DAMPAK ---
-            const Text(
-              'Riwayat Dampak',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Lihat rincian detail kontribusi harian Anda.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.primaryCyan),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    // --- SECTION BAGIKAN PENCAPAIAN ---
+                    const Text(
+                      'Bagikan Pencapaian',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Inspirasi komunitas dengan dampak positif Anda.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryCyan,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        child: const Text('Bagikan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
-                child: const Text('Lihat Detail', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // --- SECTION BAGIKAN PENCAPAIAN ---
-            const Text(
-              'Bagikan Pencapaian',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Inspirasi komunitas dengan dampak positif Anda.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCyan,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: const Text('Bagikan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 
-  // Widget Kartu Putih dengan Aksen Garis Vertikal di Sisi Kiri
   Widget _buildInnerImpactCard({
     required IconData icon,
     required String title,
@@ -197,11 +227,7 @@ class DampakSayaScreen extends StatelessWidget {
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // Garis aksen vertikal di sisi kiri
-              Container(
-                width: 6,
-                color: AppColors.primaryCyan,
-              ),
+              Container(width: 6, color: AppColors.primaryCyan),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

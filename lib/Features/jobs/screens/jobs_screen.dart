@@ -4,7 +4,9 @@ import '../../../core/theme/app_colors.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
 class JobsScreen extends StatefulWidget {
-  const JobsScreen({super.key});
+  final bool isFromDashboard;
+
+  const JobsScreen({super.key, this.isFromDashboard = false});
 
   @override
   State<JobsScreen> createState() => _JobsScreenState();
@@ -131,9 +133,22 @@ class _JobsScreenState extends State<JobsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryCyan,
         elevation: 0,
-        title: const Text('Daftar Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
         automaticallyImplyLeading: false,
+        leading: widget.isFromDashboard
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              )
+            : null,
+        title: const Text(
+          'Daftar Pekerjaan',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -147,11 +162,21 @@ class _JobsScreenState extends State<JobsScreen> {
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
                       hintText: 'Cari pekerjaan...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF4F6F8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
@@ -194,14 +219,21 @@ class _JobsScreenState extends State<JobsScreen> {
                             children: const [
                               SizedBox(height: 100),
                               Center(
-                                child: Text('Tidak ada pekerjaan yang sesuai dengan filter.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                child: Text(
+                                  'Tidak ada pekerjaan yang sesuai dengan filter.',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ],
                           )
                         : ListView.separated(
                             padding: const EdgeInsets.all(16.0),
                             itemCount: filteredJobs.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 14),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 14),
                             itemBuilder: (context, index) {
                               final job = filteredJobs[index];
                               return _buildDynamicJobCard(context, job);
@@ -227,7 +259,12 @@ class _JobsScreenState extends State<JobsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: isSelected ? AppColors.primaryCyan : Colors.transparent, width: 3.0)),
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? AppColors.primaryCyan : Colors.transparent,
+                width: 3.0,
+              ),
+            ),
           ),
           child: Text(
             label,
@@ -235,7 +272,9 @@ class _JobsScreenState extends State<JobsScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.primaryCyan : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.primaryCyan
+                  : AppColors.textSecondary,
             ),
           ),
         ),
@@ -253,7 +292,9 @@ class _JobsScreenState extends State<JobsScreen> {
         decoration: BoxDecoration(
           color: isSelected ? _navyColor : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? _navyColor : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? _navyColor : Colors.grey.shade300,
+          ),
         ),
         child: Text(
           label,
@@ -267,7 +308,7 @@ class _JobsScreenState extends State<JobsScreen> {
     );
   }
 
- Widget _buildDynamicJobCard(BuildContext context, Map job) {
+  Widget _buildDynamicJobCard(BuildContext context, Map job) {
     final dynamic jobId = job['id'];
     final String title = job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
     final String rawAddress = job['address'] ??
@@ -292,12 +333,13 @@ class _JobsScreenState extends State<JobsScreen> {
         job['materialCategory'] ??
         (isResidential ? 'Plastik PET & Karton' : 'PET (Botol)');
 
-    // Prioritaskan nilai aktual dari backend
     final String volume = job['volume'] ??
         (job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : '20.0 kg');
 
     final String price = job['price'] ??
-        (job['actualReward'] != null ? 'Rp${job['actualReward']}' : 'Rp25.000');
+        (job['actualReward'] != null
+            ? 'Rp${job['actualReward']}'
+            : (job['estimatedReward'] != null ? 'Rp${job['estimatedReward']}' : 'Rp25.000'));
 
     final bool isFinishedTab = _selectedStatusTab == 'Selesai';
 
@@ -306,7 +348,13 @@ class _JobsScreenState extends State<JobsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,11 +400,22 @@ class _JobsScreenState extends State<JobsScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
@@ -393,7 +452,9 @@ class _JobsScreenState extends State<JobsScreen> {
                 height: 38,
                 child: ElevatedButton(
                   onPressed: () async {
-                    final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
+                    final String status = (job['status'] ?? 'AVAILABLE')
+                        .toString()
+                        .toUpperCase();
                     String targetRoute;
 
                     if (status == 'ACCEPTED' ||
@@ -404,7 +465,9 @@ class _JobsScreenState extends State<JobsScreen> {
                         status == 'HANDOVER') {
                       targetRoute = isResidential ? '/dalam-perjalanan-rumah' : '/dalam-perjalanan';
                     } else {
-                      targetRoute = isResidential ? '/detail-pekerjaan-rumah' : '/detail-pekerjaan';
+                      targetRoute = isResidential
+                          ? '/detail-pekerjaan-rumah'
+                          : '/detail-pekerjaan';
                     }
 
                     final Map<String, dynamic> extraData = {

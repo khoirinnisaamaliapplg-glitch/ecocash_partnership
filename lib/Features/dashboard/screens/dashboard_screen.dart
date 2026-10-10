@@ -1,261 +1,538 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/api_service.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
   const DashboardScreen({super.key, this.userData = const {}});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
+
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  // State Data Dashboard
+  Map<String, dynamic>? _dashboardData;
+  List<dynamic> _availableJobs = [];
+  num _todayMaterialWeight = 0; // State untuk berat material hari ini
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
+  }
+
+  /// Mengambil data dashboard dan statistik material dari API
+  Future<void> _fetchDashboardData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Panggil API Dashboard dan API Statistik Material secara sejajar
+      final results = await Future.wait([
+        _apiService.getDashboard(),
+        _apiService.getMaterialStatistics(),
+      ]);
+
+      if (!mounted) return;
+
+      final dashboardRes = results[0];
+      final statsRes = results[1];
+
+      if (dashboardRes['success'] == true) {
+        num weightToday = 0;
+
+        // Ambil data totalWeight hari ini dari response getMaterialStatistics
+        if (statsRes['success'] == true && statsRes['data']?['today'] != null) {
+          weightToday = statsRes['data']['today']['totalWeight'] ?? 0;
+        }
+
+        setState(() {
+          _dashboardData = dashboardRes['data'];
+          _availableJobs = dashboardRes['data']?['availableJobsPreview'] ?? [];
+          _todayMaterialWeight = weightToday;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = dashboardRes['message'] ?? 'Gagal mengambil data dashboard';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Terjadi kesalahan koneksi ke server';
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Memproses pengambilan pekerjaan via API
+  Future<void> _acceptJob(int jobId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryCyan),
+      ),
+    );
+
+    final res = await _apiService.acceptJob(jobId);
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    if (res['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pekerjaan berhasil diambil!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _fetchDashboardData();
+      context.push('/riwayat-pekerjaan');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Gagal mengambil pekerjaan'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  String _formatCurrency(num amount) {
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp',
+      decimalDigits: 0,
+    );
+    return formatter.format(amount);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final String namaUser = userData['name'] ?? userData['nama'] ?? 'Budi';
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF4F6F8),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryCyan),
+        ),
+      );
+    }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- HEADER DENGAN EFEK GELOMBANG WARNA (SWEEP/RADIAL GRADIENT) ---
-            Stack(
-              clipBehavior: Clip.none,
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF4F6F8),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 1. Header Kotak Dasar dengan Kurva di Bawah Saja
-                ClipPath(
-                  clipper: HeaderWaveClipper(),
-                  child: Container(
-                    width: double.infinity,
-                    height: 240,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryCyan,
-                    ),
-                  ),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Colors.redAccent,
                 ),
-
-                // 2. Lapisan Kedua untuk Efek Garis Gelombang Warna (Curved Color Wave Overlay)
-                ClipPath(
-                  clipper: CurvedColorWaveClipper(),
-                  child: Container(
-                    width: double.infinity,
-                    height: 240,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF00E5FF).withOpacity(0.6),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topRight,
-                        end: Alignment.bottomLeft,
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
-
-                // 3. Teks Sapaan
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 70, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hi, $namaUser!',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Ready to recycle?',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryCyan,
                   ),
-                ),
-
-                // 4. Kartu Total Penghasilan (Berwarna Putih)
-                Positioned(
-                  top: 150,
-                  left: 20,
-                  right: 20,
-                  child: InkWell(
-                    onTap: () => context.push('/detail-penghasilan'),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Total Penghasilan Hari Ini',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                          ),
-                          SizedBox(height: 6),
-                          Text(
-                            'Rp187.500',
-                            style: TextStyle(color: AppColors.textPrimary, fontSize: 28, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(Icons.trending_up, color: Colors.green, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                '+12% dari kemarin',
-                                style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  onPressed: _fetchDashboardData,
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      );
+    }
 
-            // Jarak kosong agar konten di bawah kartu tidak bertumpuk
-            const SizedBox(height: 80),
+    final profile = _dashboardData?['partnerProfile'] ?? {};
+    final wallet = _dashboardData?['walletSummary'] ?? {};
+    final stats = _dashboardData?['performanceStats'] ?? {};
 
-            // --- KONTEN BERANDA BERIKUTNYA ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final String namaUser =
+        profile['name'] ??
+        widget.userData['name'] ??
+        widget.userData['nama'] ??
+        'Mitra';
+    final num monthlyEarnings = wallet['monthlyEarnings'] ?? 0;
+    final int jobsCompleted = stats['monthlyJobsCompleted'] ?? 0;
+    final String level = profile['level'] ?? 'Silver';
+    final int score = profile['score'] ?? 0;
+    final int maxScore = profile['maxScore'] ?? 1000;
+    final double progressValue = maxScore > 0
+        ? (score / maxScore).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F8),
+      body: RefreshIndicator(
+        color: AppColors.primaryCyan,
+        onRefresh: _fetchDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  // --- STATISTIK KARTU HANYA 2 (Material & Pekerjaan) ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          'Material', '48,6 kg', 'Terkumpul', Icons.recycling, const Color(0xFF1565C0),
-                          onTap: () => context.push('/statistik-material'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildStatCard(
-                          'Pekerjaan', '3 Selesai', 'Hari ini', Icons.local_shipping_outlined, Colors.green,
-                          onTap: () => context.push('/riwayat-pekerjaan'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- KARTU LEVEL PARTNER ---
-                  InkWell(
-                    onTap: () => context.push('/skor-partner'),
-                    borderRadius: BorderRadius.circular(16),
+                  ClipPath(
+                    clipper: HeaderWaveClipper(),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Level Silver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
-                              Text('Gold', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
-                            ],
-                          ),
-                          SizedBox(height: 6),
-                          Text('Skor Partner: 876/1000', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            child: LinearProgressIndicator(
-                              value: 0.876,
-                              backgroundColor: Color(0xFFE0E0E0),
-                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textLink2),
-                              minHeight: 8,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text('124 poin lagi ke Level Gold', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                          ),
-                        ],
+                      width: double.infinity,
+                      height: 240,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryCyan,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // --- PEKERJAAN TERSEDIA ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Pekerjaan Tersedia',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ClipPath(
+                    clipper: CurvedColorWaveClipper(),
+                    child: Container(
+                      width: double.infinity,
+                      height: 240,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF00E5FF).withOpacity(0.6),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                        ),
                       ),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF1565C0), fontWeight: FontWeight.bold)),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-
-                  SizedBox(
-                    height: 160,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 70, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildJobCard('EcoCash Vision #BDG-021', 'PET (Botol)', '2.3 km (Jln. Braga)', 'Rp82.000', 'High'),
-                        const SizedBox(width: 12),
-                        _buildJobCard('Reguler #BDG-022', 'Kardus & Kertas', '3.1 km (Jl. Asia Afrika)', 'Rp45.000', 'Medium'),
+                        Text(
+                          'Hi, $namaUser!',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Ready to recycle?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // --- AKTIVITAS TERBARU ---
-                  const Text(
-                    'Aktivitas Terbaru',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  Positioned(
+                    top: 150,
+                    left: 20,
+                    right: 20,
+                    child: InkWell(
+                      onTap: () => context.push('/detail-penghasilan'),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Total Penghasilan Bulan Ini',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _formatCurrency(monthlyEarnings),
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: const [
+                                Icon(
+                                  Icons.trending_up,
+                                  color: Colors.green,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Tercatat Real-time',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  _buildActivityItem(Icons.check_circle_outline, Colors.green, 'Pekerjaan Selesai', '12:30 • #BDG-019', '+Rp65.000', Colors.green),
-                  const SizedBox(height: 10),
-                  _buildActivityItem(Icons.swap_horiz, Colors.blueGrey, 'Withdrawal Diproses', '09:15 • Ke Rek. BCA', '-Rp150.000', AppColors.textPrimary),
-                  const SizedBox(height: 30),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 80),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            'Material',
+                            '${_todayMaterialWeight.toString().replaceAll('.', ',')} kg',
+                            'Hari ini',
+                            Icons.recycling,
+                            const Color(0xFF1565C0),
+                            onTap: () => context.push('/statistik-material'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStatCard(
+                            'Pekerjaan',
+                            '$jobsCompleted Selesai',
+                            'Bulan ini',
+                            Icons.local_shipping_outlined,
+                            Colors.green,
+                            onTap: () => context.push('/riwayat-pekerjaan'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    InkWell(
+                      onTap: () => context.push('/skor-partner'),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Level $level',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const Text(
+                                  'Gold',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Skor Partner: $score/$maxScore',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ClipRRect(
+                              borderRadius: const BorderRadius.all(
+                                Radius.circular(10),
+                              ),
+                              child: LinearProgressIndicator(
+                                value: progressValue,
+                                backgroundColor: const Color(0xFFE0E0E0),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primaryCyan,
+                                ),
+                                minHeight: 8,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${maxScore - score} poin lagi ke Level Gold',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Pekerjaan Tersedia',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.push(
+                            '/daftar-pekerjaan',
+                            extra: {'fromDashboard': true},
+                          ),
+                          child: const Text(
+                            'Lihat Semua',
+                            style: TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (_availableJobs.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Belum ada pekerjaan tersedia saat ini',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 160,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _availableJobs.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final job = _availableJobs[index];
+                            final machine = job['machine'] ?? {};
+                            final int jobId = job['id'];
+                            final String rawCode = job['code'] ?? 'JOB-#$jobId';
+                            final String code = rawCode.length > 10
+                                ? '#${rawCode.substring(0, 8).toUpperCase()}'
+                                : rawCode;
+                            final String title =
+                                job['title'] ?? 'Penjemputan Sampah';
+                            final String address =
+                                machine['placeName'] ??
+                                machine['address'] ??
+                                'Lokasi Mesin';
+                            final String priority = job['priority'] ?? 'MEDIUM';
+
+                            return _buildJobCard(
+                              jobId: jobId,
+                              code: code,
+                              title: title,
+                              distance: address,
+                              price: 'Rp15.000+',
+                              priority: priority,
+                            );
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, String subtitle, IconData icon, Color iconColor, {VoidCallback? onTap}) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    String subtitle,
+    IconData icon,
+    Color iconColor, {
+    VoidCallback? onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -265,7 +542,11 @@ class DashboardScreen extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
         child: Column(
@@ -276,21 +557,49 @@ class DashboardScreen extends StatelessWidget {
                 Icon(icon, color: iconColor, size: 20),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary, height: 1.2)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                height: 1.2,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildJobCard(String code, String title, String distance, String price, String priority) {
+  Widget _buildJobCard({
+    required int jobId,
+    required String code,
+    required String title,
+    required String distance,
+    required String price,
+    required String priority,
+  }) {
     return Container(
       width: 260,
       padding: const EdgeInsets.all(14),
@@ -298,7 +607,11 @@ class DashboardScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -308,23 +621,68 @@ class DashboardScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(code, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              Expanded(
+                child: Text(
+                  code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: priority == 'HIGH' || priority == 'URGENT'
+                      ? Colors.red.shade50
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(priority, style: const TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
+                child: Text(
+                  priority,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: priority == 'HIGH' || priority == 'URGENT'
+                        ? Colors.red
+                        : Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: AppColors.textPrimary,
+            ),
+          ),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
-              Expanded(child: Text(distance, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis)),
+              Expanded(
+                child: Text(
+                  distance,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           Row(
@@ -333,69 +691,49 @@ class DashboardScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Estimasi', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                  Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryCyan)),
+                  const Text(
+                    'Estimasi',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppColors.primaryCyan,
+                    ),
+                  ),
                 ],
               ),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () => _acceptJob(jobId),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryCyan,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Ambil', style: TextStyle(fontSize: 12, color: Colors.white)),
+                child: const Text(
+                  'Ambil',
+                  style: TextStyle(fontSize: 12, color: Colors.white),
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(IconData icon, Color iconColor, String title, String subtitle, String amount, Color amountColor) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ],
-              ),
-            ],
-          ),
-          Text(amount, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: amountColor)),
         ],
       ),
     );
   }
 }
 
-// --- CLIPPER UNTUK BENTUK UTAMA HEADER (HANYA MELENGKUNG DI BAWAH) ---
 class HeaderWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -404,11 +742,21 @@ class HeaderWaveClipper extends CustomClipper<Path> {
 
     var firstControlPoint = Offset(size.width / 4, size.height);
     var firstEndPoint = Offset(size.width / 2, size.height - 25);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
 
     var secondControlPoint = Offset(size.width * 3 / 4, size.height - 50);
     var secondEndPoint = Offset(size.width, size.height - 20);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
+    path.quadraticBezierTo(
+      secondControlPoint.dx,
+      secondControlPoint.dy,
+      secondEndPoint.dx,
+      secondEndPoint.dy,
+    );
 
     path.lineTo(size.width, 0);
     path.close();
@@ -419,17 +767,20 @@ class HeaderWaveClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-// --- CLIPPER UNTUK GARIS PEMISAH GRADASI WARNA MIRING KE KANAN BAWAH ---
 class CurvedColorWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     var path = Path();
-    // Memulai dari kiri atas di atas teks, lalu melandai turun ke sisi kanan
     path.moveTo(0, size.height * 0.12);
 
     var controlPoint = Offset(size.width * 0.6, size.height * 0.45);
     var endPoint = Offset(size.width, size.height * 0.22);
-    path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+    path.quadraticBezierTo(
+      controlPoint.dx,
+      controlPoint.dy,
+      endPoint.dx,
+      endPoint.dy,
+    );
 
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
