@@ -43,6 +43,31 @@ class PartnerApiService {
     );
   }
 
+  Future<Map<String, dynamic>> resetPinOtp({
+    required String phoneNumber,
+    required String code,
+    required String newPin,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/partners/reset-pin/otp',
+        data: {
+          'phoneNumber': phoneNumber,
+          'code': code,
+          'newPin': newPin,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'PIN transaksi berhasil direset',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mereset PIN: $e'};
+    }
+  }
+
   // ==========================================
   // 1. AUTH & PROFIL
   // ==========================================
@@ -369,7 +394,7 @@ class PartnerApiService {
   Future<Map<String, dynamic>> requestWithdrawal({
     required double amount,
     required String bankAccountId,
-    String? pin,
+    required String pin,
   }) async {
     try {
       final response = await _dio.post(
@@ -377,7 +402,7 @@ class PartnerApiService {
         data: {
           'amount': amount,
           'bankAccountId': bankAccountId,
-          if (pin != null && pin.isNotEmpty) 'pin': pin,
+          'pin': pin,
         },
       );
       return {'success': true, 'message': response.data['message'] ?? 'Pengajuan penarikan dikirim', 'data': response.data['data']};
