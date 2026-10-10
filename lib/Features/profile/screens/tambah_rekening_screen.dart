@@ -17,6 +17,24 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
 
   String? _selectedBank;
   bool _isLoading = false;
+  bool _hasExistingBank = false; // Flag status rekening/PIN existing
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingBankAccounts(); // Cek ketersediaan rekening saat layar dibuka
+  }
+
+  // --- CEK APAKAH MITRA SUDAH PUNYA REKENING / PIN TERDAFTAR ---
+  Future<void> _checkExistingBankAccounts() async {
+    final result = await _apiService.getBankAccounts();
+    if (mounted && result['success'] == true) {
+      final List data = result['data'] is List ? result['data'] : [];
+      setState(() {
+        _hasExistingBank = data.isNotEmpty;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -40,7 +58,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
     _showRegisterPinDialog();
   }
 
-  // --- POPUP MODAL DAFTAR PIN TRANSAKSI ---
+  // --- POPUP MODAL DAFTAR PIN TRANSAKSI (DINAMIS) ---
   void _showRegisterPinDialog() {
     final TextEditingController pinController = TextEditingController();
     bool isPinVisible = false;
@@ -68,9 +86,9 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Buat PIN Transaksi',
-                        style: TextStyle(
+                      Text(
+                        _hasExistingBank ? 'Masukkan PIN Transaksi' : 'Buat PIN Transaksi',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
@@ -83,9 +101,11 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Daftarkan 6 digit PIN Transaksi Anda. PIN ini akan digunakan untuk mengonfirmasi setiap penarikan saldo ke rekening ini.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                  Text(
+                    _hasExistingBank
+                        ? 'Masukkan 6 digit PIN Transaksi Anda untuk mengonfirmasi penambahan rekening baru ini.'
+                        : 'Daftarkan 6 digit PIN Transaksi Anda. PIN ini akan digunakan untuk mengonfirmasi setiap penarikan saldo ke rekening ini.',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 20),
                   TextField(
@@ -137,9 +157,9 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        'Simpan PIN & Rekening',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Text(
+                        _hasExistingBank ? 'Konfirmasi & Simpan' : 'Simpan PIN & Rekening',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                   ),

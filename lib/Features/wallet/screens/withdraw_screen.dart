@@ -188,6 +188,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     final result = await _apiService.requestWithdrawal(
       amount: amount,
       bankAccountId: _selectedBankAccountId!,
+      pin: pin, // <--- TAMBAHKAN PARAMETER PIN DI SINI
     );
 
     if (!mounted) return;
