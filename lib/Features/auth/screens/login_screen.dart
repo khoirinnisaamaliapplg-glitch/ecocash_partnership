@@ -27,10 +27,42 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // --- FUNGSI POPUP DIALOG UNTUK MENAMPILKAN PESAN ERROR ---
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 28),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Coba Lagi',
+              style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- FUNGSI PEMBANTU NORMALISASI NOMOR HP / EMAIL / USERNAME ---
   String _normalizeIdentifier(String input) {
     String clean = input.trim();
-    // Jika input hanya berisi angka dan diawali angka 0 (Nomor HP Indonesia)
     if (clean.startsWith('0') && RegExp(r'^[0-9]+$').hasMatch(clean)) {
       return '62${clean.substring(1)}';
     }
@@ -43,13 +75,10 @@ class _LoginScreenState extends State<LoginScreen> {
     String password = _passwordController.text;
 
     if (rawIdentifier.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nomor/Email dan kata sandi harus diisi!')),
-      );
+      _showErrorDialog('Form Belum Lengkap', 'Nomor Ponsel/Email/Username dan kata sandi harus diisi!');
       return;
     }
 
-    // Otomatis ubah 08xxx menjadi 62xxx jika berupa nomor HP
     String normalizedIdentifier = _normalizeIdentifier(rawIdentifier);
 
     setState(() => _isLoading = true);
@@ -67,7 +96,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      // KIRIM REQUEST LOGIN KHUSUS PARTNER (Ke /partners/login)
       final response = await dio.post(
         '/partners/login',
         data: {
@@ -79,7 +107,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data;
         
-        // Mengambil token dan user dari balik pembungkus data controller Express
         final String? token = responseData['data']?['token'];
         final dynamic userData = responseData['data']?['user'];
 
@@ -89,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (userData != null) {
           await AppStorage.saveUserData(userData);
-          // SIMPAN JUGA KE PROFILE STORAGE AGAR DIBACA OLEH PROFILE SCREEN
           if (userData is Map) {
             await AppStorage.saveProfile(Map.from(userData));
           } else {
@@ -115,24 +141,23 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on DioException catch (e) {
       if (!mounted) return;
-      String errorMessage = 'Login gagal';
+      String errorMessage = 'Gagal terhubung ke server.';
       
       if (e.response?.data != null) {
         final responseData = e.response?.data;
-        errorMessage = responseData['message'] ?? errorMessage;
+        String rawMsg = responseData['message'] ?? '';
+
+        if (rawMsg.toLowerCase().contains('kredensial') || e.response?.statusCode == 401) {
+          errorMessage = 'Nomor HP/Email atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.';
+        } else if (rawMsg.isNotEmpty) {
+          errorMessage = rawMsg;
+        }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorDialog('Login Gagal', errorMessage);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
-      );
+      _showErrorDialog('Terjadi Kesalahan', 'Terjadi kesalahan sistem: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -305,7 +330,6 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () async {
                 await AuthLocalService.googleSignIn(email: email, name: name);
                 
-                // SIMPAN NAMA & EMAIL GOOGLE KE APPSTORAGE
                 await AppStorage.saveProfile({
                   'name': name,
                   'email': email,
