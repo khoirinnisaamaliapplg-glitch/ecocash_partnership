@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
 class JobsScreen extends StatefulWidget {
-  final bool isFromDashboard; // 1. Tambahkan baris ini
+  final bool isFromDashboard;
 
   const JobsScreen({super.key, this.isFromDashboard = false});
 
@@ -15,8 +15,7 @@ class JobsScreen extends StatefulWidget {
 class _JobsScreenState extends State<JobsScreen> {
   final PartnerApiService _apiService = PartnerApiService();
 
-  String _selectedStatusTab =
-      'Tersedia'; // Options: 'Tersedia', 'Sedang Diproses', 'Selesai'
+  String _selectedStatusTab = 'Tersedia';
   String _selectedCategoryFilter = 'Semua';
 
   List<dynamic> _jobsList = [];
@@ -38,8 +37,10 @@ class _JobsScreenState extends State<JobsScreen> {
     Map<String, dynamic> result;
     if (_selectedStatusTab == 'Tersedia') {
       result = await _apiService.getAvailableJobs();
+    } else if (_selectedStatusTab == 'Sedang Diproses') {
+      result = await _apiService.getMyJobs(status: 'IN_PROGRESS');
     } else {
-      result = await _apiService.getMyJobs();
+      result = await _apiService.getMyJobs(status: 'COMPLETED');
     }
 
     if (mounted) {
@@ -52,8 +53,9 @@ class _JobsScreenState extends State<JobsScreen> {
           for (var item in rawList) {
             Map<String, dynamic> jobData;
             if (item is Map && item.containsKey('job')) {
-              jobData = Map<String, dynamic>.from(item['job']);
+              jobData = Map<String, dynamic>.from(item['job'] ?? {});
               jobData['assignmentStatus'] = item['status'];
+              jobData['assignmentId'] = item['id'];
             } else if (item is Map) {
               jobData = Map<String, dynamic>.from(item);
             } else {
@@ -62,6 +64,9 @@ class _JobsScreenState extends State<JobsScreen> {
 
             final dynamic jobId = jobData['id'];
             if (jobId != null && !uniqueJobsMap.containsKey(jobId)) {
+              final bool hasMachine = jobData['machineId'] != null || jobData['machine'] != null;
+              jobData['type'] ??= hasMachine ? 'SMART_CONTAINER' : 'RESIDENTIAL';
+
               uniqueJobsMap[jobId] = jobData;
             }
           }
@@ -77,31 +82,33 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredJobs = _jobsList.where((job) {
-      final String title = (job['title'] ?? job['machine']?['name'] ?? '')
-          .toString()
-          .toLowerCase();
-      final String address =
-          (job['address'] ?? job['machine']?['address'] ?? '')
-              .toString()
-              .toLowerCase();
-      final String type = (job['type'] ?? 'SMART_CONTAINER')
-          .toString()
-          .toUpperCase();
-      final String status = (job['status'] ?? 'AVAILABLE')
-          .toString()
-          .toUpperCase();
+      final String title = (job['title'] ?? job['machine']?['name'] ?? '').toString().toLowerCase();
+      final String rawAddress = (job['address'] ??
+              job['machine']?['address'] ??
+              job['machine']?['placeName'] ??
+              job['description'] ??
+              '')
+          .toString();
 
-      bool matchesSearch =
-          title.contains(_searchQuery.toLowerCase()) ||
-          address.contains(_searchQuery.toLowerCase());
+      final String cleanAddress = rawAddress
+          .replaceAll(RegExp(r'\[PEMESAN_ID:\d+\]'), '')
+          .replaceAll(RegExp(r'\[WEIGHT:[\d.]+\]'), '')
+          .replaceAll(RegExp(r'\[VEHICLE:\w+\]'), '')
+          .toLowerCase();
+
+      final String type = (job['type'] ??
+              (job['machineId'] != null || job['machine'] != null ? 'SMART_CONTAINER' : 'RESIDENTIAL'))
+          .toString()
+          .toUpperCase();
+      final String status = (job['status'] ?? 'AVAILABLE').toString().toUpperCase();
+
+      bool matchesSearch = title.contains(_searchQuery.toLowerCase()) || cleanAddress.contains(_searchQuery.toLowerCase());
 
       bool matchesStatus = true;
       if (_selectedStatusTab == 'Tersedia') {
-        matchesStatus =
-            status == 'AVAILABLE' || status == 'OPEN' || status == 'PENDING';
+        matchesStatus = status == 'AVAILABLE' || status == 'OPEN' || status == 'PENDING';
       } else if (_selectedStatusTab == 'Sedang Diproses') {
-        matchesStatus =
-            status == 'ACCEPTED' ||
+        matchesStatus = status == 'ACCEPTED' ||
             status == 'ON_THE_WAY' ||
             status == 'CHECKED_IN' ||
             status == 'PICKUP' ||
@@ -203,9 +210,10 @@ class _JobsScreenState extends State<JobsScreen> {
           const Divider(height: 1, color: Color(0xFFE0E0E0)),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
                 : RefreshIndicator(
                     onRefresh: _fetchJobs,
+                    color: AppColors.primaryCyan,
                     child: filteredJobs.isEmpty
                         ? ListView(
                             children: const [
@@ -302,25 +310,38 @@ class _JobsScreenState extends State<JobsScreen> {
 
   Widget _buildDynamicJobCard(BuildContext context, Map job) {
     final dynamic jobId = job['id'];
-    final String title =
-        job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
-    final String address =
-        job['address'] ??
+    final String title = job['title'] ?? job['machine']?['name'] ?? 'Tugas Penjemputan #$jobId';
+    final String rawAddress = job['address'] ??
         job['machine']?['address'] ??
         job['machine']?['placeName'] ??
+        job['description'] ??
         'Lokasi Penjemputan';
-    final String materialTag =
-        job['materialTag'] ?? job['materialCategory'] ?? 'Plastik / Karton';
-    final String volume = job['estimatedWeight'] != null
-        ? '${job['estimatedWeight']} kg'
-        : (job['volume'] ?? '20 kg');
-    final String price = job['estimatedReward'] != null
-        ? 'Rp${job['estimatedReward']}'
-        : (job['price'] ?? 'Rp45.000');
-    final String type = (job['type'] ?? 'SMART_CONTAINER')
+
+    final String address = rawAddress
+        .replaceAll(RegExp(r'\[PEMESAN_ID:\d+\]'), '')
+        .replaceAll(RegExp(r'\[WEIGHT:[\d.]+\]'), '')
+        .replaceAll(RegExp(r'\[VEHICLE:\w+\]'), '')
+        .trim();
+
+    final String type = (job['type'] ??
+            (job['machineId'] != null || job['machine'] != null ? 'SMART_CONTAINER' : 'RESIDENTIAL'))
         .toString()
         .toUpperCase();
     final bool isResidential = type == 'RESIDENTIAL' || type == 'RUMAH';
+
+    final String materialTag = job['materialTag'] ??
+        job['materialCategory'] ??
+        (isResidential ? 'Plastik PET & Karton' : 'PET (Botol)');
+
+    final String volume = job['volume'] ??
+        (job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : '20.0 kg');
+
+    final String price = job['price'] ??
+        (job['actualReward'] != null
+            ? 'Rp${job['actualReward']}'
+            : (job['estimatedReward'] != null ? 'Rp${job['estimatedReward']}' : 'Rp25.000'));
+
+    final bool isFinishedTab = _selectedStatusTab == 'Selesai';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -338,27 +359,45 @@ class _JobsScreenState extends State<JobsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isResidential ? Colors.cyan.shade50 : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: isResidential
-                    ? AppColors.primaryCyan
-                    : Colors.grey.shade300,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isFinishedTab
+                      ? Colors.green.shade50
+                      : (isResidential ? Colors.cyan.shade50 : Colors.grey.shade100),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isFinishedTab
+                        ? Colors.green.shade300
+                        : (isResidential ? AppColors.primaryCyan : Colors.grey.shade300),
+                  ),
+                ),
+                child: Text(
+                  isFinishedTab ? 'Selesai Disetor' : (isResidential ? 'Penjemputan Warga' : 'Smart Container'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isFinishedTab
+                        ? Colors.green.shade800
+                        : (isResidential ? AppColors.primaryCyan : AppColors.textSecondary),
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              isResidential ? 'Penjemputan Warga' : materialTag,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isResidential
-                    ? AppColors.primaryCyan
-                    : AppColors.textSecondary,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F6F8),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Muatan: $volume',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _navyColor),
+                ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -379,14 +418,7 @@ class _JobsScreenState extends State<JobsScreen> {
               ),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(
-                  address,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text(address, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
@@ -397,20 +429,21 @@ class _JobsScreenState extends State<JobsScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Estimasi Pendapatan',
+                  Text(
+                    isFinishedTab ? 'Komisi Diterima' : 'Estimasi Pendapatan',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textSecondary,
+                      color: isFinishedTab ? Colors.green.shade700 : AppColors.textSecondary,
+                      fontWeight: isFinishedTab ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     price,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: _navyColor,
+                      color: isFinishedTab ? Colors.green.shade800 : _navyColor,
                     ),
                   ),
                 ],
@@ -430,46 +463,36 @@ class _JobsScreenState extends State<JobsScreen> {
                         status == 'PICKUP' ||
                         status == 'IN_TRANSIT' ||
                         status == 'HANDOVER') {
-                      targetRoute = isResidential
-                          ? '/dalam-perjalanan-rumah'
-                          : '/dalam-perjalanan';
+                      targetRoute = isResidential ? '/dalam-perjalanan-rumah' : '/dalam-perjalanan';
                     } else {
                       targetRoute = isResidential
                           ? '/detail-pekerjaan-rumah'
                           : '/detail-pekerjaan';
                     }
 
-                    await context.push(
-                      targetRoute,
-                      extra: {
-                        'id': jobId,
-                        'title': title,
-                        'address': address,
-                        'materialTag': materialTag,
-                        'volume': volume,
-                        'price': price,
-                        'rawJob': job,
-                      },
-                    );
+                    final Map<String, dynamic> extraData = {
+                      'id': jobId,
+                      'title': title,
+                      'address': address,
+                      'materialTag': materialTag,
+                      'volume': volume,
+                      'price': price,
+                      'rawJob': job,
+                      'status': status,
+                    };
+
+                    await context.push(targetRoute, extra: extraData);
                     _fetchJobs();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _tealColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    backgroundColor: isFinishedTab ? Colors.grey.shade700 : _tealColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     elevation: 0,
                   ),
                   child: Text(
-                    _selectedStatusTab == 'Sedang Diproses'
-                        ? 'Lanjutkan'
-                        : 'Lihat Detail',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    isFinishedTab ? 'Rincian' : (_selectedStatusTab == 'Sedang Diproses' ? 'Lanjutkan' : 'Lihat Detail'),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
               ),

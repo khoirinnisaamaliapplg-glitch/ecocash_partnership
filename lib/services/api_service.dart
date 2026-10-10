@@ -24,19 +24,19 @@ class PartnerApiService {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await AppStorage.getToken();
-          print('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
+          debugPrint('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          print('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
+          debugPrint('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          print('<<< [API RESPONSE ERROR] Status: ${e.response?.statusCode}');
-          print('<<< [API ERROR DETAIL] ${e.response?.data}');
+          debugPrint('<<< [API RESPONSE ERROR] Status: ${e.response?.statusCode}');
+          debugPrint('<<< [API ERROR DETAIL] ${e.response?.data}');
           return handler.next(e);
         },
       ),
@@ -69,7 +69,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 1. AUTH & PROFIL
+  // 1. AUTH, PROFIL & DASHBOARD
   // ==========================================
 
   Future<Map<String, dynamic>> login({
@@ -146,8 +146,11 @@ class PartnerApiService {
   }) async {
     try {
       final Map<String, dynamic> body = {'channel': channel, 'purpose': purpose};
-      if (email != null && email.isNotEmpty) body['email'] = email;
-      else if (phoneNumber != null && phoneNumber.isNotEmpty) body['phoneNumber'] = phoneNumber;
+      if (email != null && email.isNotEmpty) {
+        body['email'] = email;
+      } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        body['phoneNumber'] = phoneNumber;
+      }
 
       final response = await _dio.post('/partners/otp/send', data: body);
       return {'success': true, 'message': response.data['message'] ?? 'Kode OTP dikirim', 'data': response.data['data']};
@@ -166,8 +169,11 @@ class PartnerApiService {
   }) async {
     try {
       final Map<String, dynamic> body = {'code': code, 'purpose': purpose};
-      if (email != null && email.isNotEmpty) body['email'] = email;
-      else if (phoneNumber != null && phoneNumber.isNotEmpty) body['phoneNumber'] = phoneNumber;
+      if (email != null && email.isNotEmpty) {
+        body['email'] = email;
+      } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        body['phoneNumber'] = phoneNumber;
+      }
 
       final response = await _dio.post('/partners/otp/verify', data: body);
       return {'success': true, 'message': response.data['message'] ?? 'Verifikasi OTP berhasil', 'data': response.data['data']};
@@ -260,6 +266,29 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal memperbarui profil: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getDashboard() async {
+    try {
+      final response = await _dio.get('/partners/dashboard');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        try {
+          final resFallback = await _dio.get('/partners/me/dashboard');
+          return {
+            'success': true,
+            'data': resFallback.data['data'] ?? resFallback.data,
+          };
+        } catch (_) {}
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil ringkasan dashboard: $e'};
     }
   }
 
@@ -391,21 +420,29 @@ class PartnerApiService {
     }
   }
 
+  // ==========================================
+  // 4. PENARIKAN DANA (WITHDRAWAL)
+  // ==========================================
+
   Future<Map<String, dynamic>> requestWithdrawal({
-    required double amount,
-    required String bankAccountId,
-    required String pin,
+    required num amount,
+    required dynamic bankAccountId,
+    String? pin,
   }) async {
     try {
       final response = await _dio.post(
         '/partners/me/withdrawals',
         data: {
           'amount': amount,
-          'bankAccountId': bankAccountId,
-          'pin': pin,
+          'bankAccountId': bankAccountId.toString(),
+          if (pin != null && pin.isNotEmpty) 'pin': pin,
         },
       );
-      return {'success': true, 'message': response.data['message'] ?? 'Pengajuan penarikan dikirim', 'data': response.data['data']};
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Pengajuan penarikan dikirim',
+        'data': response.data['data'],
+      };
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
@@ -414,7 +451,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 4. KENDARAAN (VEHICLE)
+  // 5. KENDARAAN (VEHICLE)
   // ==========================================
 
   Future<Map<String, dynamic>> getMyVehicle() async {
@@ -472,7 +509,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 5. JOBS OPERASIONAL
+  // 6. JOBS OPERASIONAL
   // ==========================================
 
   Future<Map<String, dynamic>> getAvailableJobs() async {
@@ -557,11 +594,22 @@ class PartnerApiService {
 
   Future<Map<String, dynamic>> submitPickup(
     dynamic jobId, {
-    required List<Map<String, dynamic>> materials,
+    List<dynamic>? materials,
     String? notes,
+    Map<String, dynamic>? data,
   }) async {
     try {
-      final response = await _dio.post('/jobs/$jobId/pickup', data: {'materials': materials, if (notes != null) 'notes': notes});
+      final Map<String, dynamic> body = data ?? {
+        'materials': materials ?? [
+          {'materialId': 1, 'pickupWeight': 20.0}
+        ],
+        if (notes != null) 'notes': notes,
+      };
+
+      final response = await _dio.post(
+        '/jobs/$jobId/pickup',
+        data: body,
+      );
       return {'success': true, 'message': response.data['message'] ?? 'Timbangan disimpan', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
@@ -595,8 +643,151 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> verifyHandover(
+    dynamic jobId, {
+    required String qrCode,
+    List<Map<String, dynamic>>? materials,
+    String? proofImageUrl,
+    String? notes,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/handover/verify',
+        data: {
+          'qrCode': qrCode,
+          if (materials != null) 'materials': materials,
+          if (proofImageUrl != null) 'proofImageUrl': proofImageUrl,
+          if (notes != null) 'notes': notes,
+        },
+      );
+      return {'success': true, 'message': response.data['message'] ?? 'Handover selesai', 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal verifikasi serah terima: $e'};
+    }
+  }
+
   // ==========================================
-  // 6. UPLOAD FILE
+  // 7. WALLET, TOP UP & TRANSAKSI
+  // ==========================================
+
+  Future<Map<String, dynamic>> getWallet() async {
+    try {
+      final response = await _dio.get('/wallets/me');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil data wallet: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getWalletTransactions({
+    int page = 1,
+    int limit = 20,
+    String? type,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/wallets/transactions',
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          if (type != null && type.isNotEmpty && type != 'Semua') 'type': type,
+        },
+      );
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return getWallet();
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil riwayat transaksi: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> createTopUp({required int amount}) async {
+    try {
+      final response = await _dio.post(
+        '/wallets/topup',
+        data: {'amount': amount},
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Permintaan top up berhasil dibuat',
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal membuat permintaan top up: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> checkTopUpStatus(dynamic topUpId) async {
+    try {
+      final response = await _dio.post('/wallets/topup/$topUpId/check-status');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memeriksa status pembayaran top up: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> mockPayTopUp(dynamic topUpId) async {
+    try {
+      final response = await _dio.post('/wallets/topup/$topUpId/mock-pay');
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Mock payment berhasil',
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memproses simulasi pembayaran: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeToMachine(
+    dynamic jobId, {
+    String? machineCode,
+    double? totalWeightKg,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/complete-to-machine',
+        data: {
+          'machineCode': machineCode ?? 'RVM-001',
+          'totalWeightKg': totalWeightKg ?? 15.0,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Berhasil setor ke kontainer',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyelesaikan tugas ke kontainer: $e'};
+    }
+  }
+
+  // ==========================================
+  // 8. UPLOAD FILE
   // ==========================================
 
   Future<Map<String, dynamic>> uploadSingleFile(
@@ -628,7 +819,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 7. ECOCASH ACADEMY
+  // 9. ECOCASH ACADEMY
   // ==========================================
 
   Future<Map<String, dynamic>> getAcademyCourses() async {
@@ -667,6 +858,10 @@ class PartnerApiService {
     }
   }
 
+  // ==========================================
+  // 10. STATISTIK MATERIAL & DAMPAK
+  // ==========================================
+
   Future<Map<String, dynamic>> getMaterialStatistics() async {
     try {
       final response = await _dio.get('/material-statistics/me');
@@ -687,27 +882,6 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getDashboard() async {
-    try {
-      final response = await _dio.get('/partners/me/dashboard');
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': response.data['data'] ?? response.data,
-        };
-      }
-      return {
-        'success': false,
-        'message': response.data['message'] ?? 'Gagal memuat data dashboard',
-      };
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan sistem: $e'};
-    }
-  }
-
-  /// Ambil Ringkasan Dampak Saya (GET /partners/me/impact)
   Future<Map<String, dynamic>> getMyImpact() async {
     try {
       final response = await _dio.get('/partners/me/impact');
@@ -726,7 +900,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 8. TIKET PENGADUAN & BANTUAN
+  // 11. TIKET PENGADUAN & BANTUAN
   // ==========================================
 
   Future<Map<String, dynamic>> createTicket({
@@ -831,7 +1005,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // PROFIL PARTNER (GET & UPDATE)
+  // 12. PROFIL PARTNER (GET & UPDATE)
   // ==========================================
 
   Future<Map<String, dynamic>> getPartnerProfile() async {
