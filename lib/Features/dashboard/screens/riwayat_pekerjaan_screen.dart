@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../../data/app_storage.dart';
+import '../../../services/api_service.dart';
 import 'detail_qr_screen.dart';
 
 class RiwayatPekerjaanScreen extends StatefulWidget {
@@ -10,102 +10,141 @@ class RiwayatPekerjaanScreen extends StatefulWidget {
   const RiwayatPekerjaanScreen({super.key, this.dataBaru});
 
   @override
-  State createState() => _RiwayatPekerjaanScreenState();
+  State<RiwayatPekerjaanScreen> createState() => _RiwayatPekerjaanScreenState();
 }
 
-class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateMixin {
+class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
+    with SingleTickerProviderStateMixin {
+  final PartnerApiService _apiService = PartnerApiService();
   late TabController _tabController;
 
-  final List _listSelesai = [
-    {'company': 'PT. Green Packaging', 'material': 'PET (Botol)', 'weight': '44,80 kg', 'date': '10 Agu 2026 • 10:24', 'price': 'Rp82.000', 'status': 'Selesai'},
-    {'company': 'PT. Green Packaging', 'material': 'PET (Campuran)', 'weight': '45,15 kg', 'date': '10 Agu 2026 • 08:57', 'price': 'Rp45.000', 'status': 'Selesai'},
-    {'company': 'Bank Sampah Melati', 'material': 'Campuran', 'weight': '29,50 kg', 'date': '09 Agu 2026 • 15:12', 'price': 'Rp38.000', 'status': 'Selesai'},
-  ];
+  List<Map<String, dynamic>> _listSelesai = [];
+  List<Map<String, dynamic>> _listDiproses = [];
+  List<Map<String, dynamic>> _listDibatalkan = [];
 
-  List _listDiproses = [];
-  List _listDibatalkan = [];
   bool _isLoading = true;
-  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _loadJobHistory();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isInitialized) {
-      _isInitialized = true;
-      _loadDataStorage();
-    }
+  // Helper agar aman terhadap konversi String / int / double / Decimal dari Prisma
+  double _toDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    return double.tryParse(val.toString()) ?? 0.0;
   }
 
-  Future _loadDataStorage() async {
+  Future<void> _loadJobHistory() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      Map? extraData;
-      try {
-        extraData = GoRouterState.of(context).extra as Map?;
-      } catch (_) {
-        // Safe-check jika dipanggil di luar GoRouter context
-      }
+      final results = await Future.wait([
+        _apiService.getMyJobs(status: 'COMPLETED'),
+        _apiService.getMyJobs(status: 'IN_PROGRESS'),
+        _apiService.getMyJobs(status: 'CANCELLED'),
+      ]);
 
-      // Memastikan widget di-cast spesifik ke RiwayatPekerjaanScreen
-      final Map? dataMasuk = (widget as RiwayatPekerjaanScreen).dataBaru ?? extraData;
-
-      List diproses = [];
-      List dibatalkan = [];
-
-      try {
-        diproses = await AppStorage.getDiproses();
-      } catch (_) {}
-
-      try {
-        dibatalkan = await AppStorage.getDibatalkan();
-      } catch (_) {}
-
-      if (dataMasuk != null) {
-        final kodeBaru = dataMasuk['kode'] ?? 'EC-BGD-021';
-       
-        diproses.removeWhere((item) => item['kode'] == kodeBaru);
-       
-        diproses.insert(0, {
-          'company': dataMasuk['title'] ?? 'PT. Green Packaging',
-          'material': dataMasuk['material'] ?? 'PET (Botol)',
-          'weight': dataMasuk['berat'] ?? '44,80 kg',
-          'date': dataMasuk['tanggal'] ?? '10 Agu 2026 • 10:24',
-          'price': dataMasuk['pendapatan'] ?? 'Rp82.000',
-          'status': 'Diproses',
-          'kode': kodeBaru,
-        });
-
-        await AppStorage.saveDiproses(diproses);
-        _tabController.index = 1; // Pindah otomatis ke tab Diproses
-      }
-     
-      if (diproses.isEmpty && dibatalkan.isEmpty) {
-        diproses = [
-          {'company': 'PT. Green Packaging', 'material': 'PET (Botol)', 'weight': '44,80 kg', 'date': '10 Agu 2026 • 10:24', 'price': 'Rp82.000', 'status': 'Diproses', 'kode': 'EC-BGD-021'}
-        ];
-        await AppStorage.saveDiproses(diproses);
-      }
+      final List rawSelesai = (results[0]['success'] == true && results[0]['data'] is List)
+          ? results[0]['data'] as List
+          : [];
+      final List rawDiproses = (results[1]['success'] == true && results[1]['data'] is List)
+          ? results[1]['data'] as List
+          : [];
+      final List rawDibatalkan = (results[2]['success'] == true && results[2]['data'] is List)
+          ? results[2]['data'] as List
+          : [];
 
       if (mounted) {
         setState(() {
-          _listDiproses = diproses;
-          _listDibatalkan = dibatalkan;
+          _listSelesai = rawSelesai
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .toList();
+          _listDiproses = rawDiproses
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .toList();
+          _listDibatalkan = rawDibatalkan
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .toList();
+          _isLoading = false;
         });
       }
-    } catch (e) {
-      debugPrint('Error _loadDataStorage: $e');
-    } finally {
-      // Memastikan status loading PASTI mati
+    } catch (e, stack) {
+      debugPrint('[RiwayatPekerjaan] ERROR PARSING: $e');
+      debugPrint('$stack');
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Map<String, dynamic> _formatJobItem(Map<String, dynamic> assignment) {
+    final job = assignment['job'] ?? {};
+    final machine = job['machine'];
+    final weights = (job['weights'] as List?) ?? [];
+
+    String locationName = job['title'] ?? 'Penjemputan Sampah';
+    if (machine != null && machine['placeName'] != null && machine['placeName'].toString().isNotEmpty) {
+      locationName = machine['placeName'].toString();
+    }
+
+    double totalKg = 0.0;
+    List<String> materialNames = [];
+    for (var w in weights) {
+      final double weightVal = _toDouble(w['pickupWeight'] ?? w['handoverWeight']);
+      totalKg += weightVal;
+      if (w['material'] != null && w['material']['name'] != null) {
+        materialNames.add(w['material']['name'].toString());
+      }
+    }
+
+    String materialText = materialNames.isNotEmpty
+        ? materialNames.take(2).join(', ')
+        : 'Material Campuran';
+
+    String dateStr = (assignment['assignedAt'] ?? job['createdAt'] ?? '').toString();
+    if (dateStr.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(dateStr).toLocal();
+        dateStr =
+            '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} • ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} WIB';
+      } catch (_) {}
+    }
+
+    final int earning = (15000 + (totalKg * 2000)).toInt();
+    final String priceText =
+        'Rp${earning.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+
+    return {
+      'id': job['id'],
+      'assignmentId': assignment['id'],
+      'company': locationName,
+      'material': materialText,
+      'weight': '${totalKg.toStringAsFixed(1)} kg',
+      'date': dateStr,
+      'price': priceText,
+      'status': _mapJobStatus(job['status'] ?? assignment['status']),
+      'kode': machine?['machineCode'] ?? 'JOB-#${job['id']}',
+      'alasan': assignment['cancelReason'],
+    };
+  }
+
+  String _mapJobStatus(dynamic rawStatus) {
+    final statusStr = rawStatus?.toString() ?? '';
+    switch (statusStr) {
+      case 'COMPLETED':
+        return 'Selesai';
+      case 'CANCELLED':
+        return 'Dibatalkan';
+      default:
+        return 'Diproses';
     }
   }
 
@@ -115,9 +154,9 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
     super.dispose();
   }
 
-  void _tampilkanDialogPembatalan(int index) {
+  void _tampilkanDialogPembatalan(dynamic jobId, int index) {
     final TextEditingController alasanController = TextEditingController();
-    String? errorMessage;
+    String? dialogError;
 
     showDialog(
       context: context,
@@ -134,23 +173,13 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                     controller: alasanController,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      hintText: 'Tuliskan alasan pembatalan di sini...',
+                      hintText: 'Tuliskan alasan pembatalan pekerjaan ini...',
                       hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                       filled: true,
                       fillColor: const Color(0xFFF4F6F8),
-                      errorText: errorMessage,
+                      errorText: dialogError,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryCyan)),
-                      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
-                      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.red)),
                     ),
-                    onChanged: (value) {
-                      if (errorMessage != null) {
-                        setStateDialog(() {
-                          errorMessage = null;
-                        });
-                      }
-                    },
                   ),
                 ],
               ),
@@ -161,40 +190,30 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    String alasan = alasanController.text.trim();
-                    
-                    var words = alasan.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-                    bool hasAlphanumeric = RegExp(r'[a-zA-Z0-9]').hasMatch(alasan);
-
+                    final String alasan = alasanController.text.trim();
                     if (alasan.isEmpty) {
-                      setStateDialog(() => errorMessage = 'Alasan tidak boleh kosong.');
-                      return;
-                    } else if (!hasAlphanumeric) {
-                      setStateDialog(() => errorMessage = 'Alasan harus mengandung teks.');
-                      return;
-                    } else if (words.length < 3) {
-                      setStateDialog(() => errorMessage = 'Alasan terlalu singkat (min. 3 kata).');
+                      setStateDialog(() => dialogError = 'Alasan tidak boleh kosong.');
                       return;
                     }
 
-                    setState(() {
-                      final item = _listDiproses.removeAt(index);
-                      item['status'] = 'Dibatalkan';
-                      item['alasan'] = alasan;
-                      _listDibatalkan.insert(0, item);
-                    });
-
-                    await AppStorage.saveDiproses(_listDiproses);
-                    await AppStorage.saveDibatalkan(_listDibatalkan);
-
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pekerjaan berhasil dibatalkan'), backgroundColor: Colors.red),
-                      );
+                    try {
+                      final res = await _apiService.cancelJob(jobId, reason: alasan);
+                      if (res['success'] == true) {
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          _loadJobHistory();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Pekerjaan berhasil dibatalkan'), backgroundColor: Colors.red),
+                          );
+                        }
+                      } else {
+                        setStateDialog(() => dialogError = res['message'] ?? 'Gagal membatalkan pekerjaan');
+                      }
+                    } catch (e) {
+                      setStateDialog(() => dialogError = 'Gagal membatalkan pekerjaan: $e');
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text('Konfirmasi', style: TextStyle(color: Colors.white)),
                 ),
               ],
@@ -220,193 +239,109 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: () => context.canPop() ? context.pop() : Navigator.pop(context),
         ),
         title: const Text('Riwayat Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 4),
-                  const Text('Online', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadJobHistory,
+        color: AppColors.primaryCyan,
+        child: Column(
+          children: [
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: AppColors.primaryCyan,
+                unselectedLabelColor: AppColors.textSecondary,
+                indicatorColor: AppColors.primaryCyan,
+                indicatorWeight: 3,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                tabs: [
+                  Tab(text: 'Selesai (${_listSelesai.length})'),
+                  Tab(text: 'Diproses (${_listDiproses.length})'),
+                  Tab(text: 'Dibatalkan (${_listDibatalkan.length})'),
                 ],
               ),
             ),
-          ),
-        ],
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildJobListTab(_listSelesai),
+                  _buildJobListTab(_listDiproses, isProcessing: true),
+                  _buildJobListTab(_listDibatalkan, isCancelled: true),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  Widget _buildJobListTab(List<Map<String, dynamic>> list, {bool isProcessing = false, bool isCancelled = false}) {
+    if (list.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 100),
+          Center(
             child: Column(
               children: [
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Cari riwayat pekerjaan...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: const Color(0xFFF4F6F8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TabBar(
-                  controller: _tabController,
-                  labelColor: AppColors.primaryCyan,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primaryCyan,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  tabs: const [
-                    Tab(text: 'Selesai'),
-                    Tab(text: 'Diproses'),
-                    Tab(text: 'Dibatalkan'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.white,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('Status'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Material'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Tanggal'),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFE0E0E0)),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Tab 1: Selesai
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _listSelesai.length,
-                  itemBuilder: (context, index) {
-                    final item = _listSelesai[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildJobHistoryCard(item),
-                    );
-                  },
-                ),
-                // Tab 2: Diproses
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _listDiproses.length,
-                  itemBuilder: (context, index) {
-                    final item = _listDiproses[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => DetailQrScreen(
-                                kodeKontainer: item['kode'] ?? 'EC-BGD-021',
-                              ),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: _buildJobHistoryCard(
-                          item,
-                          showCancelButton: true,
-                          onCancel: () => _tampilkanDialogPembatalan(index),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Tab 3: Dibatalkan
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _listDibatalkan.length,
-                  itemBuilder: (context, index) {
-                    final item = _listDibatalkan[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildJobHistoryCard(item),
-                    );
-                  },
-                ),
+                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
+                SizedBox(height: 8),
+                Text('Belum ada pekerjaan pada kategori ini', style: TextStyle(color: Colors.grey)),
               ],
             ),
           ),
         ],
-      ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final item = list[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: InkWell(
+            onTap: isProcessing
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailQrScreen(kodeKontainer: item['kode']),
+                      ),
+                    );
+                  }
+                : null,
+            child: _buildJobHistoryCard(
+              item,
+              showCancelButton: isProcessing,
+              onCancel: () => _tampilkanDialogPembatalan(item['id'], index),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
-      label: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: Colors.grey.shade300),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      ),
-    );
-  }
-
-  Widget _buildJobHistoryCard(
-    Map item, {
-    bool showCancelButton = false,
-    VoidCallback? onCancel,
-  }) {
-    final String company = item['company'] ?? '';
-    final String material = item['material'] ?? '';
-    final String weight = item['weight'] ?? '';
-    final String date = item['date'] ?? '';
-    final String price = item['price'] ?? '';
+  Widget _buildJobHistoryCard(Map<String, dynamic> item, {bool showCancelButton = false, VoidCallback? onCancel}) {
     final String status = item['status'] ?? '';
-    final String? alasan = item['alasan'];
+    final bool isCancelled = status == 'Dibatalkan';
+    Color badgeColor = Colors.green.shade50;
+    Color textColor = Colors.green;
+    IconData badgeIcon = Icons.check_circle;
 
-    Color badgeColor;
-    Color textColor;
-    IconData badgeIcon;
-    bool isCancelled = status == 'Dibatalkan';
-
-    if (status == 'Selesai') {
-      badgeColor = Colors.green.shade50;
-      textColor = Colors.green;
-      badgeIcon = Icons.check_circle;
-    } else if (status == 'Diproses') {
+    if (status == 'Diproses') {
       badgeColor = Colors.cyan.shade50;
       textColor = Colors.cyan.shade700;
       badgeIcon = Icons.access_time_filled;
-    } else {
+    } else if (isCancelled) {
       badgeColor = Colors.red.shade50;
       textColor = Colors.red;
       badgeIcon = Icons.cancel;
@@ -425,13 +360,12 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(company, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+              Expanded(
+                child: Text(item['company'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
+                decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(6)),
                 child: Row(
                   children: [
                     Icon(badgeIcon, size: 12, color: textColor),
@@ -445,10 +379,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -457,7 +388,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                   children: [
                     const Text('Material', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     const SizedBox(height: 2),
-                    Text(material, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                    Text(item['material'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
                   ],
                 ),
                 Column(
@@ -465,7 +396,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                   children: [
                     const Text('Berat', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     const SizedBox(height: 2),
-                    Text(weight, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                    Text(item['weight'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
                   ],
                 ),
               ],
@@ -479,7 +410,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                 children: [
                   const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondary),
                   const SizedBox(width: 6),
-                  Text(date, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  Text(item['date'], style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
               Column(
@@ -487,7 +418,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                 children: [
                   const Text('Pendapatan', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                   Text(
-                    price,
+                    item['price'],
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -499,7 +430,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
               ),
             ],
           ),
-          if (isCancelled && alasan != null && alasan.isNotEmpty) ...[
+          if (isCancelled && item['alasan'] != null) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -514,7 +445,7 @@ class _RiwayatPekerjaanScreenState extends State with SingleTickerProviderStateM
                 children: [
                   const Text('Alasan Pembatalan:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red)),
                   const SizedBox(height: 2),
-                  Text(alasan, style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
+                  Text(item['alasan'], style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
                 ],
               ),
             ),

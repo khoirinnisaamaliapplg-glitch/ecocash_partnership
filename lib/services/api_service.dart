@@ -24,19 +24,19 @@ class PartnerApiService {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await AppStorage.getToken();
-          print('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
+          debugPrint('>>> [API REQUEST] ${options.method} ${options.baseUrl}${options.path}');
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          print('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
+          debugPrint('<<< [API RESPONSE SUCCESS] Status: ${response.statusCode}');
           return handler.next(response);
         },
         onError: (DioException e, handler) {
-          print('<<< [API RESPONSE ERROR] Status: ${e.response?.statusCode}');
-          print('<<< [API ERROR DETAIL] ${e.response?.data}');
+          debugPrint('<<< [API RESPONSE ERROR] Status: ${e.response?.statusCode}');
+          debugPrint('<<< [API ERROR DETAIL] ${e.response?.data}');
           return handler.next(e);
         },
       ),
@@ -44,7 +44,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 1. AUTH & PROFIL
+  // 1. AUTH, PROFIL & DASHBOARD
   // ==========================================
 
   Future<Map<String, dynamic>> login({
@@ -214,6 +214,20 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getDashboard() async {
+    try {
+      final response = await _dio.get('/partners/dashboard');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil ringkasan dashboard: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> logout() async {
     try {
       await _dio.post('/auth/logout');
@@ -303,13 +317,16 @@ class PartnerApiService {
   }
 
   Future<Map<String, dynamic>> requestWithdrawal({
-    required double amount,
-    required String bankAccountId,
+    required num amount,
+    required dynamic bankAccountId,
   }) async {
     try {
       final response = await _dio.post(
         '/partners/me/withdrawals',
-        data: {'amount': amount, 'bankAccountId': bankAccountId},
+        data: {
+          'amount': amount,
+          'bankAccountId': bankAccountId.toString(),
+        },
       );
       return {'success': true, 'message': response.data['message'] ?? 'Pengajuan penarikan dikirim', 'data': response.data['data']};
     } on DioException catch (e) {
@@ -461,13 +478,25 @@ class PartnerApiService {
     }
   }
 
+  // Mendukung named parameter `materials: [...]` dan `notes:` di semua screen
   Future<Map<String, dynamic>> submitPickup(
     dynamic jobId, {
-    required List<Map<String, dynamic>> materials,
+    List<dynamic>? materials,
     String? notes,
+    Map<String, dynamic>? data,
   }) async {
     try {
-      final response = await _dio.post('/jobs/$jobId/pickup', data: {'materials': materials, if (notes != null) 'notes': notes});
+      final Map<String, dynamic> body = data ?? {
+        'materials': materials ?? [
+          {'materialId': 1, 'pickupWeight': 20.0}
+        ],
+        if (notes != null) 'notes': notes,
+      };
+
+      final response = await _dio.post(
+        '/jobs/$jobId/pickup',
+        data: body,
+      );
       return {'success': true, 'message': response.data['message'] ?? 'Timbangan disimpan', 'data': response.data['data']};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
@@ -501,8 +530,151 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> verifyHandover(
+    dynamic jobId, {
+    required String qrCode,
+    List<Map<String, dynamic>>? materials,
+    String? proofImageUrl,
+    String? notes,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/handover/verify',
+        data: {
+          'qrCode': qrCode,
+          if (materials != null) 'materials': materials,
+          if (proofImageUrl != null) 'proofImageUrl': proofImageUrl,
+          if (notes != null) 'notes': notes,
+        },
+      );
+      return {'success': true, 'message': response.data['message'] ?? 'Handover selesai', 'data': response.data['data']};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal verifikasi serah terima: $e'};
+    }
+  }
+
   // ==========================================
-  // 6. UPLOAD FILE
+  // 6. WALLET, TOP UP & TRANSAKSI
+  // ==========================================
+
+  Future<Map<String, dynamic>> getWallet() async {
+    try {
+      final response = await _dio.get('/wallets/me');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil data wallet: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getWalletTransactions({
+    int page = 1,
+    int limit = 20,
+    String? type,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/wallets/transactions',
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          if (type != null && type.isNotEmpty && type != 'Semua') 'type': type,
+        },
+      );
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return getWallet();
+      }
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil riwayat transaksi: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> createTopUp({required int amount}) async {
+    try {
+      final response = await _dio.post(
+        '/wallets/topup',
+        data: {'amount': amount},
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Permintaan top up berhasil dibuat',
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal membuat permintaan top up: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> checkTopUpStatus(dynamic topUpId) async {
+    try {
+      final response = await _dio.post('/wallets/topup/$topUpId/check-status');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memeriksa status pembayaran top up: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> mockPayTopUp(dynamic topUpId) async {
+    try {
+      final response = await _dio.post('/wallets/topup/$topUpId/mock-pay');
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Mock payment berhasil',
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal memproses simulasi pembayaran: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> completeToMachine(
+    dynamic jobId, {
+    String? machineCode,
+    double? totalWeightKg,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/complete-to-machine',
+        data: {
+          'machineCode': machineCode ?? 'RVM-001',
+          'totalWeightKg': totalWeightKg ?? 15.0,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Berhasil setor ke kontainer',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyelesaikan tugas ke kontainer: $e'};
+    }
+  }
+
+  // ==========================================
+  // 7. UPLOAD FILE
   // ==========================================
 
   Future<Map<String, dynamic>> uploadSingleFile(
@@ -534,7 +706,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 7. ECOCASH ACADEMY
+  // 8. ECOCASH ACADEMY
   // ==========================================
 
   Future<Map<String, dynamic>> getAcademyCourses() async {
@@ -573,7 +745,10 @@ class PartnerApiService {
     }
   }
 
-  /// Mengambil data agregasi statistik material mitra
+  // ==========================================
+  // 9. STATISTIK MATERIAL
+  // ==========================================
+
   Future<Map<String, dynamic>> getMaterialStatistics() async {
     try {
       final response = await _dio.get('/material-statistics/me');
