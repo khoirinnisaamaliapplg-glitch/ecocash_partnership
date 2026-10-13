@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConstants {
   // Ubah ke true untuk server live, ubah ke false jika ingin kembali ke lokal
-  static const bool isProduction = false; 
+  static const bool isProduction = true; 
   static const String _port = '3000';
 
   static String get baseUrl {
