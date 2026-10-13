@@ -1,11 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../services/api_service.dart';
 
-class SertifikatPelatihanScreen extends StatelessWidget {
+class SertifikatPelatihanScreen extends StatefulWidget {
   const SertifikatPelatihanScreen({super.key});
 
+  @override
+  State<SertifikatPelatihanScreen> createState() => _SertifikatPelatihanScreenState();
+}
+
+class _SertifikatPelatihanScreenState extends State<SertifikatPelatihanScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
   static const Color _navyColor = Color(0xFF0F2C59);
+
+  bool _isLoading = true;
+  List<dynamic> _certificates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCertificates();
+  }
+
+  Future<void> _fetchCertificates() async {
+    setState(() => _isLoading = true);
+    final result = await _apiService.getAcademyCertificates();
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        if (result['success'] == true && result['data'] is List) {
+          _certificates = result['data'];
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,262 +54,99 @@ class SertifikatPelatihanScreen extends StatelessWidget {
             }
           },
         ),
-        title: const Text(
-          'EcoCash Academy',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        title: const Text('EcoCash Academy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- HEADER TEKS ---
-            const Text(
-              'PENCAPAIAN ANDA',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
-                letterSpacing: 1.1,
-              ),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'Sertifikat Pelatihan',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: _navyColor,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Selamat! Anda telah berhasil menyelesaikan pelatihan dengan baik. Sertifikat digital Anda tersedia di bawah ini.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // --- KARTU SERTIFIKAT ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Stack(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Watermark samar di latar belakang
-                  Positioned.fill(
-                    child: Center(
-                      child: Opacity(
-                        opacity: 0.03,
-                        child: Text(
-                          'ECOCASH',
-                          style: TextStyle(
-                            fontSize: 50,
-                            fontWeight: FontWeight.w900, // Perbaikan di sini (menggunakan w900 pengganti .black)
-                            color: _navyColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Column(
-                    children: [
-                      // Header Logo EcoCash Academy Partner
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  const Text('PENCAPAIAN ANDA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textSecondary, letterSpacing: 1.1)),
+                  const SizedBox(height: 2),
+                  const Text('Sertifikat Pelatihan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor)),
+                  const SizedBox(height: 6),
+                  const Text('Sertifikat digital resmi atas keberhasilan menyelesaikan modul pelatihan Mitra EcoCash.', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4)),
+                  const SizedBox(height: 20),
+
+                  if (_certificates.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      width: double.infinity,
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      child: const Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryCyan.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.eco, size: 20, color: _navyColor),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'EcoCash',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: _navyColor,
-                                  height: 1.0,
-                                ),
-                              ),
-                              Text(
-                                'ACADEMY PARTNER',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 8,
-                                  color: Colors.green,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ],
-                          ),
+                          Icon(Icons.workspace_premium_outlined, size: 48, color: Colors.grey),
+                          SizedBox(height: 12),
+                          Text('Belum Ada Sertifikat', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+                          SizedBox(height: 4),
+                          Text('Selesaikan 100% modul pada salah satu pelatihan untuk mendapatkan sertifikat digital.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                         ],
                       ),
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        'Diberikan Kepada',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Budi Santoso',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: _navyColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(width: 140, height: 1, color: Colors.grey.shade300),
-                      const SizedBox(height: 14),
-
-                      const Text(
-                        'Atas keberhasilannya menyelesaikan program pelatihan wajib bagi Mitra EcoCash:',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Nama Kursus di Sertifikat
-                      const Text(
-                        'Keselamatan Kerja Lapangan\n& Penanganan Limbah Medis B3',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: _navyColor,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Tanggal & Tanda Tangan
-                      const Text(
-                        'Tanggal Penyelesaian',
-                        style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                      ),
-                      const Text(
-                        '15 November 2023',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Tanda Tangan Digital Nama Direktur
-                      Column(
-                        children: [
-                          const Text(
-                            'Dr. Hendra W.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: _navyColor,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                          const Text(
-                            'Direktur Operasional',
-                            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // ID Sertifikat
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF4F6F8),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'ID Sertifikat: ECA-2023-88492X',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontFamily: 'monospace',
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    )
+                  else
+                    ..._certificates.map((cert) => Padding(
+                          padding: const EdgeInsets.only(bottom: 20.0),
+                          child: _buildCertificateCard(cert),
+                        )),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+    );
+  }
 
-            // --- TOMBOL UNDUH PDF & BAGIKAN ---
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Mengunduh Sertifikat PDF...')),
-                  );
-                },
-                icon: const Icon(Icons.file_download_outlined, color: Colors.white, size: 18),
-                label: const Text(
-                  'Unduh PDF',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88A8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
+  Widget _buildCertificateCard(Map<String, dynamic> cert) {
+    final String certNumber = cert['certificateNumber'] ?? 'ECA-2026-UNKNOWN';
+    final String courseTitle = cert['course']?['title'] ?? 'Program Pelatihan Mitra';
+    final String issueDate = cert['createdAt'] != null ? cert['createdAt'].toString().split('T')[0] : '2026';
 
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.share_outlined, color: _navyColor, size: 18),
-                label: const Text(
-                  'Bagikan',
-                  style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFC5CEE0)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: AppColors.primaryCyan.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.eco, size: 20, color: _navyColor),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+              const SizedBox(width: 8),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('EcoCash', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _navyColor, height: 1.0)),
+                  Text('ACADEMY PARTNER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 8, color: Colors.green, letterSpacing: 1.2)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text('Atas keberhasilannya menyelesaikan program pelatihan wajib:', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          const SizedBox(height: 12),
+          Text(courseTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _navyColor, height: 1.3)),
+          const SizedBox(height: 24),
+          const Text('Tanggal Penerbitan', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+          Text(issueDate, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: const Color(0xFFF4F6F8), borderRadius: BorderRadius.circular(6)),
+            child: Text('ID Sertifikat: $certNumber', style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

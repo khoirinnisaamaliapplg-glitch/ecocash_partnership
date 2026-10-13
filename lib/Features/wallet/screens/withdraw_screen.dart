@@ -1,25 +1,216 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'success_withdraw_screen.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class WithdrawScreen extends StatefulWidget {
   const WithdrawScreen({super.key});
 
   @override
-  State createState() => _WithdrawScreenState();
+  State<WithdrawScreen> createState() => _WithdrawScreenState();
 }
 
-class _WithdrawScreenState extends State {
-  final TextEditingController _amountController = TextEditingController(text: '100.000');
-  String _selectedNominal = '100.000';
-  String _selectedMethod = 'Bank BCA';
+class _WithdrawScreenState extends State<WithdrawScreen> {
+  final TextEditingController _amountController = TextEditingController(text: '100000');
+  final PartnerApiService _apiService = PartnerApiService();
+
+  List<dynamic> _bankAccounts = [];
+  String? _selectedBankAccountId;
+  bool _isLoadingBank = true;
+  bool _isSubmitting = false;
 
   static const Color _navyColor = Color(0xFF0F2C59);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBankAccounts();
+  }
 
   @override
   void dispose() {
     _amountController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchBankAccounts() async {
+    final result = await _apiService.getBankAccounts();
+    if (mounted) {
+      setState(() {
+        _isLoadingBank = false;
+        if (result['success'] == true) {
+          _bankAccounts = result['data'] is List ? result['data'] : [];
+          if (_bankAccounts.isNotEmpty) {
+            _selectedBankAccountId = _bankAccounts[0]['id'].toString();
+          }
+        }
+      });
+    }
+  }
+
+  // Validasi Awal sebelum Membuka Dialog PIN
+  void _onConfirmWithdrawal() {
+    String rawAmount = _amountController.text.replaceAll('.', '').replaceAll(',', '').trim();
+    double? amount = double.tryParse(rawAmount);
+
+    if (amount == null || amount < 50000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Minimal penarikan adalah Rp50.000!')),
+      );
+      return;
+    }
+
+    if (_selectedBankAccountId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih rekening bank tujuan penarikan!')),
+      );
+      return;
+    }
+
+    _showPinDialog(amount);
+  }
+
+  // Popup Dialog Input PIN Transaksi
+  void _showPinDialog(double amount) {
+    final TextEditingController pinController = TextEditingController();
+    bool isPinVisible = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Masukkan PIN Transaksi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _navyColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Demi keamanan akun Anda, silakan masukkan 6 digit PIN untuk mengonfirmasi penarikan ini.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: pinController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    obscureText: !isPinVisible,
+                    autofocus: true,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 22, letterSpacing: 10, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: '••••••',
+                      hintStyle: const TextStyle(letterSpacing: 8, color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      suffixIcon: IconButton(
+                        icon: Icon(isPinVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setModalState(() => isPinVisible = !isPinVisible),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        String pin = pinController.text.trim();
+                        if (pin.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('PIN harus terdiri dari 6 digit!')),
+                          );
+                          return;
+                        }
+                        Navigator.pop(ctx); // Tutup Dialog PIN
+                        _submitWithdrawal(amount, pin);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88A8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Konfirmasi & Tarik Saldo',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Proses Kirim Request Penarikan ke Backend
+  Future<void> _submitWithdrawal(double amount, String pin) async {
+    setState(() => _isSubmitting = true);
+
+    final result = await _apiService.requestWithdrawal(
+      amount: amount,
+      bankAccountId: _selectedBankAccountId!,
+      pin: pin, // <--- TAMBAHKAN PARAMETER PIN DI SINI
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (result['success'] == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SuccessWithdrawScreen(
+            withdrawalData: result['data'],
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal mengajukan penarikan.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -38,12 +229,6 @@ class _WithdrawScreenState extends State {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -53,31 +238,6 @@ class _WithdrawScreenState extends State {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- KARTU SALDO TERSEDIA ---
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                      ],
-                    ),
-                    child: Column(
-                      children: const [
-                        Text('Saldo Tersedia', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        SizedBox(height: 6),
-                        Text(
-                          'Rp1.245.000',
-                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: _navyColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- NOMINAL PENARIKAN ---
                   const Text(
                     'Nominal Penarikan',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _navyColor),
@@ -92,151 +252,78 @@ class _WithdrawScreenState extends State {
                         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _amountController,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                          onChanged: (val) {
-                            setState(() {
-                              _selectedNominal = val;
-                            });
-                          },
-                          decoration: InputDecoration(
-                            prefixText: 'Rp ',
-                            prefixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryCyan)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 14),
-
-                        // --- KOTAK PILIHAN NOMINAL PENARIKAN ---
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: ['50.000', '100.000', '200.000', 'Semua'].map((nominal) {
-                            bool isSelected = _selectedNominal == nominal;
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedNominal = nominal;
-                                  _amountController.text = nominal == 'Semua' ? '1.245.000' : nominal;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFFE8F0FE) : Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: isSelected ? _navyColor : Colors.grey.shade300,
-                                    width: isSelected ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  nominal,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected ? _navyColor : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                    child: TextField(
+                      controller: _amountController,
+                      enabled: !_isSubmitting,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        prefixText: 'Rp ',
+                        prefixStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryCyan)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text('Minimal penarikan Rp50.000', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                   const SizedBox(height: 20),
 
-                  // --- METODE PENARIKAN ---
                   const Text(
-                    'Metode Penarikan',
+                    'Pilih Rekening Tujuan',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _navyColor),
                   ),
                   const SizedBox(height: 12),
-                  _buildBankOption('Bank BCA', '**** 1234 a.n. Partner EcoCash', Icons.account_balance),
-                  const SizedBox(height: 10),
-                  _buildBankOption('Bank Mandiri', '**** 5678 a.n. Partner EcoCash', Icons.account_balance),
-                  const SizedBox(height: 10),
-                  _buildBankOption('DANA', '0812****9012', Icons.account_balance_wallet),
-                  const SizedBox(height: 12),
 
-                  // Tombol Tambah Rekening/E-Wallet Baru
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.add, color: _navyColor, size: 18),
-                      label: const Text(
-                        'Tambah Rekening/E-Wallet Baru',
-                        style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: _navyColor),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- RINCIAN PENARIKAN ---
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Rincian Penarikan',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor),
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Jumlah Penarikan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            Text('Rp${_amountController.text}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('Biaya Admin', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                            Text('Rp2.500', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  _isLoadingBank
+                      ? const Center(child: CircularProgressIndicator())
+                      : _bankAccounts.isEmpty
+                          ? const Text('Belum ada rekening tersimpan. Silakan tambah rekening terlebih dahulu.', style: TextStyle(color: Colors.red, fontSize: 12))
+                          : Column(
+                              children: _bankAccounts.map((item) {
+                                String id = item['id'].toString();
+                                String bankName = item['bankName'] ?? 'Bank';
+                                String num = item['accountNumber'] ?? '';
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _selectedBankAccountId = id),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: _selectedBankAccountId == id ? _navyColor : Colors.grey.shade200, width: 1.5),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.account_balance, color: _navyColor),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text('$bankName - $num', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          ),
+                                          Radio<String>(
+                                            value: id,
+                                            groupValue: _selectedBankAccountId,
+                                            onChanged: (val) => setState(() => _selectedBankAccountId = val),
+                                            activeColor: _navyColor,
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                 ],
               ),
             ),
           ),
 
-          // --- TOMBOL KONFIRMASI PENARIKAN (FIXED BOTTOM) ---
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -248,91 +335,25 @@ class _WithdrawScreenState extends State {
             child: SafeArea(
               child: SizedBox(
                 width: double.infinity,
-                height: 46,
+                height: 48,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SuccessWithdrawScreen()),
-                    );
-                  },
+                  onPressed: _isSubmitting ? null : _onConfirmWithdrawal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88A8), // Warna tombol samakan dengan gambar
+                    backgroundColor: const Color(0xFF1E88A8),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        'Konfirmasi Penarikan',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                    ],
-                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : const Text(
+                          'Konfirmasi Penarikan',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBankOption(String title, String subtitle, IconData icon) {
-    bool isSelected = _selectedMethod == title;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMethod = title;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected ? Border.all(color: _navyColor, width: 1.5) : Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F0FE), // Background biru muda lembut seperti di gambar
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: _navyColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-            Radio(
-              value: title,
-              groupValue: _selectedMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedMethod = value!;
-                });
-              },
-              activeColor: _navyColor,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ],
-        ),
       ),
     );
   }

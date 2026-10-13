@@ -19,7 +19,7 @@ class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _controllers = List.generate(4, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
   
-  String _selectedMethod = 'email'; // Default tab terpilih E-mail
+  String _selectedMethod = 'phone'; // Default tab terpilih No. Ponsel (sebelah kiri)
   bool _isComplete = false;
   bool _isLoading = false;
 
@@ -101,7 +101,7 @@ class _OtpScreenState extends State<OtpScreen> {
     return start + ' **** ' + end;
   }
 
-  // --- RESEND OTP (Dinamis Email / WhatsApp) ---
+  // --- RESEND OTP (Dinamis WhatsApp / Email) ---
   Future<void> _resendCode() async {
     String emailTarget = _data['email'] ?? '';
     String phoneTarget = _data['phone'] ?? _data['phoneNumber'] ?? '';
@@ -148,7 +148,7 @@ class _OtpScreenState extends State<OtpScreen> {
     }
   }
 
-  // --- VERIFY OTP (Dinamis Email / WhatsApp) ---
+  // --- VERIFY OTP (Dinamis WhatsApp / Email) ---
   Future<void> _verifyOtp() async {
     String otpCode = _controllers.map((c) => c.text).join();
     String emailTarget = _data['email'] ?? '';
@@ -238,40 +238,7 @@ class _OtpScreenState extends State<OtpScreen> {
                     padding: const EdgeInsets.all(4),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _isLoading ? null : () => setState(() => _selectedMethod = 'email'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedMethod == 'email' ? Colors.white : Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: _selectedMethod == 'email'
-                                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
-                                    : [],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.email_outlined,
-                                    size: 16,
-                                    color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'E-mail',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                        // KIRI: No. Ponsel
                         Expanded(
                           child: GestureDetector(
                             onTap: _isLoading ? null : () => setState(() => _selectedMethod = 'phone'),
@@ -306,14 +273,49 @@ class _OtpScreenState extends State<OtpScreen> {
                             ),
                           ),
                         ),
+                        // KANAN: E-mail
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _isLoading ? null : () => setState(() => _selectedMethod = 'email'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedMethod == 'email' ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: _selectedMethod == 'email'
+                                    ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)]
+                                    : [],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.email_outlined,
+                                    size: 16,
+                                    color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'E-mail',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _selectedMethod == 'email' ? AppColors.primaryGreen : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _selectedMethod == 'email'
-                        ? 'Masukkan kode verifikasi yang dikirim ke email\n' + _maskEmail(emailTarget)
-                        : 'Masukkan 4 digit kode OTP yang dikirim ke nomor\n' + _maskPhone(phoneTarget),
+                    _selectedMethod == 'phone'
+                        ? 'Masukkan 4 digit kode OTP yang dikirim ke nomor\n' + _maskPhone(phoneTarget)
+                        : 'Masukkan kode verifikasi yang dikirim ke email\n' + _maskEmail(emailTarget),
                     style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 24),
