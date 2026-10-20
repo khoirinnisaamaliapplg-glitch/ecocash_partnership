@@ -97,7 +97,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   Map<String, dynamic> _formatJobItem(Map<String, dynamic> assignment) {
     final job = assignment['job'] ?? {};
     final machine = job['machine'];
-    final weights = (job['weights'] as List?) ?? [];
+    final weights = (job['weights'] as List?) ?? (assignment['weights'] as List?) ?? [];
 
     String locationName = job['title'] ?? 'Penjemputan Sampah';
     if (machine != null && machine['placeName'] != null && machine['placeName'].toString().isNotEmpty) {
@@ -107,7 +107,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     double totalKg = 0.0;
     List<String> materialNames = [];
     for (var w in weights) {
-      final double weightVal = _toDouble(w['pickupWeight'] ?? w['handoverWeight']);
+      final double weightVal = _toDouble(w['pickupWeight'] ?? w['handoverWeight'] ?? w['weight']);
       totalKg += weightVal;
       if (w['material'] != null && w['material']['name'] != null) {
         materialNames.add(w['material']['name'].toString());
@@ -118,7 +118,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         ? materialNames.take(2).join(', ')
         : 'Material Campuran';
 
-    String dateStr = (assignment['assignedAt'] ?? job['createdAt'] ?? '').toString();
+    // Utamakan completedAt jika ada
+    String dateStr = (assignment['completedAt'] ?? assignment['assignedAt'] ?? job['createdAt'] ?? '').toString();
     if (dateStr.isNotEmpty) {
       try {
         final dt = DateTime.parse(dateStr).toLocal();
@@ -126,9 +127,23 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       } catch (_) {}
     }
 
-    final int earning = (15000 + (totalKg * 2000)).toInt();
-    final String priceText =
-        'Rp${earning.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+    // Hitung Komisi Asli dari API
+    final dynamic rawReward = assignment['actualReward'] ?? job['actualReward'] ?? assignment['estimatedReward'] ?? job['estimatedReward'] ?? job['price'];
+    num actualReward = 0;
+
+    if (rawReward != null && _toDouble(rawReward) > 0) {
+      actualReward = _toDouble(rawReward);
+    } else {
+      // Fallback skema berdasarkan tipe pekerjaan
+      final String jobType = (job['type'] ?? (job['machineId'] != null || job['machine'] != null ? 'SMART_CONTAINER' : 'RESIDENTIAL')).toString().toUpperCase();
+      final bool isResidential = jobType == 'RESIDENTIAL' || jobType == 'RUMAH';
+
+      actualReward = isResidential
+          ? (20000 + (totalKg * 1000))
+          : (35000 + (totalKg * 2000));
+    }
+
+    final String priceText = 'Rp${NumberFormat('#,##0', 'id_ID').format(actualReward)}';
 
     return {
       'id': job['id'],
@@ -361,6 +376,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       {bool showCancelButton = false, VoidCallback? onCancel}) {
     final String status = item['status'] ?? '';
     final bool isCancelled = status == 'Dibatalkan';
+    final bool isFinished = status == 'Selesai';
+
     Color badgeColor = Colors.green.shade50;
     Color textColor = Colors.green;
     IconData badgeIcon = Icons.check_circle;
@@ -460,7 +477,14 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('Estimasi', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  Text(
+                    isFinished ? 'Komisi Diterima' : 'Estimasi',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isFinished ? FontWeight.bold : FontWeight.normal,
+                      color: isFinished ? Colors.green.shade700 : AppColors.textSecondary,
+                    ),
+                  ),
                   Text(
                     item['price'],
                     style: TextStyle(

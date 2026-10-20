@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
+import 'package:flutter/foundation.dart'; // <--- Tambahkan import ini jika belum ada
 
 class DalamPerjalananRumahScreen extends StatefulWidget {
   final Map extraData;
@@ -516,6 +517,29 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             ),
           ),
         ),
+        if (kDebugMode) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.bug_report, color: Colors.white),
+              label: const Text(
+                'Simulasi Scan Mesin Selesai (Debug)',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade800,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: _isLoading
+                  ? null
+                  : () => _submitMachineScanVerification('RVM-001'),
+            ),
+          ),
+        ],
       ],
     );
   }
