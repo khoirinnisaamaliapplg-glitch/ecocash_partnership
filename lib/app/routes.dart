@@ -42,6 +42,8 @@ import 'package:ecocash_partnership/features/profile/screens/academy/sertifikat_
 
 import 'package:ecocash_partnership/features/profile/screens/riwayat_laporan_screen.dart';
 
+import 'package:ecocash_partnership/features/jobs/screens/chat_room_screen.dart';
+
 class AppRoutes {
   static final router = GoRouter(
     initialLocation: '/splash',
@@ -229,6 +231,18 @@ class AppRoutes {
         path: '/riwayat-laporan',
         builder: (context, state) => const RiwayatLaporanScreen(),
       ),
+
+      GoRoute(
+  path: '/chat/room/:id',
+  builder: (context, state) {
+    final jobId = state.pathParameters['id'] ?? '';
+    final extraData = state.extra as Map<String, dynamic>?;
+    return ChatRoomScreen(
+      jobId: jobId,
+      extraData: extraData,
+    );
+  },
+),
     ],
   );
 }

@@ -438,7 +438,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _identifierController,
                     enabled: !_isLoading,
                     decoration: InputDecoration(
-                      hintText: 'No. Ponsel / Email / Username',
+                      hintText: 'No. Ponsel / Email',
                       prefixIcon: const Icon(Icons.person_outline),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
