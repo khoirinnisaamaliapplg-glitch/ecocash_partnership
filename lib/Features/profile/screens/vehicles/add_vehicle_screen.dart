@@ -110,6 +110,15 @@ Future<void> _simpanKendaraan() async {
       vehiclePhotoUrl: backendType == 'CART' ? uploadedUrl : null,
     );
 
+    // SINKRONKAN KE PARTNER DOCUMENT AGAR TAMPIL DI PANEL ADMIN
+    if (uploadedUrl != null) {
+      await _apiService.uploadPartnerDocument(
+        documentType: backendType == 'CART' ? 'GEROBAK' : 'STNK',
+        fileUrl: uploadedUrl,
+        documentNumber: backendType != 'CART' ? _platController.text.trim() : null,
+      );
+    }
+
     if (!mounted) return;
     setState(() => _isLoading = false);
 

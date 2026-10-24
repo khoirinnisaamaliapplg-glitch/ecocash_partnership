@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_map/flutter_map.dart'; 
-import 'package:latlong2/latlong.dart';     
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
 class DetailPekerjaanScreen extends StatefulWidget {
-  final Map<String, dynamic> jobData;
+  final Map jobData;
 
   const DetailPekerjaanScreen({super.key, required this.jobData});
 
@@ -18,16 +18,58 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
   final PartnerApiService _apiService = PartnerApiService();
   bool _isLoading = false;
 
+  static const Color _tealColor = Color(0xFF178CA4);
+
+  Map get _rawJob {
+    if (widget.jobData['rawJob'] is Map) {
+      return widget.jobData['rawJob'] as Map;
+    }
+    if (widget.jobData['job'] is Map) {
+      return widget.jobData['job'] as Map;
+    }
+    return widget.jobData;
+  }
+
+  Map? get _machine {
+    if (widget.jobData['machine'] is Map) {
+      return widget.jobData['machine'] as Map;
+    }
+    if (_rawJob['machine'] is Map) {
+      return _rawJob['machine'] as Map;
+    }
+    return null;
+  }
+
+  dynamic get _resolvedJobId {
+    if (widget.jobData['job'] is Map && widget.jobData['job']['id'] != null) {
+      return widget.jobData['job']['id'];
+    }
+    return widget.jobData['jobId'] ?? _rawJob['id'] ?? widget.jobData['id'];
+  }
+
   String get _jobStatus {
-    final status = widget.jobData['status'] ?? widget.jobData['rawJob']?['status'] ?? 'AVAILABLE';
+    final status = _rawJob['status'] ?? widget.jobData['status'] ?? 'AVAILABLE';
     return status.toString().toUpperCase();
   }
 
+  LatLng get _pickupLocation {
+    final double? lat = double.tryParse(
+      (_machine?['latitude'] ?? _rawJob['latitude'] ?? widget.jobData['latitude'] ?? '').toString(),
+    );
+    final double? lng = double.tryParse(
+      (_machine?['longitude'] ?? _rawJob['longitude'] ?? widget.jobData['longitude'] ?? '').toString(),
+    );
+    if (lat != null && lng != null && lat != 0 && lng != 0) {
+      return LatLng(lat, lng);
+    }
+    return const LatLng(-6.9175, 107.6191);
+  }
+
   Future<void> _handleAcceptJob() async {
-    final dynamic jobId = widget.jobData['id'] ?? widget.jobData['rawJob']?['id'];
+    final dynamic jobId = _resolvedJobId;
 
     if (jobId == null) {
-      context.push('/dalam-perjalanan', extra: widget.jobData);
+      _showPrerequisiteDialog('ID Pekerjaan tidak ditemukan atau format data pekerjaan tidak valid.');
       return;
     }
 
@@ -38,15 +80,23 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     if (!mounted) return;
 
     if (res['success'] == true) {
+      final Map<String, dynamic> updatedJobData = Map<String, dynamic>.from(widget.jobData);
+      updatedJobData['status'] = 'ACCEPTED';
+      if (updatedJobData['rawJob'] is Map) {
+        final Map<String, dynamic> updatedRaw = Map<String, dynamic>.from(updatedJobData['rawJob']);
+        updatedRaw['status'] = 'ACCEPTED';
+        updatedJobData['rawJob'] = updatedRaw;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan pengosongan kontainer berhasil diambil!'),
           backgroundColor: Colors.teal,
         ),
       );
-      context.push('/dalam-perjalanan', extra: widget.jobData);
+      context.push('/dalam-perjalanan', extra: updatedJobData);
     } else {
-      final String msg = (res['message'] ?? '').toString();
+      final String msg = (res['message'] ?? 'Gagal menerima pekerjaan.').toString();
       _showPrerequisiteDialog(msg);
     }
   }
@@ -55,41 +105,121 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     String title = "Prasyarat Belum Terpenuhi";
     String description = errorMessage;
     String buttonText = "Tutup";
+    IconData icon = Icons.warning_amber_rounded;
+    Color iconColor = Colors.orange;
     VoidCallback? onAction;
 
-    if (errorMessage.contains("KYC_NOT_VERIFIED")) {
-      title = "Verifikasi Data Diri (KYC)";
-      description = "Akun Anda belum aktif. Lengkapi KTP dan dokumen identitas Anda terlebih dahulu.";
+    if (errorMessage.contains("KYC_KTP_MISSING")) {
+      title = "KTP Belum Diunggah";
+      icon = Icons.badge_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Unggah KTP";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_KTP_PENDING")) {
+      title = "KTP Menunggu Verifikasi";
+      icon = Icons.pending_actions_rounded;
+      iconColor = _tealColor;
+      buttonText = "Cek Dokumen";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_KTP_REJECTED")) {
+      title = "KTP Ditolak Admin";
+      icon = Icons.error_outline_rounded;
+      iconColor = Colors.redAccent;
+      buttonText = "Unggah Ulang KTP";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_NOT_VERIFIED")) {
+      title = "Akun Belum Aktif";
+      icon = Icons.verified_user_outlined;
+      iconColor = Colors.orange;
       buttonText = "Lengkapi Dokumen";
       onAction = () {
         Navigator.pop(context);
         context.push('/dokumen-legalitas');
       };
+    } else if (errorMessage.contains("VEHICLE_MISSING")) {
+      title = "Kendaraan Belum Terdaftar";
+      icon = Icons.two_wheeler_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Daftar Kendaraan";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
+    } else if (errorMessage.contains("VEHICLE_PENDING")) {
+      title = "Kendaraan Menunggu Verifikasi";
+      icon = Icons.hourglass_top_rounded;
+      iconColor = _tealColor;
+      buttonText = "Cek Kendaraan";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
+    } else if (errorMessage.contains("VEHICLE_REJECTED")) {
+      title = "Kendaraan Ditolak Admin";
+      icon = Icons.cancel_outlined;
+      iconColor = Colors.redAccent;
+      buttonText = "Perbarui Armada";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
     } else if (errorMessage.contains("VEHICLE_NOT_VERIFIED")) {
-      title = "Verifikasi Kendaraan";
-      description = "Kendaraan Anda belum terdaftar atau belum diverifikasi admin.";
+      title = "Kendaraan Belum Terverifikasi";
+      icon = Icons.two_wheeler_outlined;
+      iconColor = Colors.orange;
       buttonText = "Data Kendaraan";
       onAction = () {
         Navigator.pop(context);
         context.push('/kendaraan');
       };
     } else if (errorMessage.contains("ACADEMY_NOT_COMPLETED")) {
-      title = "Pelatihan Mitra Wajib";
-      description = "Anda belum menyelesaikan modul sertifikasi di EcoCash Academy.";
+      title = "Pelatihan Wajib Belum Selesai";
+      icon = Icons.school_outlined;
+      iconColor = _tealColor;
       buttonText = "Buka Academy";
       onAction = () {
         Navigator.pop(context);
         context.push('/academy');
       };
     } else if (errorMessage.contains("VEHICLE_OVERLOAD")) {
-      title = "Kapasitas Armada Tidak Muat";
-      description = errorMessage.replaceFirst(RegExp(r'^VEHICLE_OVERLOAD:\s*'), '');
+      title = "Muatan Melebihi Kapasitas";
+      icon = Icons.scale_rounded;
+      iconColor = Colors.orange;
       buttonText = "Ganti Armada";
       onAction = () {
         Navigator.pop(context);
         context.push('/kendaraan');
       };
+    } else if (errorMessage.contains("LIMIT_EXCEEDED") || errorMessage.contains("3 pekerjaan aktif")) {
+      title = "Batas Pekerjaan Tercapai";
+      icon = Icons.assignment_late_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Kembali";
+      onAction = () {
+        Navigator.pop(context);
+        context.pop();
+      };
+    } else if (errorMessage.contains("JOB_NOT_AVAILABLE") || errorMessage.contains("sudah diambil")) {
+      title = "Pekerjaan Tidak Tersedia";
+      icon = Icons.info_outline_rounded;
+      iconColor = Colors.grey;
+      buttonText = "Pilih Pekerjaan Lain";
+      onAction = () {
+        Navigator.pop(context);
+        context.pop();
+      };
     }
+
+    description = description.replaceAll(RegExp(r'^[A-Z_]+:\s*'), '');
 
     showDialog(
       context: context,
@@ -97,12 +227,12 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 10),
             Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
           ],
         ),
-        content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -114,7 +244,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onAction ?? () => Navigator.pop(ctx),
-            child: Text(buttonText, style: const TextStyle(color: Colors.white)),
+            child: Text(buttonText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -123,17 +253,18 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String title = widget.jobData['title'] ?? widget.jobData['machine']?['name'] ?? 'Smart Container';
-    final String address = widget.jobData['address'] ??
-        widget.jobData['machine']?['address'] ??
-        widget.jobData['machine']?['placeName'] ??
-        'Lokasi Smart Container';
-    final String material = widget.jobData['materialTag'] ?? 'PET (Botol)';
-    final String volume = widget.jobData['volume'] ?? '40,0 kg';
-    final String price = widget.jobData['price'] ?? 'Rp115.000';
+    final String title = (widget.jobData['title'] ?? _rawJob['title'] ?? _machine?['name'] ?? 'Smart Container').toString();
+    final String address = (widget.jobData['address'] ??
+            _rawJob['address'] ??
+            _machine?['address'] ??
+            _machine?['placeName'] ??
+            'Lokasi Smart Container')
+        .toString();
+    final String material = (widget.jobData['materialTag'] ?? _rawJob['materialTag'] ?? 'PET (Botol)').toString();
+    final String volume = (widget.jobData['volume'] ?? _rawJob['volume'] ?? '40.0 kg').toString();
+    final String price = (widget.jobData['price'] ?? _rawJob['price'] ?? 'Rp115.000').toString();
     final String status = _jobStatus;
-
-    final LatLng pickupLocation = const LatLng(-6.9175, 107.6191);
+    final LatLng pickupLocation = _pickupLocation;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -315,7 +446,8 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
       );
     }
 
-    if (status == 'ACCEPTED' || status == 'ON_THE_WAY' || status == 'CHECKED_IN' || status == 'PICKUP' || status == 'IN_TRANSIT') {
+    const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'ON_THE_WAY', 'CHECKED_IN', 'PICKUP', 'IN_TRANSIT', 'HANDOVER'];
+    if (activeStatuses.contains(status)) {
       return SizedBox(
         width: double.infinity,
         child: Container(

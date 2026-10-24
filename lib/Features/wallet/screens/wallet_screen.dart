@@ -19,6 +19,7 @@ class _WalletScreenState extends State<WalletScreen> {
   double _balance = 0.0;
   double _totalEarned = 0.0;
   List<dynamic> _transactions = [];
+  Map<String, dynamic>? _vehicleData;
 
   @override
   void initState() {
@@ -29,10 +30,18 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _fetchWalletData() async {
     setState(() => _isLoading = true);
     try {
-      final res = await _apiService.getWallet();
+      // Ambil data dompet dan data armada aktif secara paralel
+      final results = await Future.wait([
+        _apiService.getWallet(),
+        _apiService.getMyVehicle(),
+      ]);
 
-      if (res['success'] == true || res['data'] != null) {
-        final data = res['data'] ?? res;
+      final resWallet = results[0];
+      final resVehicle = results[1];
+
+      // 1. Parsing Data Dompet & Transaksi
+      if (resWallet['success'] == true || resWallet['data'] != null) {
+        final data = resWallet['data'] ?? resWallet;
         final rawBal = data['balance'] ?? 0;
         _balance = double.tryParse(rawBal.toString()) ?? 0.0;
 
@@ -51,16 +60,51 @@ class _WalletScreenState extends State<WalletScreen> {
           }
         }
 
-        setState(() {
-          _transactions = list;
-          _totalEarned = totalKomisi;
-        });
+        _transactions = list;
+        _totalEarned = totalKomisi;
+      }
+
+      // 2. Parsing Data Kendaraan Aktif Mitra
+      if (resVehicle['success'] == true && resVehicle['data'] != null) {
+        _vehicleData = Map<String, dynamic>.from(resVehicle['data']);
       }
     } catch (e) {
       debugPrint("Gagal memuat dompet mitra: $e");
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  // --- GETTER DINAMIS SPESIFIKASI ARMADA MITRA ---
+  String get _vehicleTitleLabel {
+    if (_vehicleData == null) return 'Batas Armada Motor Roda 3';
+
+    final String type = (_vehicleData!['type'] ?? 'MOTORCYCLE').toString().toUpperCase();
+    final String plateStr = (_vehicleData!['plateNumber'] ?? '').toString().toLowerCase();
+
+    if (type == 'CAR') {
+      return 'Batas Armada Mobil Pickup';
+    } else if (type == 'CART') {
+      return 'Batas Armada Gerobak Motor';
+    } else if (plateStr.contains('viar') || plateStr.contains('tossa') || plateStr.contains('karya')) {
+      return 'Batas Armada Motor Roda 3';
+    }
+    return 'Batas Armada Sepeda Motor';
+  }
+
+  String get _vehicleCapacityLabel {
+    if (_vehicleData == null) return 'Maks. 35 kg / order';
+
+    final String type = (_vehicleData!['type'] ?? 'MOTORCYCLE').toString().toUpperCase();
+
+    if (type == 'CAR') {
+      return 'Maks. 600 kg / order';
+    } else if (type == 'CART') {
+      return 'Maks. 150 kg / order';
+    }
+    return 'Maks. 35 kg / order';
   }
 
   String _formatCurrency(num number) {
@@ -169,7 +213,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Analisis Komisi & Skema Pendapatan Resmi (Satu Kesatuan Alur)
+              // Analisis Komisi & Skema Pendapatan Resmi
               const Text('Akumulasi & Skema Komisi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 12),
               Container(
@@ -208,7 +252,8 @@ class _WalletScreenState extends State<WalletScreen> {
                     const SizedBox(height: 10),
                     _buildIncomeItem('Penyelesaian & Validasi', 'Scan Barcode Smart Container', valueColor: AppColors.primaryCyan),
                     const SizedBox(height: 10),
-                    _buildIncomeItem('Batas Armada Motor Roda 3', 'Maks. 35 kg / order', valueColor: Colors.orange.shade800),
+                    // Item batas armada yang sudah disesuaikan secara dinamis
+                    _buildIncomeItem(_vehicleTitleLabel, _vehicleCapacityLabel, valueColor: Colors.orange.shade800),
                   ],
                 ),
               ),
