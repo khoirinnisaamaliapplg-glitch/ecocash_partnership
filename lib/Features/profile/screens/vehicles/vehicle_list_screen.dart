@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/api_service.dart';
 import 'add_vehicle_screen.dart';
+import 'vehicle_detail_screen.dart'; // Import layar EditVehicleScreen
 
 class VehicleListScreen extends StatefulWidget {
   const VehicleListScreen({super.key});
@@ -29,8 +30,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     if (mounted) {
       setState(() {
         _isLoading = false;
-        if (result['success'] == true) {
-          _vehicleData = result['data'];
+        if (result['success'] == true && result['data'] != null) {
+          _vehicleData = Map<String, dynamic>.from(result['data']);
         }
       });
     }
@@ -43,7 +44,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primaryCyan,
         elevation: 0,
-        title: const Text('Kendaraan Operasional', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Kendaraan Operasional',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -101,14 +105,22 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const AddVehicleScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => _vehicleData != null
+                                  ? EditVehicleScreen(vehicleData: _vehicleData!)
+                                  : const AddVehicleScreen(),
+                            ),
                           );
 
                           if (result == true) {
                             _fetchVehicleData();
                           }
                         },
-                        icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                        icon: Icon(
+                          _vehicleData != null ? Icons.edit_outlined : Icons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         label: Text(
                           _vehicleData != null ? 'Ubah / Perbarui Kendaraan' : 'Tambah Kendaraan Baru',
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
@@ -142,7 +154,9 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     } else if (type == 'CART') {
       iconData = Icons.shopping_cart;
       typeLabel = 'Gerobak';
-    } else if (plateStr.toLowerCase().contains('viar') || plateStr.toLowerCase().contains('tossa') || plateStr.toLowerCase().contains('karya')) {
+    } else if (plateStr.toLowerCase().contains('viar') ||
+        plateStr.toLowerCase().contains('tossa') ||
+        plateStr.toLowerCase().contains('karya')) {
       iconData = Icons.electric_rickshaw;
       typeLabel = 'Kendaraan Roda Tiga';
     }

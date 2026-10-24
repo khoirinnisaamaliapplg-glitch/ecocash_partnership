@@ -21,12 +21,25 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
   static const Color _navyColor = Color(0xFF0B3C5D);
   static const Color _tealColor = Color(0xFF178CA4);
 
-  // Helper untuk mengambil object data utama backend
-  Map get _rawJob => (widget.jobData['rawJob'] is Map) ? widget.jobData['rawJob'] : widget.jobData;
+  Map get _rawJob {
+    if (widget.jobData['rawJob'] is Map) {
+      return widget.jobData['rawJob'] as Map;
+    }
+    if (widget.jobData['job'] is Map) {
+      return widget.jobData['job'] as Map;
+    }
+    return widget.jobData;
+  }
 
-  // --- GETTER DATA DINAMIS DARI BACKEND ---
+  dynamic get _resolvedJobId {
+    if (widget.jobData['job'] is Map && widget.jobData['job']['id'] != null) {
+      return widget.jobData['job']['id'];
+    }
+    return widget.jobData['jobId'] ?? _rawJob['id'] ?? widget.jobData['id'];
+  }
+
   String get _jobStatus {
-    final status = widget.jobData['status'] ?? _rawJob['status'] ?? 'AVAILABLE';
+    final status = _rawJob['status'] ?? widget.jobData['status'] ?? 'AVAILABLE';
     return status.toString().toUpperCase();
   }
 
@@ -72,6 +85,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
   String get _volume {
     final rawWeight = widget.jobData['volume'] ??
         widget.jobData['estimatedWeight'] ??
+        _rawJob['volume'] ??
         _rawJob['estimatedWeight'] ??
         _rawJob['totalWeight'] ??
         _rawJob['weight'];
@@ -92,20 +106,19 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
   }
 
   LatLng get _pickupLocation {
-    final double? lat = double.tryParse((_rawJob['latitude'] ?? _rawJob['lat'] ?? '').toString());
-    final double? lng = double.tryParse((_rawJob['longitude'] ?? _rawJob['lng'] ?? '').toString());
+    final double? lat = double.tryParse((_rawJob['latitude'] ?? _rawJob['lat'] ?? widget.jobData['latitude'] ?? '').toString());
+    final double? lng = double.tryParse((_rawJob['longitude'] ?? _rawJob['lng'] ?? widget.jobData['longitude'] ?? '').toString());
     if (lat != null && lng != null && lat != 0 && lng != 0) {
       return LatLng(lat, lng);
     }
     return const LatLng(-6.9175, 107.6191);
   }
 
-  // --- LOGIKA TERIMA PEKERJAAN ---
   Future<void> _handleAcceptJob() async {
-    final dynamic jobId = widget.jobData['id'] ?? _rawJob['id'];
+    final dynamic jobId = _resolvedJobId;
 
     if (jobId == null) {
-      context.push('/dalam-perjalanan-rumah', extra: widget.jobData);
+      _showPrerequisiteDialog('ID Pekerjaan tidak ditemukan atau format data pekerjaan tidak valid.');
       return;
     }
 
@@ -116,15 +129,23 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     if (!mounted) return;
 
     if (res['success'] == true) {
+      final Map<String, dynamic> updatedJobData = Map<String, dynamic>.from(widget.jobData);
+      updatedJobData['status'] = 'ACCEPTED';
+      if (updatedJobData['rawJob'] is Map) {
+        final Map<String, dynamic> updatedRaw = Map<String, dynamic>.from(updatedJobData['rawJob']);
+        updatedRaw['status'] = 'ACCEPTED';
+        updatedJobData['rawJob'] = updatedRaw;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan penjemputan warga berhasil diterima!'),
           backgroundColor: Colors.teal,
         ),
       );
-      context.push('/dalam-perjalanan-rumah', extra: widget.jobData);
+      context.push('/dalam-perjalanan-rumah', extra: updatedJobData);
     } else {
-      final String msg = (res['message'] ?? '').toString();
+      final String msg = (res['message'] ?? 'Gagal menerima pekerjaan.').toString();
       _showPrerequisiteDialog(msg);
     }
   }
@@ -133,41 +154,122 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     String title = "Prasyarat Belum Terpenuhi";
     String description = errorMessage;
     String buttonText = "Tutup";
+    IconData icon = Icons.warning_amber_rounded;
+    Color iconColor = Colors.orange;
     VoidCallback? onAction;
 
-    if (errorMessage.contains("KYC_NOT_VERIFIED")) {
-      title = "Verifikasi Data Diri (KYC)";
-      description = "Akun Anda belum aktif. Harap lengkapi KTP dan dokumen identitas Anda untuk ditinjau oleh tim admin.";
+    if (errorMessage.contains("KYC_KTP_MISSING")) {
+      title = "KTP Belum Diunggah";
+      icon = Icons.badge_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Unggah KTP";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_KTP_PENDING")) {
+      title = "KTP Menunggu Verifikasi";
+      icon = Icons.pending_actions_rounded;
+      iconColor = _tealColor;
+      buttonText = "Cek Dokumen";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_KTP_REJECTED")) {
+      title = "KTP Ditolak Admin";
+      icon = Icons.error_outline_rounded;
+      iconColor = Colors.redAccent;
+      buttonText = "Unggah Ulang KTP";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/dokumen-legalitas');
+      };
+    } else if (errorMessage.contains("KYC_NOT_VERIFIED")) {
+      title = "Akun Belum Aktif";
+      icon = Icons.verified_user_outlined;
+      iconColor = Colors.orange;
       buttonText = "Lengkapi Dokumen";
       onAction = () {
         Navigator.pop(context);
         context.push('/dokumen-legalitas');
       };
+    } else if (errorMessage.contains("VEHICLE_MISSING")) {
+      title = "Kendaraan Belum Terdaftar";
+      icon = Icons.two_wheeler_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Daftar Kendaraan";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
+    } else if (errorMessage.contains("VEHICLE_PENDING")) {
+      title = "Kendaraan Menunggu Verifikasi";
+      icon = Icons.hourglass_top_rounded;
+      iconColor = _tealColor;
+      buttonText = "Cek Kendaraan";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
+    } else if (errorMessage.contains("VEHICLE_REJECTED")) {
+      title = "Kendaraan Ditolak Admin";
+      icon = Icons.cancel_outlined;
+      iconColor = Colors.redAccent;
+      buttonText = "Perbarui Armada";
+      onAction = () {
+        Navigator.pop(context);
+        context.push('/kendaraan');
+      };
     } else if (errorMessage.contains("VEHICLE_NOT_VERIFIED")) {
-      title = "Verifikasi Kendaraan";
-      description = "Kendaraan Anda belum terdaftar atau belum diverifikasi. Daftarkan plat nomor dan data kendaraan Anda.";
+      title = "Kendaraan Belum Terverifikasi";
+      icon = Icons.two_wheeler_outlined;
+      iconColor = Colors.orange;
       buttonText = "Data Kendaraan";
       onAction = () {
         Navigator.pop(context);
         context.push('/kendaraan');
       };
     } else if (errorMessage.contains("ACADEMY_NOT_COMPLETED")) {
-      title = "Pelatihan Mitra Wajib";
-      description = "Anda belum menyelesaikan modul pelatihan di EcoCash Academy. Selesaikan pelatihan standar operasional sebelum menerima order.";
+      title = "Pelatihan Wajib Belum Selesai";
+      icon = Icons.school_outlined;
+      iconColor = _tealColor;
       buttonText = "Buka Academy";
       onAction = () {
         Navigator.pop(context);
         context.push('/academy');
       };
     } else if (errorMessage.contains("VEHICLE_OVERLOAD")) {
-      title = "Kapasitas Armada Tidak Muat";
-      description = errorMessage.replaceFirst(RegExp(r'^VEHICLE_OVERLOAD:\s*'), '');
+      title = "Muatan Melebihi Kapasitas";
+      icon = Icons.scale_rounded;
+      iconColor = Colors.orange;
       buttonText = "Ganti Armada";
       onAction = () {
         Navigator.pop(context);
         context.push('/kendaraan');
       };
+    } else if (errorMessage.contains("LIMIT_EXCEEDED") || errorMessage.contains("3 pekerjaan aktif")) {
+      title = "Batas Pekerjaan Tercapai";
+      icon = Icons.assignment_late_outlined;
+      iconColor = Colors.orange;
+      buttonText = "Kembali";
+      onAction = () {
+        Navigator.pop(context);
+        context.pop();
+      };
+    } else if (errorMessage.contains("JOB_NOT_AVAILABLE") || errorMessage.contains("sudah diambil")) {
+      title = "Pekerjaan Tidak Tersedia";
+      icon = Icons.info_outline_rounded;
+      iconColor = Colors.grey;
+      buttonText = "Pilih Pekerjaan Lain";
+      onAction = () {
+        Navigator.pop(context);
+        context.pop();
+      };
     }
+
+    // Bersihkan prefix kode error agar teks pesan rapi
+    description = description.replaceAll(RegExp(r'^[A-Z_]+:\s*'), '');
 
     showDialog(
       context: context,
@@ -175,12 +277,12 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            const SizedBox(width: 8),
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 10),
             Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
           ],
         ),
-        content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -192,14 +294,13 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onAction ?? () => Navigator.pop(ctx),
-            child: Text(buttonText, style: const TextStyle(color: Colors.white)),
+            child: Text(buttonText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  // --- RENDER DYNAMIC MATERIAL CHIPS ---
   List<Widget> _buildMaterialChips() {
     final List rawMaterials = (widget.jobData['materials'] is List)
         ? widget.jobData['materials']
@@ -210,7 +311,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     if (rawMaterials.isNotEmpty) {
       for (var mat in rawMaterials) {
         if (mat is Map) {
-          String name = mat['name'] ?? mat['category'] ?? mat['materialName'] ?? 'Material';
+          String name = mat['name'] ?? mat['category'] ?? mat['materialName'] ?? mat['material']?['name'] ?? 'Material';
           String weight = mat['weight'] != null
               ? '${mat['weight']} kg'
               : (mat['estimatedWeight'] != null ? '${mat['estimatedWeight']} kg' : '');
@@ -259,7 +360,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge Status
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -273,7 +373,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 8),
 
-                    // Judul Alamat & Lokasi dari Backend
                     Text(_title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                     const SizedBox(height: 4),
                     Row(
@@ -285,7 +384,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 14),
 
-                    // Peta
                     Container(
                       height: 160,
                       width: double.infinity,
@@ -318,7 +416,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 14),
 
-                    // Card Material & Total KG dari Backend
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -350,7 +447,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // Card Estimasi Pendapatan dari Backend
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -370,7 +466,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // Card Jendela Waktu Pengambilan dari Backend
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -402,7 +497,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // Banner Instruksi
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -431,7 +525,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
               ),
             ),
 
-            // Tombol Aksi Bawah
             Container(
               padding: const EdgeInsets.all(16),
               color: Colors.white,
@@ -481,7 +574,8 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       );
     }
 
-    if (status == 'ACCEPTED' || status == 'IN_PROGRESS' || status == 'ON_THE_WAY' || status == 'PICKUP' || status == 'IN_TRANSIT') {
+    const activeStatuses = ['ACCEPTED', 'IN_PROGRESS', 'ON_THE_WAY', 'CHECKED_IN', 'PICKUP', 'IN_TRANSIT', 'HANDOVER'];
+    if (activeStatuses.contains(status)) {
       return SizedBox(
         width: double.infinity,
         height: 48,

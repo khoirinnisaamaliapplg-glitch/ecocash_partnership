@@ -120,7 +120,7 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
       category: 'document',
     );
 
-    if (uploadResult['success'] != true) {
+    if (uploadResult['success'] != true || uploadResult['url'] == null) {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,22 +132,22 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
       return;
     }
 
-    final String? uploadedUrl = uploadResult['url'];
+    final String uploadedUrl = uploadResult['url'];
 
-    // 2. Simpan data kendaraan ke PUT /partners/me/vehicle (Tabel PartnerVehicle)
-    final vehicleResult = await _apiService.updateVehicle(
+    // 2. Simpan data kendaraan dengan nama parameter backend yang valid
+    final vehicleResult = await _apiService.registerOrUpdateVehicle(
       type: _selectedVehicleType,
-      plateNumber: plateNumber,
-      imageUrl: uploadedUrl,
+      plateNumber: isCart ? null : plateNumber,
+      stnkPhotoUrl: isCart ? null : uploadedUrl,
+      vehiclePhotoUrl: isCart ? uploadedUrl : null,
     );
 
-    // 3. Simpan juga ke POST /partners/me/documents (Tabel PartnerDocument)
-    if (uploadedUrl != null) {
-      await _apiService.uploadPartnerDocument(
-        documentType: 'STNK',
-        fileUrl: uploadedUrl,
-      );
-    }
+    // 3. Simpan juga ke dokumen legalitas (tabel PartnerDocument)
+    await _apiService.uploadPartnerDocument(
+      documentType: isCart ? 'GEROBAK' : 'STNK',
+      fileUrl: uploadedUrl,
+      documentNumber: isCart ? null : plateNumber,
+    );
 
     if (!mounted) return;
     setState(() => _isLoading = false);
