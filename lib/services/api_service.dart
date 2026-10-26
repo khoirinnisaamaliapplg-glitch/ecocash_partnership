@@ -43,31 +43,6 @@ class PartnerApiService {
     );
   }
 
-  Future<Map<String, dynamic>> resetPinOtp({
-    required String phoneNumber,
-    required String code,
-    required String newPin,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/partners/reset-pin/otp',
-        data: {
-          'phoneNumber': phoneNumber,
-          'code': code,
-          'newPin': newPin,
-        },
-      );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'PIN transaksi berhasil direset',
-      };
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal mereset PIN: $e'};
-    }
-  }
-
   // ==========================================
   // 1. AUTH, PROFIL & DASHBOARD
   // ==========================================
@@ -199,6 +174,31 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal reset kata sandi: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPinOtp({
+    required String phoneNumber,
+    required String code,
+    required String newPin,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/partners/reset-pin/otp',
+        data: {
+          'phoneNumber': phoneNumber,
+          'code': code,
+          'newPin': newPin,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'PIN transaksi berhasil direset',
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mereset PIN: $e'};
     }
   }
 
@@ -343,7 +343,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 3. BANK & WITHDRAWAL
+  // 3. BANK & PIN
   // ==========================================
 
   Future<Map<String, dynamic>> getBankAccounts() async {
@@ -509,12 +509,24 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 6. JOBS OPERASIONAL
+  // 6. JOBS & MANAJEMEN JARAK SPASIAL POSTGIS
   // ==========================================
 
-  Future<Map<String, dynamic>> getAvailableJobs() async {
+  /// Mengambil daftar tugas penjemputan dengan filter radius spasial PostGIS kurir
+  Future<Map<String, dynamic>> getAvailableJobs({double? lat, double? lng}) async {
     try {
-      final response = await _dio.get('/jobs/available');
+      final Map<String, dynamic> queryParams = {};
+      if (lat != null && lng != null) {
+        queryParams['lat'] = lat;
+        queryParams['lng'] = lng;
+        queryParams['latitude'] = lat;
+        queryParams['longitude'] = lng;
+      }
+
+      final response = await _dio.get(
+        '/jobs/available',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
       return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
@@ -668,6 +680,31 @@ class PartnerApiService {
     }
   }
 
+  Future<Map<String, dynamic>> completeToMachine(
+    dynamic jobId, {
+    String? machineCode,
+    double? totalWeightKg,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/$jobId/complete-to-machine',
+        data: {
+          'machineCode': machineCode ?? 'RVM-001',
+          'totalWeightKg': totalWeightKg ?? 15.0,
+        },
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Berhasil setor ke kontainer',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal menyelesaikan tugas ke kontainer: $e'};
+    }
+  }
+
   // ==========================================
   // 7. WALLET, TOP UP & TRANSAKSI
   // ==========================================
@@ -758,31 +795,6 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal memproses simulasi pembayaran: $e'};
-    }
-  }
-
-  Future<Map<String, dynamic>> completeToMachine(
-    dynamic jobId, {
-    String? machineCode,
-    double? totalWeightKg,
-  }) async {
-    try {
-      final response = await _dio.post(
-        '/jobs/$jobId/complete-to-machine',
-        data: {
-          'machineCode': machineCode ?? 'RVM-001',
-          'totalWeightKg': totalWeightKg ?? 15.0,
-        },
-      );
-      return {
-        'success': true,
-        'message': response.data['message'] ?? 'Berhasil setor ke kontainer',
-        'data': response.data['data'],
-      };
-    } on DioException catch (e) {
-      return {'success': false, 'message': _extractErrorMessage(e)};
-    } catch (e) {
-      return {'success': false, 'message': 'Gagal menyelesaikan tugas ke kontainer: $e'};
     }
   }
 
@@ -900,7 +912,7 @@ class PartnerApiService {
   }
 
   // ==========================================
-  // 11. TIKET PENGADUAN & BANTUAN
+  // 11. TIKET PENGADUAN & CHAT (KURIR <-> WARGA & CS)
   // ==========================================
 
   Future<Map<String, dynamic>> createTicket({
@@ -956,17 +968,31 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
+  /// Room Chat Tugas Penjemputan (Kurir <-> Warga Nasabah)
+  Future<Map<String, dynamic>> getJobRoom(dynamic jobId) async {
     try {
-      final response = await _dio.get('/chat/room/$partnerId');
-      return {'success': true, 'data': response.data['data']};
+      final response = await _dio.get('/chat/job/$jobId');
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': 'Gagal mengambil chat room: $e'};
+      return {'success': false, 'message': 'Gagal mengambil chat room penjemputan: $e'};
     }
   }
 
+  /// Room Chat Helpdesk / Bantuan (Kurir <-> Admin CS)
+  Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
+    try {
+      final response = await _dio.get('/chat/room/$partnerId');
+      return {'success': true, 'data': response.data['data'] ?? response.data};
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengambil chat room helpdesk: $e'};
+    }
+  }
+
+  /// Mengambil Riwayat Chat berdasarkan ID Room
   Future<Map<String, dynamic>> getChatHistory(String roomId) async {
     try {
       final response = await _dio.get('/chat/history/$roomId');
@@ -978,6 +1004,7 @@ class PartnerApiService {
     }
   }
 
+  /// Mengirim Pesan Chat (Didukung role PARTNER, USER, atau ADMIN)
   Future<Map<String, dynamic>> sendChatMessage({
     required String roomId,
     required int senderId,
@@ -993,14 +1020,14 @@ class PartnerApiService {
           'senderId': senderId,
           'message': message,
           'senderType': senderType,
-          'attachmentUrl': attachmentUrl,
+          if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
         },
       );
-      return {'success': true, 'data': response.data['data']};
+      return {'success': true, 'data': response.data['data'] ?? response.data};
     } on DioException catch (e) {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': 'Gagal mengirim pesan: $e'};
+      return {'success': false, 'message': 'Gagal mengirim pesan chat: $e'};
     }
   }
 
@@ -1056,8 +1083,10 @@ class PartnerApiService {
   String _extractErrorMessage(DioException e) {
     if (e.response != null && e.response?.data != null) {
       final data = e.response?.data;
-      if (data['errors'] != null) return data['errors'].toString();
-      if (data['message'] != null) return data['message'].toString();
+      if (data is Map) {
+        if (data['errors'] != null) return data['errors'].toString();
+        if (data['message'] != null) return data['message'].toString();
+      }
     }
     return 'Terjadi kesalahan jaringan/server (${e.response?.statusCode ?? 'No Connection'})';
   }

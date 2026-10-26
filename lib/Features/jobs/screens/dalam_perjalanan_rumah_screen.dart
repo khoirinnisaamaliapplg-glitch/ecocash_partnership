@@ -57,8 +57,19 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
   final List<TrashPhotoItem> _trashPhotos = [];
 
   final LatLng _userLocation = const LatLng(-6.8915, 107.6101);
-  final LatLng _customerLocation = const LatLng(-6.8985, 107.6151);
-
+  LatLng get _customerLocation {
+    final double? lat = double.tryParse(
+      (_rawJob['latitude'] ?? _rawJob['lat'] ?? widget.extraData['latitude'] ?? '').toString(),
+    );
+    final double? lng = double.tryParse(
+      (_rawJob['longitude'] ?? _rawJob['lng'] ?? widget.extraData['longitude'] ?? '').toString(),
+    );
+    if (lat != null && lng != null && lat != 0 && lng != 0) {
+      return LatLng(lat, lng);
+    }
+    return const LatLng(-6.8985, 107.6151); // Fallback default
+  }
+  
   static const Color _navyColor = Color(0xFF0B3C5D);
   static const Color _tealColor = Color(0xFF178CA4);
   static const Color _cyanHeader = Color(0xFF00C7C9);
