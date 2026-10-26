@@ -18,7 +18,11 @@ class PengaturanScreen extends StatelessWidget {
         ),
         title: const Text(
           'Pengaturan',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -30,7 +34,11 @@ class PengaturanScreen extends StatelessWidget {
             // --- KATEGORI: AKUN ---
             const Text(
               'Akun',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -38,7 +46,11 @@ class PengaturanScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -47,9 +59,9 @@ class PengaturanScreen extends StatelessWidget {
                     context.push('/edit-profile');
                   }),
                   _buildDivider(),
-                 _buildMenuItem(Icons.security_outlined, 'Keamanan', () {
-  context.push('/keamanan');
-}),
+                  _buildMenuItem(Icons.security_outlined, 'Keamanan', () {
+                    context.push('/keamanan');
+                  }),
                 ],
               ),
             ),
@@ -58,7 +70,11 @@ class PengaturanScreen extends StatelessWidget {
             // --- KATEGORI: PREFERENSI ---
             const Text(
               'Preferensi',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -66,16 +82,29 @@ class PengaturanScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
                 children: [
-                  _buildMenuItemWithTrailingText(Icons.language, 'Bahasa', 'Indonesia', () {}),
+                  _buildMenuItemWithTrailingText(
+                    Icons.language,
+                    'Bahasa',
+                    'Indonesia',
+                    () {},
+                  ),
                   _buildDivider(),
-                  _buildMenuItem(Icons.notifications_outlined, 'Pengaturan Notifikasi', () {
-  context.push('/pengaturan-notifikasi');
-}),
+                  _buildMenuItem(
+                    Icons.notifications_outlined,
+                    'Pengaturan Notifikasi',
+                    () {
+                      context.push('/pengaturan-notifikasi');
+                    },
+                  ),
                 ],
               ),
             ),
@@ -84,7 +113,11 @@ class PengaturanScreen extends StatelessWidget {
             // --- KATEGORI: UMUM ---
             const Text(
               'Umum',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             Container(
@@ -92,7 +125,11 @@ class PengaturanScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Column(
@@ -101,9 +138,18 @@ class PengaturanScreen extends StatelessWidget {
                     context.push('/pusat-bantuan');
                   }),
                   _buildDivider(),
-                  _buildMenuItemWithTrailingText(Icons.info_outline, 'Tentang EcoCash Indonesia', 'v3.0.0', () {}),
+                  _buildMenuItemWithTrailingText(
+                    Icons.info_outline,
+                    'Tentang EcoCash Indonesia',
+                    'v3.0.0',
+                    () {},
+                  ),
                   _buildDivider(),
-                  _buildMenuItem(Icons.description_outlined, 'Syarat & Ketentuan / Privasi', () {}),
+                  _buildMenuItem(
+                    Icons.description_outlined,
+                    'Syarat & Ketentuan / Privasi',
+                    () {},
+                  ),
                 ],
               ),
             ),
@@ -115,15 +161,33 @@ class PengaturanScreen extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: ListTile(
-                leading: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-                title: const Text('Hapus Akun', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.red),
+                leading: const Icon(
+                  Icons.delete_forever_outlined,
+                  color: Colors.red,
+                ),
+                title: const Text(
+                  'Pengajuan Hapus Akun',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.red,
+                ),
                 onTap: () {
-                  // Dialog konfirmasi hapus akun
+                  _tampilkanDialogInformasiHapusAkun(context);
                 },
               ),
             ),
@@ -137,22 +201,55 @@ class PengaturanScreen extends StatelessWidget {
   Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary, size: 22),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 14,
+        color: AppColors.textSecondary,
+      ),
       onTap: onTap,
     );
   }
 
-  Widget _buildMenuItemWithTrailingText(IconData icon, String title, String trailingText, VoidCallback onTap) {
+  Widget _buildMenuItemWithTrailingText(
+    IconData icon,
+    String title,
+    String trailingText,
+    VoidCallback onTap,
+  ) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary, size: 22),
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+        ),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(trailingText, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Text(
+            trailingText,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+          const Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
         ],
       ),
       onTap: onTap,
@@ -161,5 +258,109 @@ class PengaturanScreen extends StatelessWidget {
 
   Widget _buildDivider() {
     return const Divider(height: 1, thickness: 0.5, indent: 56, endIndent: 16);
+  }
+
+  // --- DIALOG INFORMASI PENUTUPAN AKUN PARTNER ---
+
+  void _tampilkanDialogInformasiHapusAkun(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.primaryCyan),
+              SizedBox(width: 10),
+              Text(
+                'Penutupan Akun Mitra',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Sesuai ketentuan EcoCash, akun Mitra yang terikat dengan riwayat dompet dan penjemputan tidak dapat dihapus secara mandiri dari aplikasi.',
+                style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryCyan.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.headset_mic_outlined,
+                      color: AppColors.primaryCyan,
+                      size: 20,
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Silakan hubungi Administrator melalui Pusat Bantuan untuk mengajukan penutupan akun.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryCyan,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          // Pada _tampilkanDialogInformasiHapusAkun di pengaturan_screen.dart
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryCyan,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Tutup dialog
+                context.push('/chat-cs'); // Direct ke Chat Customer Service
+              },
+              child: const Text(
+                'Chat CS Admin',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

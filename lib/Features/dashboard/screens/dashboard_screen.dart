@@ -63,6 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _todayMaterialWeight = weightToday;
           _isLoading = false;
         });
+
+        debugPrint('=== RESPONSE DASHBOARD ===');
+        debugPrint('$_dashboardData');
       } else {
         setState(() {
           _errorMessage = dashboardRes['message'] ?? 'Gagal mengambil data dashboard';
@@ -170,7 +173,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final profile = _dashboardData?['partnerProfile'] ?? {};
+    final profile = _dashboardData?['partnerProfile'] ?? 
+        _dashboardData?['partner'] ?? 
+        _dashboardData?['profile'] ?? {};
     final wallet = _dashboardData?['walletSummary'] ?? {};
     final stats = _dashboardData?['performanceStats'] ?? {};
 
@@ -181,12 +186,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'Mitra';
     final num monthlyEarnings = wallet['monthlyEarnings'] ?? 0;
     final int jobsCompleted = stats['monthlyJobsCompleted'] ?? 0;
-    final String level = profile['level'] ?? 'Silver';
+    final String level = profile['level'] ?? 'Bronze';
     final int score = profile['score'] ?? 0;
-    final int maxScore = profile['maxScore'] ?? 1000;
+    final int maxScore = profile['maxScore'] ?? 300;
     final double progressValue = maxScore > 0
         ? (score / maxScore).clamp(0.0, 1.0)
         : 0.0;
+
+    // Kalkulasi target level berikutnya dan sisa poin secara dinamis
+    String nextLevel = 'Silver';
+    if (level.toUpperCase() == 'SILVER') {
+      nextLevel = 'Gold';
+    } else if (level.toUpperCase() == 'GOLD') {
+      nextLevel = 'Maksimal';
+    }
+    final int remainingPoints = (maxScore - score).clamp(0, maxScore);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
@@ -384,9 +398,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
-                                const Text(
-                                  'Gold',
-                                  style: TextStyle(
+                                Text(
+                                  nextLevel,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                     color: Colors.green,
@@ -420,7 +434,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: Text(
-                                '${maxScore - score} poin lagi ke Level Gold',
+                                remainingPoints > 0
+                                    ? '$remainingPoints poin lagi ke Level $nextLevel'
+                                    : 'Selamat! Level Anda sudah maksimal',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
@@ -500,15 +516,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             final String address =
                                 machine['placeName'] ??
                                 machine['address'] ??
-                                'Lokasi Mesin';
+                                'Lokasi Penjemputan';
                             final String priority = job['priority'] ?? 'MEDIUM';
+
+                            final String jobPrice = job['price'] ??
+                                (job['machineId'] == null
+                                    ? 'Rp20.000+'
+                                    : 'Rp35.000+');
 
                             return _buildJobCard(
                               jobId: jobId,
                               code: code,
                               title: title,
                               distance: address,
-                              price: 'Rp15.000+',
+                              price: jobPrice,
                               priority: priority,
                             );
                           },

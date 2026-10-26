@@ -2,8 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 
-class PusatBantuanScreen extends StatelessWidget {
+// Model data FAQ agar mudah di-mapping dari API Backend nantinya
+class FaqItem {
+  final String id;
+  final String question;
+  final String answer;
+
+  FaqItem({
+    required this.id,
+    required this.question,
+    required this.answer,
+  });
+
+  factory FaqItem.fromJson(Map<String, dynamic> json) {
+    return FaqItem(
+      id: json['id']?.toString() ?? '',
+      question: json['question'] ?? '',
+      answer: json['answer'] ?? '',
+    );
+  }
+}
+
+class PusatBantuanScreen extends StatefulWidget {
   const PusatBantuanScreen({super.key});
+
+  @override
+  State<PusatBantuanScreen> createState() => _PusatBantuanScreenState();
+}
+
+class _PusatBantuanScreenState extends State<PusatBantuanScreen> {
+  // List FAQ default (Siap diganti/diisi via API backend)
+  final List<FaqItem> _faqList = [
+    FaqItem(
+      id: '1',
+      question: 'Bagaimana cara mencairkan saldo ke rekening bank?',
+      answer:
+          'Buka menu Wallet > pilih Tarik Saldo > masukkan nominal dan pilih rekening bank tujuan Anda yang sudah terverifikasi.',
+    ),
+    FaqItem(
+      id: '2',
+      question: 'Mengapa tugas yang saya ambil dibatalkan otomatis?',
+      answer:
+          'Tugas dapat dibatalkan otomatis oleh sistem jika Anda tidak melakukan check-in di lokasi penjemputan dalam batas waktu yang ditentukan.',
+    ),
+    FaqItem(
+      id: '3',
+      question: 'Cara mengubah nomor telepon yang terdaftar?',
+      answer:
+          'Anda dapat mengubah nomor telepon pada menu Pengaturan > Edit Profil. Pastikan nomor baru aktif untuk menerima kode verifikasi OTP.',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +88,6 @@ class PusatBantuanScreen extends StatelessWidget {
                 color: Color(0xFF0F2B48),
               ),
             ),
-            const SizedBox(height: 12),
-            
             const SizedBox(height: 24),
 
             // --- BANTUAN CEPAT ---
@@ -54,7 +100,7 @@ class PusatBantuanScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            
+
             // Card Chat Customer Service (Utama)
             _buildChatCsCard(
               onTap: () => context.push('/chat-cs'),
@@ -87,10 +133,7 @@ class PusatBantuanScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // --- KATEGORI TOPIK ---
-            
-
-            // --- PERTANYAAN POPULER ---
+            // --- PERTANYAAN POPULER (INTERAKTIF) ---
             const Text(
               'Pertanyaan Populer',
               style: TextStyle(
@@ -100,9 +143,10 @@ class PusatBantuanScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _buildFaqCard('Bagaimana cara mencairkan saldo ke rekening bank?'),
-            _buildFaqCard('Mengapa tugas yang saya ambil dibatalkan otomatis?'),
-            _buildFaqCard('Cara mengubah nomor telepon yang terdaftar?'),
+
+            // Mapping item FAQ ke Widget Dropdown/Accordion
+            ..._faqList.map((faq) => FaqExpandableTile(item: faq)),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -219,49 +263,25 @@ class PusatBantuanScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCategoryCard(IconData icon, String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: const Color(0xFF0F2B48),
-            size: 22,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F2B48),
-                height: 1.2,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+// --- WIDGET DROPDOWN/ACCORDION FAQ INTERAKTIF ---
+class FaqExpandableTile extends StatefulWidget {
+  final FaqItem item;
 
-  Widget _buildFaqCard(String question) {
+  const FaqExpandableTile({super.key, required this.item});
+
+  @override
+  State<FaqExpandableTile> createState() => _FaqExpandableTileState();
+}
+
+class _FaqExpandableTileState extends State<FaqExpandableTile> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -273,27 +293,47 @@ class PusatBantuanScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              question,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF0F2B48),
-                height: 1.3,
-              ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+          title: Text(
+            widget.item.question,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF0F2B48),
+              height: 1.3,
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.keyboard_arrow_down_rounded,
+          trailing: Icon(
+            _isExpanded
+                ? Icons.keyboard_arrow_up_rounded
+                : Icons.keyboard_arrow_down_rounded,
             size: 20,
-            color: Color(0xFF64748B),
+            color: const Color(0xFF64748B),
           ),
-        ],
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _isExpanded = expanded;
+            });
+          },
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.item.answer,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
