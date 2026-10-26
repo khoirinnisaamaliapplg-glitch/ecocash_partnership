@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../data/app_storage.dart';
+import 'package:ecocash_partnership/services/api_service.dart';
 
 class ChatMessageItem {
   final String id;
@@ -30,6 +33,7 @@ class ChatRoomScreen extends StatefulWidget {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
+  final PartnerApiService _apiService = PartnerApiService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -37,56 +41,158 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   static const Color _tealBubble = Color(0xFF178CA4);
   static const Color _navyColor = Color(0xFF0B3C5D);
 
-  String get _customerName =>
-      widget.extraData?['customerName'] ?? widget.extraData?['title'] ?? 'Ibu Ratna';
+  String? _roomId;
+  int? _partnerId;
+  String _customerName = 'Warga EcoCash';
+  String? _avatarUrl;
+  bool _isLoading = true;
+  Timer? _pollingTimer;
 
-  String? get _avatarUrl => widget.extraData?['avatarUrl'];
-
-  // Percakapan awal sesuai tampilan desain
-  final List<ChatMessageItem> _messages = [
-    ChatMessageItem(
-      id: '1',
-      text: 'Sesuai titik Penjemputan ya mas',
-      time: '09:42',
-      isMe: false,
-    ),
-    ChatMessageItem(
-      id: '2',
-      text: 'Baik Bu saya sedang dalam Perjalanan Mohon di tunggu ya',
-      time: '09:44',
-      isMe: true,
-    ),
-  ];
+  List<ChatMessageItem> _messages = [];
 
   final List<String> _quickReplies = [
-    'Masalah Scan',
-    'Masalah Pembayaran',
-    'Masalah Pekerjaan',
-    'Sudah Sampai Lokasi',
+    'Sesuai titik penjemputan ya bu/pak',
+    'Saya sedang dalam perjalanan',
+    'Sudah sampai di depan lokasi',
+    'Mohon bantuannya untuk timbang sampah',
   ];
 
-  void _sendMessage([String? customText]) {
+  @override
+  void initState() {
+    super.initState();
+    _initChatRoom();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initChatRoom() async {
+    // 1. Ambil ID Partner kurir dari storage lokal
+    final profile = await AppStorage.getProfile();
+    if (profile != null) {
+      _partnerId = profile['id'] ?? profile['partnerId'];
+    }
+
+    // 2. Ambil fallback nama & avatar dari parameter navigasi
+    if (widget.extraData != null) {
+      _customerName = widget.extraData!['customerName'] ??
+          widget.extraData!['user']?['name'] ??
+          widget.extraData!['title'] ??
+          'Warga EcoCash';
+      _avatarUrl = widget.extraData!['avatarUrl'] ?? widget.extraData!['user']?['avatarUrl'];
+    }
+
+    try {
+      final res = await _apiService.getJobRoom(widget.jobId);
+      if (res['success'] == true && res['data'] != null) {
+        final room = res['data'];
+        _roomId = room['id'];
+
+        if (room['partnerId'] != null) {
+          _partnerId ??= room['partnerId'];
+        }
+
+        if (room['customer'] != null) {
+          _customerName = room['customer']['name'] ?? _customerName;
+          _avatarUrl = room['customer']['avatarUrl'] ?? _avatarUrl;
+        }
+
+        if (room['messages'] is List) {
+          _parseMessages(room['messages']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error init chat room: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
+    }
+
+    // 3. Polling update pesan setiap 3.5 detik
+    _startMessagePolling();
+  }
+
+  void _startMessagePolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(milliseconds: 3500), (_) async {
+      if (!mounted || _roomId == null) return;
+      try {
+        final res = await _apiService.getChatHistory(_roomId!);
+        if (res['success'] == true && res['data'] is List) {
+          final List rawList = res['data'];
+          if (rawList.length != _messages.length) {
+            if (mounted) {
+              setState(() {
+                _parseMessages(rawList);
+              });
+              _scrollToBottom();
+            }
+          }
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _parseMessages(List rawList) {
+    _messages = rawList.map((msg) {
+      final String senderType = (msg['senderType'] ?? '').toString().toUpperCase();
+      final bool isMe = (senderType == 'PARTNER');
+
+      final DateTime dt = DateTime.tryParse(msg['createdAt']?.toString() ?? '')?.toLocal() ?? DateTime.now();
+      final String timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+      return ChatMessageItem(
+        id: msg['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        text: msg['message'] ?? '',
+        time: timeStr,
+        isMe: isMe,
+      );
+    }).toList();
+  }
+
+  Future<void> _sendMessage([String? customText]) async {
     final text = customText ?? _messageController.text.trim();
     if (text.isEmpty) return;
+
+    if (customText == null) {
+      _messageController.clear();
+    }
 
     final now = DateTime.now();
     final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
+    // Optimistic UI update
     setState(() {
       _messages.add(
         ChatMessageItem(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          id: now.millisecondsSinceEpoch.toString(),
           text: text,
           time: timeStr,
           isMe: true,
         ),
       );
-      if (customText == null) {
-        _messageController.clear();
-      }
     });
-
     _scrollToBottom();
+
+    if (_roomId != null) {
+      try {
+        await _apiService.sendChatMessage(
+          roomId: _roomId!,
+          senderId: _partnerId ?? 1,
+          message: text,
+          senderType: 'PARTNER',
+        );
+      } catch (e) {
+        debugPrint('Gagal mengirim pesan chat: $e');
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -125,7 +231,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       : null,
                   child: _avatarUrl == null || _avatarUrl!.isEmpty
                       ? Text(
-                          _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'U',
+                          _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'W',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -163,51 +269,44 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Text(
-                    '• Respon rata-rata < 5 menit',
-                    style: TextStyle(fontSize: 10, color: Colors.white70),
+                  Text(
+                    'Order #${widget.jobId} • Nasabah',
+                    style: const TextStyle(fontSize: 10, color: Colors.white70),
                   ),
                 ],
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // List Pesan Chat
             Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                children: [
-                  // Pill Pembatas Tanggal
-                  Center(
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Hari ini, 09:41',
-                        style: TextStyle(fontSize: 10, color: Colors.black87, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ),
-
-                  // Items Pesan
-                  ..._messages.map((msg) => _buildChatBubble(msg)),
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: _cyanHeader))
+                  : _messages.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade400),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Mulai obrolan dengan $_customerName',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            return _buildChatBubble(_messages[index]);
+                          },
+                        ),
             ),
 
             // Quick Reply Chips
@@ -238,24 +337,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
             ),
 
-            // Input Bar Bawah
+            // Input Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               color: Colors.white,
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.attach_file, color: Colors.black54, size: 22),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.camera_alt_outlined, color: Colors.black54, size: 22),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 4),
                   Expanded(
                     child: Container(
-                      height: 40,
+                      height: 42,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F3F5),
                         borderRadius: BorderRadius.circular(12),
@@ -264,10 +354,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         controller: _messageController,
                         style: const TextStyle(fontSize: 13),
                         decoration: const InputDecoration(
-                          hintText: 'Tulis pesan...',
+                          hintText: 'Tulis pesan ke nasabah...',
                           hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
@@ -277,7 +367,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   GestureDetector(
                     onTap: () => _sendMessage(),
                     child: const CircleAvatar(
-                      radius: 20,
+                      radius: 21,
                       backgroundColor: _tealBubble,
                       child: Icon(Icons.send, color: Colors.white, size: 18),
                     ),
@@ -343,7 +433,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   : null,
               child: _avatarUrl == null || _avatarUrl!.isEmpty
                   ? Text(
-                      _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'U',
+                      _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'W',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal),
                     )
                   : null,
