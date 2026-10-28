@@ -829,44 +829,87 @@ class PartnerApiService {
       return {'success': false, 'message': 'Gagal mengunggah berkas: $e'};
     }
   }
-
-  // ==========================================
+// ==========================================
   // 9. ECOCASH ACADEMY
   // ==========================================
 
+  /// Ambil daftar seluruh pelatihan & progres mitra
   Future<Map<String, dynamic>> getAcademyCourses() async {
     try {
       final response = await _dio.get('/academy/courses');
-      return {'success': true, 'data': response.data['data'] ?? []};
+      return {
+        'success': true,
+        'data': response.data['data'] ?? [],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': '$e'};
+      return {'success': false, 'message': 'Gagal mengambil daftar pelatihan: $e'};
     }
   }
 
+  /// Ambil detail 1 pelatihan beserta modul & soal kuis
   Future<Map<String, dynamic>> getAcademyCourseById(String courseId) async {
     try {
       final response = await _dio.get('/academy/courses/$courseId');
-      return {'success': true, 'data': response.data['data']};
+      return {
+        'success': true,
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': '$e'};
+      return {'success': false, 'message': 'Gagal mengambil detail pelatihan: $e'};
     }
   }
 
+  /// Tandai modul video telah diselesaikan
   Future<Map<String, dynamic>> completeAcademyModule(String courseId, String moduleId) async {
     try {
       final response = await _dio.post('/academy/courses/$courseId/modules/$moduleId/complete');
-      return {'success': true, 'message': response.data['message'], 'data': response.data['data']};
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Modul selesai',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': '$e'};
+      return {'success': false, 'message': 'Gagal menyimpan progres modul: $e'};
     }
   }
 
+  /// Kirimkan jawaban kuis untuk evaluasi backend & penerbitan sertifikat
+  Future<Map<String, dynamic>> submitAcademyQuiz(String courseId, Map<String, dynamic> answers) async {
+    try {
+      final response = await _dio.post(
+        '/academy/courses/$courseId/quiz/submit',
+        data: {'answers': answers},
+      );
+      return {
+        'success': true,
+        'message': response.data['message'] ?? 'Kuis berhasil dikirim',
+        'data': response.data['data'],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengirim jawaban kuis: $e'};
+    }
+  }
+
+  /// Ambil daftar sertifikat digital resmi milik mitra
   Future<Map<String, dynamic>> getAcademyCertificates() async {
     try {
       final response = await _dio.get('/academy/certificates');
-      return {'success': true, 'data': response.data['data'] ?? []};
+      return {
+        'success': true,
+        'data': response.data['data'] ?? [],
+      };
+    } on DioException catch (e) {
+      return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
-      return {'success': false, 'message': '$e'};
+      return {'success': false, 'message': 'Gagal mengambil riwayat sertifikat: $e'};
     }
   }
 
