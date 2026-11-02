@@ -20,6 +20,7 @@ class _WalletScreenState extends State<WalletScreen> {
   double _totalEarned = 0.0;
   List<dynamic> _transactions = [];
   Map<String, dynamic>? _vehicleData;
+  List<dynamic> _adminMaterials = [];
 
   @override
   void initState() {
@@ -30,14 +31,16 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _fetchWalletData() async {
     setState(() => _isLoading = true);
     try {
-      // Ambil data dompet dan data armada aktif secara paralel
+      // Ambil data dompet, kendaraan, dan master harga acuan admin secara paralel
       final results = await Future.wait([
         _apiService.getWallet(),
         _apiService.getMyVehicle(),
+        _apiService.getMaterials(),
       ]);
 
       final resWallet = results[0];
       final resVehicle = results[1];
+      final resMaterials = results[2];
 
       // 1. Parsing Data Dompet & Transaksi
       if (resWallet['success'] == true || resWallet['data'] != null) {
@@ -68,6 +71,14 @@ class _WalletScreenState extends State<WalletScreen> {
       if (resVehicle['success'] == true && resVehicle['data'] != null) {
         _vehicleData = Map<String, dynamic>.from(resVehicle['data']);
       }
+
+      // 3. Parsing Data Master Harga Sampah Admin
+      if (resMaterials['success'] == true || resMaterials['data'] != null) {
+        final dynamic matData = resMaterials['data'] ?? resMaterials;
+        if (matData is List) {
+          _adminMaterials = matData;
+        }
+      }
     } catch (e) {
       debugPrint("Gagal memuat dompet mitra: $e");
     } finally {
@@ -77,7 +88,6 @@ class _WalletScreenState extends State<WalletScreen> {
     }
   }
 
-  // --- GETTER DINAMIS SPESIFIKASI ARMADA MITRA ---
   String get _vehicleTitleLabel {
     if (_vehicleData == null) return 'Batas Armada Motor Roda 3';
 
@@ -213,7 +223,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Analisis Komisi & Skema Pendapatan Resmi
+              // Skema Pendapatan Mitra
               const Text('Akumulasi & Skema Komisi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 12),
               Container(
@@ -248,14 +258,62 @@ class _WalletScreenState extends State<WalletScreen> {
                     const SizedBox(height: 12),
                     _buildIncomeItem('Tarif Dasar Jemput Warga', 'Rp 20.000 / order'),
                     const SizedBox(height: 10),
-                    _buildIncomeItem('Insentif Muatan Timbangan', 'Rp 1.000 / kg', valueColor: Colors.teal),
+                    _buildIncomeItem('Insentif Muatan Warga', 'Rp 1.000 / kg', valueColor: Colors.teal),
                     const SizedBox(height: 10),
-                    _buildIncomeItem('Penyelesaian & Validasi', 'Scan Barcode Smart Container', valueColor: AppColors.primaryCyan),
+                    _buildIncomeItem('Tarif Dasar Angkut Pabrik', 'Rp 35.000 / order'),
                     const SizedBox(height: 10),
-                    // Item batas armada yang sudah disesuaikan secara dinamis
+                    _buildIncomeItem('Insentif Muatan Pabrik', 'Rp 2.000 / kg', valueColor: Colors.teal),
+                    const SizedBox(height: 10),
                     _buildIncomeItem(_vehicleTitleLabel, _vehicleCapacityLabel, valueColor: Colors.orange.shade800),
                   ],
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // Daftar Harga Beli Sampah Admin (Snapshot Acuan)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Harga Beli Sampah Admin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
+                    child: const Text('HARGA AKTIF DB', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.teal)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                ),
+                child: _adminMaterials.isEmpty
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text('Semua Kategori Material', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                          Text('Rp 500 / kg', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        ],
+                      )
+                    : Column(
+                        children: _adminMaterials.take(5).map((m) {
+                          final double price = double.tryParse((m['pricePerKg'] ?? '500').toString()) ?? 500.0;
+                          final String name = (m['name'] ?? 'Material').toString();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(name, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                Text('Rp ${_formatCurrency(price)} / kg', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.teal)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
               ),
               const SizedBox(height: 24),
 
