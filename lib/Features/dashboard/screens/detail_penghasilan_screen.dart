@@ -65,7 +65,9 @@ class _DetailPenghasilanScreenState extends State<DetailPenghasilanScreen> {
             totalKg += double.tryParse((w['handoverWeight'] ?? w['pickupWeight'] ?? 0).toString()) ?? 0.0;
           }
 
-          final int earning = (15000 + (totalKg * 2000)).toInt();
+          // Ganti baris perhitungan 'earning' menjadi:
+final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualReward'])?.toString() ?? '') 
+    ?? (20000 + (totalKg * 1000)).toInt();
 
           String dateStr = (item['completedAt'] ?? item['assignedAt'] ?? '').toString();
           if (dateStr.isNotEmpty) {
