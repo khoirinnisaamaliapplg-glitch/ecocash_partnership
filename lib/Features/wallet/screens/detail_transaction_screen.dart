@@ -51,23 +51,32 @@ class DetailTransactionScreen extends StatelessWidget {
         ? 'TRX-ECO-${transactionData!['id']}'
         : 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
 
-    // Ekstraksi data penugasan dari deskripsi transaksi
+    // Ekstraksi data Job ID
     final matchJob = RegExp(r'Job\s*#?(\d+)', caseSensitive: false).firstMatch(description);
     final String? jobId = matchJob != null ? '#${matchJob.group(1)}' : null;
 
+    // Ekstraksi data bobot timbangan
     final matchWeight = RegExp(r'(\d+(?:\.\d+)?)\s*kg', caseSensitive: false).firstMatch(description);
     final double weightKg = matchWeight != null ? (double.tryParse(matchWeight.group(1)!) ?? 0.0) : 0.0;
 
-    final matchMachine = RegExp(r'(?:setor ke|ke)\s+([^(\n]+?)(?:\s+Job|\s*\()', caseSensitive: false).firstMatch(description);
+    // Ekstraksi lokasi kontainer tujuan (format: "disetor ke Smart Container...")
+    final matchMachine = RegExp(r'disetor ke\s+([^\n]+?)$', caseSensitive: false).firstMatch(description) ??
+        RegExp(r'(?:setor ke|ke)\s+([^(\n]+?)(?:\s+via|\s+Job|\s*\(|$)', caseSensitive: false).firstMatch(description);
     final String? machineDestination = matchMachine != null ? matchMachine.group(1)!.trim() : null;
 
     final bool isResidentialPickup = description.toLowerCase().contains('warga') ||
         description.toLowerCase().contains('jemput') ||
         description.toLowerCase().contains('penjemputan');
 
-    // Perhitungan rincian pendapatan resmi (Satu Kesatuan Alur)
-    const num baseRate = 20000;
-    final num weightBonus = (weightKg > 0) ? (weightKg * 1000).round() : (isResidentialPickup ? (amount - baseRate).clamp(0, double.infinity) : 0);
+    final bool isContainerToRecycler = description.toLowerCase().contains('pabrik') ||
+        description.toLowerCase().contains('daur ulang') ||
+        description.toLowerCase().contains('angkut kontainer');
+
+    // Tarif dasar dan insentif dinamis
+    final num baseRate = isContainerToRecycler ? 35000 : 20000;
+    final num perKgRate = isContainerToRecycler ? 2000 : 1000;
+    final num calculatedBonus = (weightKg > 0) ? (weightKg * perKgRate).round() : 0;
+    final num weightBonus = (calculatedBonus > 0) ? calculatedBonus : (amount > baseRate ? (amount - baseRate) : 0);
 
     final num? balBefore = double.tryParse(transactionData?['balanceBefore']?.toString() ?? '');
     final num? balAfter = double.tryParse(transactionData?['balanceAfter']?.toString() ?? '');
@@ -132,14 +141,25 @@ class DetailTransactionScreen extends StatelessWidget {
                   const Divider(color: Color(0xFFEEEEEE)),
                   const SizedBox(height: 12),
 
-                  _buildDetailRow('Jenis Transaksi', isOut ? 'Penarikan Saldo' : (isResidentialPickup ? 'Jemput Sampah Warga' : 'Setor Smart Container')),
+                  _buildDetailRow(
+                    'Jenis Transaksi',
+                    isOut
+                        ? 'Penarikan Saldo'
+                        : (isResidentialPickup
+                            ? 'Jemput Sampah Warga'
+                            : (isContainerToRecycler ? 'Angkut Kontainer ke Pabrik' : 'Setor Smart Container')),
+                  ),
                   if (jobId != null) ...[
                     const SizedBox(height: 10),
                     _buildDetailRow('No. Penugasan', jobId),
                   ],
+                  if (weightKg > 0) ...[
+                    const SizedBox(height: 10),
+                    _buildDetailRow('Total Muatan', '${weightKg.toStringAsFixed(1)} kg'),
+                  ],
                   if (machineDestination != null) ...[
                     const SizedBox(height: 10),
-                    _buildDetailRow('Lokasi Setor', machineDestination),
+                    _buildDetailRow('Tujuan Setor', machineDestination),
                   ],
                   const SizedBox(height: 10),
                   _buildDetailRow('Keterangan', description),
@@ -160,8 +180,8 @@ class DetailTransactionScreen extends StatelessWidget {
               ),
             ),
 
-            // Kartu Rincian Komisi Transparan (Jika Alur Jemput Warga)
-            if (!isOut && isResidentialPickup) ...[
+            // Kartu Rincian Skema Komisi
+            if (!isOut && (isResidentialPickup || isContainerToRecycler)) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(18),
@@ -178,21 +198,26 @@ class DetailTransactionScreen extends StatelessWidget {
                       children: const [
                         Icon(Icons.calculate_outlined, color: AppColors.primaryCyan, size: 20),
                         SizedBox(width: 8),
-                        Text('Rincian Perhitungan Komisi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
+                        Text('Rincian Perhitungan Komisi Mitra', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildBreakdownRow('Tarif Dasar Penjemputan', 'Rp ${_formatCurrency(baseRate)}'),
+                    _buildBreakdownRow(
+                      isContainerToRecycler ? 'Tarif Dasar Pengosongan Kontainer' : 'Tarif Dasar Penjemputan Warga',
+                      'Rp ${_formatCurrency(baseRate)}',
+                    ),
                     const SizedBox(height: 8),
                     _buildBreakdownRow(
-                      weightKg > 0 ? 'Insentif Timbangan (${weightKg.toStringAsFixed(1)} kg × Rp 1.000)' : 'Insentif Bobot Muatan',
+                      weightKg > 0
+                          ? 'Insentif Timbangan (${weightKg.toStringAsFixed(1)} kg × Rp ${_formatCurrency(perKgRate)})'
+                          : 'Insentif Bobot Muatan',
                       'Rp ${_formatCurrency(weightBonus)}',
                     ),
                     const Divider(height: 20, color: Color(0xFFEEEEEE)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Komisi Masuk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
+                        const Text('Total Komisi Diterima', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
                         Text(
                           'Rp ${_formatCurrency(amount)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E88A8)),

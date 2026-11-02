@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../data/app_storage.dart';
 
+// Alias tipe untuk mencegah kurung siku bertingkat terpotong saat copy-paste
+typedef ApiMap = Map<String, dynamic>;
+
 class PartnerApiService {
   late final Dio _dio;
 
@@ -47,7 +50,7 @@ class PartnerApiService {
   // 1. AUTH, PROFIL & DASHBOARD
   // ==========================================
 
-  Future<Map<String, dynamic>> login({
+  Future<ApiMap> login({
     required String identifier,
     required String password,
   }) async {
@@ -79,7 +82,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> register({
+  Future<ApiMap> register({
     required String name,
     required String username,
     required String email,
@@ -113,14 +116,14 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> sendOtp({
+  Future<ApiMap> sendOtp({
     String? phoneNumber,
     String? email,
     String channel = 'EMAIL',
     String purpose = 'REGISTRATION',
   }) async {
     try {
-      final Map<String, dynamic> body = {'channel': channel, 'purpose': purpose};
+      final ApiMap body = {'channel': channel, 'purpose': purpose};
       if (email != null && email.isNotEmpty) {
         body['email'] = email;
       } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
@@ -136,14 +139,14 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> verifyOtp({
+  Future<ApiMap> verifyOtp({
     String? phoneNumber,
     String? email,
     required String code,
     String purpose = 'REGISTRATION',
   }) async {
     try {
-      final Map<String, dynamic> body = {'code': code, 'purpose': purpose};
+      final ApiMap body = {'code': code, 'purpose': purpose};
       if (email != null && email.isNotEmpty) {
         body['email'] = email;
       } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
@@ -159,7 +162,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> resetPasswordOtp({
+  Future<ApiMap> resetPasswordOtp({
     required String phoneNumber,
     required String code,
     required String newPassword,
@@ -177,7 +180,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> resetPinOtp({
+  Future<ApiMap> resetPinOtp({
     required String phoneNumber,
     required String code,
     required String newPin,
@@ -202,7 +205,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> changePassword({
+  Future<ApiMap> changePassword({
     required String oldPassword,
     required String newPassword,
   }) async {
@@ -226,7 +229,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getMe() async {
+  Future<ApiMap> getMe() async {
     try {
       final response = await _dio.get('/partners/me');
       if (response.statusCode == 200) {
@@ -240,7 +243,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateProfile({
+  Future<ApiMap> updateProfile({
     String? ktpImageUrl,
     String? name,
     String? phoneNumber,
@@ -253,7 +256,7 @@ class PartnerApiService {
           userData?['username'] ??
           'Mitra EcoCash';
 
-      final Map<String, dynamic> payload = {'name': existingName};
+      final ApiMap payload = {'name': existingName};
       if (ktpImageUrl != null) {
         payload['ktpImageUrl'] = ktpImageUrl;
         payload['ktpUrl'] = ktpImageUrl;
@@ -269,7 +272,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getDashboard() async {
+  Future<ApiMap> getDashboard() async {
     try {
       final response = await _dio.get('/partners/dashboard');
       return {
@@ -292,7 +295,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> logout() async {
+  Future<ApiMap> logout() async {
     try {
       await _dio.post('/auth/logout');
       await AppStorage.saveToken('');
@@ -309,7 +312,7 @@ class PartnerApiService {
   // 2. DOKUMEN & KYC
   // ==========================================
 
-  Future<Map<String, dynamic>> uploadPartnerDocument({
+  Future<ApiMap> uploadPartnerDocument({
     required String documentType,
     required String fileUrl,
     String? documentNumber,
@@ -331,7 +334,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getMyDocuments() async {
+  Future<ApiMap> getMyDocuments() async {
     try {
       final response = await _dio.get('/partners/me/documents');
       return {'success': true, 'data': response.data['data'] ?? []};
@@ -346,7 +349,7 @@ class PartnerApiService {
   // 3. BANK & PIN
   // ==========================================
 
-  Future<Map<String, dynamic>> getBankAccounts() async {
+  Future<ApiMap> getBankAccounts() async {
     try {
       final response = await _dio.get('/partners/me/bank-accounts');
       return {'success': true, 'data': response.data['data'] ?? response.data};
@@ -357,7 +360,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> addBankAccount({
+  Future<ApiMap> addBankAccount({
     required String bankName,
     required String accountNumber,
     required String accountHolderName,
@@ -382,7 +385,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> deleteBankAccount(String bankAccountId) async {
+  Future<ApiMap> deleteBankAccount(String bankAccountId) async {
     try {
       final response = await _dio.delete('/partners/me/bank-accounts/$bankAccountId');
       return {
@@ -396,7 +399,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> changePin({
+  Future<ApiMap> changePin({
     required String oldPin,
     required String newPin,
   }) async {
@@ -424,7 +427,7 @@ class PartnerApiService {
   // 4. PENARIKAN DANA (WITHDRAWAL)
   // ==========================================
 
-  Future<Map<String, dynamic>> requestWithdrawal({
+  Future<ApiMap> requestWithdrawal({
     required num amount,
     required dynamic bankAccountId,
     String? pin,
@@ -454,7 +457,7 @@ class PartnerApiService {
   // 5. KENDARAAN (VEHICLE)
   // ==========================================
 
-  Future<Map<String, dynamic>> getMyVehicle() async {
+  Future<ApiMap> getMyVehicle() async {
     try {
       final response = await _dio.get('/partners/me/vehicle');
       if (response.statusCode == 200) {
@@ -471,7 +474,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> registerOrUpdateVehicle({
+  Future<ApiMap> registerOrUpdateVehicle({
     required String type,
     String? plateNumber,
     String? stnkPhotoUrl,
@@ -495,7 +498,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateVehicle({
+  Future<ApiMap> updateVehicle({
     required String type,
     String? plateNumber,
     String? imageUrl,
@@ -512,10 +515,9 @@ class PartnerApiService {
   // 6. JOBS & MANAJEMEN JARAK SPASIAL POSTGIS
   // ==========================================
 
-  /// Mengambil daftar tugas penjemputan dengan filter radius spasial PostGIS kurir
-  Future<Map<String, dynamic>> getAvailableJobs({double? lat, double? lng}) async {
+  Future<ApiMap> getAvailableJobs({double? lat, double? lng}) async {
     try {
-      final Map<String, dynamic> queryParams = {};
+      final ApiMap queryParams = {};
       if (lat != null && lng != null) {
         queryParams['lat'] = lat;
         queryParams['lng'] = lng;
@@ -535,7 +537,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getJobDetail(dynamic jobId) async {
+  Future<ApiMap> getJobDetail(dynamic jobId) async {
     try {
       final response = await _dio.get('/jobs/$jobId');
       return {'success': true, 'data': response.data['data'] ?? response.data};
@@ -546,7 +548,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> acceptJob(dynamic jobId) async {
+  Future<ApiMap> acceptJob(dynamic jobId) async {
     try {
       final response = await _dio.post('/jobs/$jobId/accept');
       return {'success': true, 'message': response.data['message'] ?? 'Pekerjaan diambil', 'data': response.data['data']};
@@ -557,7 +559,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> cancelJob(dynamic jobId, {String? reason}) async {
+  Future<ApiMap> cancelJob(dynamic jobId, {String? reason}) async {
     try {
       final response = await _dio.post('/jobs/$jobId/cancel', data: reason != null ? {'reason': reason} : {});
       return {'success': true, 'message': response.data['message'] ?? 'Pekerjaan dibatalkan'};
@@ -568,7 +570,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> startRoute(dynamic jobId) async {
+  Future<ApiMap> startRoute(dynamic jobId) async {
     try {
       final response = await _dio.patch('/jobs/$jobId/start-route');
       return {'success': true, 'message': response.data['message'] ?? 'Perjalanan dimulai', 'data': response.data['data']};
@@ -579,7 +581,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> checkIn(
+  Future<ApiMap> checkIn(
     dynamic jobId, {
     String? qrCode,
     String? manualCode,
@@ -604,14 +606,14 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> submitPickup(
+  Future<ApiMap> submitPickup(
     dynamic jobId, {
     List<dynamic>? materials,
     String? notes,
-    Map<String, dynamic>? data,
+    ApiMap? data,
   }) async {
     try {
-      final Map<String, dynamic> body = data ?? {
+      final ApiMap body = data ?? {
         'materials': materials ?? [
           {'materialId': 1, 'pickupWeight': 20.0}
         ],
@@ -630,7 +632,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> generateHandoverQr(dynamic jobId) async {
+  Future<ApiMap> generateHandoverQr(dynamic jobId) async {
     try {
       final response = await _dio.post('/jobs/$jobId/handover/generate-qr');
       return {'success': true, 'data': response.data['data'] ?? response.data};
@@ -641,7 +643,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getMyJobs({String? status}) async {
+  Future<ApiMap> getMyJobs({String? status}) async {
     try {
       final response = await _dio.get(
         '/jobs/my-jobs',
@@ -655,10 +657,10 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> verifyHandover(
+  Future<ApiMap> verifyHandover(
     dynamic jobId, {
     required String qrCode,
-    List<Map<String, dynamic>>? materials,
+    List<ApiMap>? materials,
     String? proofImageUrl,
     String? notes,
   }) async {
@@ -680,7 +682,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> completeToMachine(
+  Future<ApiMap> completeToMachine(
     dynamic jobId, {
     String? machineCode,
     double? totalWeightKg,
@@ -709,7 +711,7 @@ class PartnerApiService {
   // 7. WALLET, TOP UP & TRANSAKSI
   // ==========================================
 
-  Future<Map<String, dynamic>> getWallet() async {
+  Future<ApiMap> getWallet() async {
     try {
       final response = await _dio.get('/wallets/me');
       return {
@@ -723,7 +725,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getWalletTransactions({
+  Future<ApiMap> getWalletTransactions({
     int page = 1,
     int limit = 20,
     String? type,
@@ -751,7 +753,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createTopUp({required int amount}) async {
+  Future<ApiMap> createTopUp({required int amount}) async {
     try {
       final response = await _dio.post(
         '/wallets/topup',
@@ -769,7 +771,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> checkTopUpStatus(dynamic topUpId) async {
+  Future<ApiMap> checkTopUpStatus(dynamic topUpId) async {
     try {
       final response = await _dio.post('/wallets/topup/$topUpId/check-status');
       return {
@@ -783,7 +785,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> mockPayTopUp(dynamic topUpId) async {
+  Future<ApiMap> mockPayTopUp(dynamic topUpId) async {
     try {
       final response = await _dio.post('/wallets/topup/$topUpId/mock-pay');
       return {
@@ -802,7 +804,7 @@ class PartnerApiService {
   // 8. UPLOAD FILE
   // ==========================================
 
-  Future<Map<String, dynamic>> uploadSingleFile(
+  Future<ApiMap> uploadSingleFile(
     String filePath, {
     XFile? xFile,
     String category = 'document',
@@ -829,12 +831,12 @@ class PartnerApiService {
       return {'success': false, 'message': 'Gagal mengunggah berkas: $e'};
     }
   }
-// ==========================================
+
+  // ==========================================
   // 9. ECOCASH ACADEMY
   // ==========================================
 
-  /// Ambil daftar seluruh pelatihan & progres mitra
-  Future<Map<String, dynamic>> getAcademyCourses() async {
+  Future<ApiMap> getAcademyCourses() async {
     try {
       final response = await _dio.get('/academy/courses');
       return {
@@ -848,8 +850,7 @@ class PartnerApiService {
     }
   }
 
-  /// Ambil detail 1 pelatihan beserta modul & soal kuis
-  Future<Map<String, dynamic>> getAcademyCourseById(String courseId) async {
+  Future<ApiMap> getAcademyCourseById(String courseId) async {
     try {
       final response = await _dio.get('/academy/courses/$courseId');
       return {
@@ -863,8 +864,7 @@ class PartnerApiService {
     }
   }
 
-  /// Tandai modul video telah diselesaikan
-  Future<Map<String, dynamic>> completeAcademyModule(String courseId, String moduleId) async {
+  Future<ApiMap> completeAcademyModule(String courseId, String moduleId) async {
     try {
       final response = await _dio.post('/academy/courses/$courseId/modules/$moduleId/complete');
       return {
@@ -879,8 +879,7 @@ class PartnerApiService {
     }
   }
 
-  /// Kirimkan jawaban kuis untuk evaluasi backend & penerbitan sertifikat
-  Future<Map<String, dynamic>> submitAcademyQuiz(String courseId, Map<String, dynamic> answers) async {
+  Future<ApiMap> submitAcademyQuiz(String courseId, ApiMap answers) async {
     try {
       final response = await _dio.post(
         '/academy/courses/$courseId/quiz/submit',
@@ -898,8 +897,7 @@ class PartnerApiService {
     }
   }
 
-  /// Ambil daftar sertifikat digital resmi milik mitra
-  Future<Map<String, dynamic>> getAcademyCertificates() async {
+  Future<ApiMap> getAcademyCertificates() async {
     try {
       final response = await _dio.get('/academy/certificates');
       return {
@@ -917,7 +915,7 @@ class PartnerApiService {
   // 10. STATISTIK MATERIAL & DAMPAK
   // ==========================================
 
-  Future<Map<String, dynamic>> getMaterialStatistics() async {
+  Future<ApiMap> getMaterialStatistics() async {
     try {
       final response = await _dio.get('/material-statistics/me');
       if (response.statusCode == 200 && response.data['success'] == true) {
@@ -937,7 +935,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getMyImpact() async {
+  Future<ApiMap> getMyImpact() async {
     try {
       final response = await _dio.get('/partners/me/impact');
       if (response.statusCode == 200) {
@@ -958,7 +956,7 @@ class PartnerApiService {
   // 11. TIKET PENGADUAN & CHAT (KURIR <-> WARGA & CS)
   // ==========================================
 
-  Future<Map<String, dynamic>> createTicket({
+  Future<ApiMap> createTicket({
     required String category,
     required String subject,
     required String description,
@@ -966,7 +964,7 @@ class PartnerApiService {
     String priority = 'MEDIUM',
   }) async {
     try {
-      final Map<String, dynamic> formMap = {
+      final ApiMap formMap = {
         'category': category,
         'subject': subject,
         'description': description,
@@ -997,7 +995,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getMyTickets() async {
+  Future<ApiMap> getMyTickets() async {
     try {
       final response = await _dio.get('/tickets/me');
       return {
@@ -1011,8 +1009,7 @@ class PartnerApiService {
     }
   }
 
-  /// Room Chat Tugas Penjemputan (Kurir <-> Warga Nasabah)
-  Future<Map<String, dynamic>> getJobRoom(dynamic jobId) async {
+  Future<ApiMap> getJobRoom(dynamic jobId) async {
     try {
       final response = await _dio.get('/chat/job/$jobId');
       return {'success': true, 'data': response.data['data'] ?? response.data};
@@ -1023,8 +1020,7 @@ class PartnerApiService {
     }
   }
 
-  /// Room Chat Helpdesk / Bantuan (Kurir <-> Admin CS)
-  Future<Map<String, dynamic>> getChatRoom(dynamic partnerId) async {
+  Future<ApiMap> getChatRoom(dynamic partnerId) async {
     try {
       final response = await _dio.get('/chat/room/$partnerId');
       return {'success': true, 'data': response.data['data'] ?? response.data};
@@ -1035,8 +1031,7 @@ class PartnerApiService {
     }
   }
 
-  /// Mengambil Riwayat Chat berdasarkan ID Room
-  Future<Map<String, dynamic>> getChatHistory(String roomId) async {
+  Future<ApiMap> getChatHistory(String roomId) async {
     try {
       final response = await _dio.get('/chat/history/$roomId');
       return {'success': true, 'data': response.data['data'] ?? []};
@@ -1047,8 +1042,7 @@ class PartnerApiService {
     }
   }
 
-  /// Mengirim Pesan Chat (Didukung role PARTNER, USER, atau ADMIN)
-  Future<Map<String, dynamic>> sendChatMessage({
+  Future<ApiMap> sendChatMessage({
     required String roomId,
     required int senderId,
     required String message,
@@ -1078,7 +1072,7 @@ class PartnerApiService {
   // 12. PROFIL PARTNER (GET & UPDATE)
   // ==========================================
 
-  Future<Map<String, dynamic>> getPartnerProfile() async {
+  Future<ApiMap> getPartnerProfile() async {
     try {
       final response = await _dio.get('/partners/me');
       if (response.statusCode == 200) {
@@ -1095,7 +1089,7 @@ class PartnerApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updatePartnerProfile({
+  Future<ApiMap> updatePartnerProfile({
     String? name,
     String? phoneNumber,
     String? email,
@@ -1103,7 +1097,7 @@ class PartnerApiService {
     String? avatarUrl,
   }) async {
     try {
-      final Map<String, dynamic> payload = {};
+      final ApiMap payload = {};
       if (name != null && name.isNotEmpty) payload['name'] = name;
       if (phoneNumber != null && phoneNumber.isNotEmpty) payload['phoneNumber'] = phoneNumber;
       if (email != null && email.isNotEmpty) payload['email'] = email;
@@ -1120,6 +1114,42 @@ class PartnerApiService {
       return {'success': false, 'message': _extractErrorMessage(e)};
     } catch (e) {
       return {'success': false, 'message': 'Gagal memperbarui profil: $e'};
+    }
+  }
+
+  // ==========================================
+  // 13. MASTER MATERIAL & HARGA DINAMIS ADMIN
+  // ==========================================
+
+  Future<ApiMap> getMaterials() async {
+    try {
+      final response = await _dio.get('/jobs/materials');
+      return {
+        'success': true,
+        'data': response.data['data'] ?? response.data,
+      };
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        try {
+          final fallbackRes = await _dio.get('/materials');
+          return {
+            'success': true,
+            'data': fallbackRes.data['data'] ?? fallbackRes.data,
+          };
+        } catch (_) {}
+      }
+      return {
+        'success': false,
+        'message': _extractErrorMessage(e),
+        'data': [],
+      };
+    } catch (e) {
+      debugPrint('Error getMaterials: $e');
+      return {
+        'success': false,
+        'message': 'Gagal mengambil master material: $e',
+        'data': [],
+      };
     }
   }
 
