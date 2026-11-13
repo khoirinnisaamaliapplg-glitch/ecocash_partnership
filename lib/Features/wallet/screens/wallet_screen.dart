@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'withdraw_screen.dart';
 import 'history_screen.dart';
-import 'top_up_screen.dart';
 import 'detail_transaction_screen.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
@@ -15,6 +14,10 @@ class WalletScreen extends StatefulWidget {
 
 class _WalletScreenState extends State<WalletScreen> {
   final PartnerApiService _apiService = PartnerApiService();
+
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   bool _isLoading = true;
   double _balance = 0.0;
   double _totalEarned = 0.0;
@@ -31,7 +34,6 @@ class _WalletScreenState extends State<WalletScreen> {
   Future<void> _fetchWalletData() async {
     setState(() => _isLoading = true);
     try {
-      // Ambil data dompet, kendaraan, dan master harga acuan admin secara paralel
       final results = await Future.wait([
         _apiService.getWallet(),
         _apiService.getMyVehicle(),
@@ -42,7 +44,6 @@ class _WalletScreenState extends State<WalletScreen> {
       final resVehicle = results[1];
       final resMaterials = results[2];
 
-      // 1. Parsing Data Dompet & Transaksi
       if (resWallet['success'] == true || resWallet['data'] != null) {
         final data = resWallet['data'] ?? resWallet;
         final rawBal = data['balance'] ?? 0;
@@ -67,12 +68,10 @@ class _WalletScreenState extends State<WalletScreen> {
         _totalEarned = totalKomisi;
       }
 
-      // 2. Parsing Data Kendaraan Aktif Mitra
       if (resVehicle['success'] == true && resVehicle['data'] != null) {
         _vehicleData = Map<String, dynamic>.from(resVehicle['data']);
       }
 
-      // 3. Parsing Data Master Harga Sampah Admin
       if (resMaterials['success'] == true || resMaterials['data'] != null) {
         final dynamic matData = resMaterials['data'] ?? resMaterials;
         if (matData is List) {
@@ -144,54 +143,35 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
-        title: const Text('EcoCash Partner Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('EcoCash Partner Wallet', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold)),
         automaticallyImplyLeading: false,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text('Siap Angkut', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
+            child: Center(  
             ),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _fetchWalletData,
-        color: AppColors.primaryCyan,
+        color: _navyColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Kartu Saldo Utama
+              // Kartu Saldo Utama (Top Up telah dihilangkan)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryCyan.withOpacity(0.18),
+                  color: _primaryYellow.withOpacity(0.35),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
@@ -203,10 +183,10 @@ class _WalletScreenState extends State<WalletScreen> {
                     const Text('Saldo Dapat Ditarik', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                     const SizedBox(height: 6),
                     _isLoading
-                        ? const SizedBox(height: 32, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(height: 32, child: CircularProgressIndicator(color: _navyColor, strokeWidth: 2))
                         : Text(
                             'Rp ${_formatCurrency(_balance)}',
-                            style: const TextStyle(color: Color(0xFF0F2C59), fontSize: 26, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: _navyColor, fontSize: 26, fontWeight: FontWeight.bold),
                           ),
                     const SizedBox(height: 20),
                     Row(
@@ -214,7 +194,6 @@ class _WalletScreenState extends State<WalletScreen> {
                       children: [
                         _buildWalletAction(context, Icons.account_balance_wallet, 'Tarik Saldo', const WithdrawScreen()),
                         _buildWalletAction(context, Icons.history, 'Riwayat', const HistoryScreen()),
-                        _buildWalletAction(context, Icons.add_circle_outline, 'Top Up', const TopUpScreen()),
                         _buildWalletAction(context, Icons.help_outline, 'Bantuan', null),
                       ],
                     ),
@@ -246,11 +225,11 @@ class _WalletScreenState extends State<WalletScreen> {
                             const SizedBox(height: 2),
                             Text(
                               'Rp ${_formatCurrency(_totalEarned)}',
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E88A8)),
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _navyColor),
                             ),
                           ],
                         ),
-                        const Icon(Icons.insights, color: Color(0xFF1E88A8), size: 30),
+                        const Icon(Icons.insights, color: _navyColor, size: 30),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -270,7 +249,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Daftar Harga Beli Sampah Admin (Snapshot Acuan)
+              // Daftar Harga Beli Sampah Admin
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -327,7 +306,7 @@ class _WalletScreenState extends State<WalletScreen> {
                       await Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
                       _fetchWalletData();
                     },
-                    child: const Text('Lihat Semua', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                    child: const Text('Lihat Semua', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -386,7 +365,7 @@ class _WalletScreenState extends State<WalletScreen> {
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
             ),
-            child: Icon(icon, color: AppColors.primaryCyan, size: 22),
+            child: Icon(icon, color: _navyColor, size: 22),
           ),
           const SizedBox(height: 6),
           Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),

@@ -15,6 +15,9 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
   List<dynamic> _bankList = [];
   bool _isLoading = true;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   @override
   void initState() {
     super.initState();
@@ -45,15 +48,15 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Akun Bank',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -117,7 +120,7 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.primaryCyan,
+                          color: Colors.black,
                           width: 1.5,
                         ),
                         boxShadow: [
@@ -127,7 +130,7 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_circle_outline, color: AppColors.primaryCyan, size: 20),
+                          Icon(Icons.add_circle_outline, color: Colors.black, size: 20),
                           SizedBox(width: 8),
                           Text(
                             'Tambah Rekening Baru',
@@ -193,15 +196,15 @@ class _AkunBankScreenState extends State<AkunBankScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.cyan.shade50,
+                        color: Colors.green.shade50,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle_outline, size: 12, color: AppColors.primaryCyan),
+                          Icon(Icons.check_circle_outline, size: 12, color: Colors.green),
                           SizedBox(width: 4),
-                          Text('Terverifikasi', style: TextStyle(fontSize: 10, color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                          Text('Terverifikasi', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),

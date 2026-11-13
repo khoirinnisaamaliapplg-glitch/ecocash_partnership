@@ -5,30 +5,35 @@ import '../../../core/theme/app_colors.dart';
 class HargaMaterialScreen extends StatelessWidget {
   const HargaMaterialScreen({super.key});
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _appBackground = Color(0xFFF8F9FA);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Harga Material', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Harga Material', style: TextStyle(color: _darkNavy, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HEADER CYAN (Menyambung dengan AppBar) ---
+            // --- HEADER KUNING (Menyambung dengan AppBar) ---
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(left: 20, right: 20, bottom: 30, top: 10),
               decoration: const BoxDecoration(
-                color: AppColors.primaryCyan,
+                color: _primaryYellow,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
@@ -37,20 +42,20 @@ class HargaMaterialScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Harga material hari ini', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  const Text('Harga material hari ini', style: TextStyle(color: _darkNavy, fontSize: 14, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: _darkNavy.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: const [
-                        Icon(Icons.update, color: Colors.white, size: 14),
+                        Icon(Icons.update, color: _darkNavy, size: 14),
                         SizedBox(width: 6),
-                        Text('Terakhir diperbarui: 10 Agustus 2026 - 10:30', style: TextStyle(color: Colors.white, fontSize: 11)),
+                        Text('Terakhir diperbarui: 10 Agustus 2026 - 10:30', style: TextStyle(color: _darkNavy, fontSize: 11, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
@@ -73,11 +78,11 @@ class HargaMaterialScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildPriceItem(Icons.local_drink, 'PET Clear', 'Plastik Bening', 'Rp5.200', '+3.2%', Colors.green),
+                        _buildPriceItem(Icons.local_drink, 'PET Clear', 'Plastik Bening', 'Rp5.200', '+3.2%', _ecoGreen),
                         const Divider(height: 24, color: Color(0xFFEEEEEE)),
-                        _buildPriceItem(Icons.recycling, 'PET Colored', 'Plastik Warna', 'Rp3.800', '+2.0%', Colors.green),
+                        _buildPriceItem(Icons.recycling, 'PET Colored', 'Plastik Warna', 'Rp3.800', '+2.0%', _ecoGreen),
                         const Divider(height: 24, color: Color(0xFFEEEEEE)),
-                        _buildPriceItem(Icons.inventory_2_outlined, 'HDPE', 'Plastik Keras', 'Rp6.100', '+1.5%', Colors.green),
+                        _buildPriceItem(Icons.inventory_2_outlined, 'HDPE', 'Plastik Keras', 'Rp6.100', '+1.5%', _ecoGreen),
                         const Divider(height: 24, color: Color(0xFFEEEEEE)),
                         _buildPriceItem(Icons.delete_outline, 'Aluminium', 'Kaleng Bekas', 'Rp18.500', '-0%', Colors.grey),
                         const Divider(height: 24, color: Color(0xFFEEEEEE)),
@@ -87,7 +92,7 @@ class HargaMaterialScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // --- TREN HARGA (MOCKUP CHART) ---
+                  // --- TREN HARGA ---
                   const Text('Tren Harga', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                   const SizedBox(height: 12),
                   Container(
@@ -99,7 +104,6 @@ class HargaMaterialScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        // Tabs 7 Hari / 30 Hari / 3 Bulan
                         Row(
                           children: [
                             _buildTabItem('7 Hari', true),
@@ -110,7 +114,6 @@ class HargaMaterialScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        // Mockup Grafik
                         SizedBox(
                           height: 120,
                           width: double.infinity,
@@ -136,7 +139,6 @@ class HargaMaterialScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   
-                  // Footer Note
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
@@ -169,7 +171,7 @@ class HargaMaterialScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: const Color(0xFFF4F6F8), borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: const Color(0xFF455A64), size: 20),
+              child: Icon(icon, color: _darkNavy, size: 20),
             ),
             const SizedBox(width: 12),
             Column(
@@ -190,7 +192,7 @@ class HargaMaterialScreen extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  changeColor == Colors.green ? Icons.trending_up : (changeColor == Colors.red ? Icons.trending_down : Icons.trending_flat),
+                  changeColor == _ecoGreen ? Icons.trending_up : (changeColor == Colors.red ? Icons.trending_down : Icons.trending_flat),
                   color: changeColor, 
                   size: 12
                 ),
@@ -208,7 +210,7 @@ class HargaMaterialScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.primaryCyan : Colors.transparent,
+        color: isSelected ? _darkNavy : Colors.transparent,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -223,12 +225,13 @@ class HargaMaterialScreen extends StatelessWidget {
   }
 }
 
-// Painter sederhana untuk menggambar grafik garis lengkung seperti di Figma
 class _ChartMockupPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    const Color strokeColor = Color(0xFF0F2C59);
+
     final paintLine = Paint()
-      ..color = AppColors.primaryCyan
+      ..color = strokeColor
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
@@ -236,7 +239,7 @@ class _ChartMockupPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [AppColors.primaryCyan.withOpacity(0.3), Colors.white.withOpacity(0.0)],
+        colors: [strokeColor.withOpacity(0.3), Colors.white.withOpacity(0.0)],
       ).createShader(Rect.fromLTRB(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
 
@@ -254,8 +257,7 @@ class _ChartMockupPainter extends CustomPainter {
     canvas.drawPath(fillPath, paintFill);
     canvas.drawPath(path, paintLine);
 
-    // Titik-titik pada grafik
-    final paintDot = Paint()..color = AppColors.primaryCyan..style = PaintingStyle.fill;
+    final paintDot = Paint()..color = strokeColor..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(size.width * 0.3, size.height * 0.7), 4, paintDot);
     canvas.drawCircle(Offset(size.width * 0.65, size.height * 0.5), 4, paintDot);
     canvas.drawCircle(Offset(size.width, size.height * 0.2), 4, paintDot);

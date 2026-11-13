@@ -24,6 +24,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<dynamic> _availableJobs = [];
   num _todayMaterialWeight = 0; // State untuk berat material hari ini
 
+  // Palet Warna Resmi EcoCash Brand Palette
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _appBackground = Color(0xFFF8F9FA);
+
   @override
   void initState() {
     super.initState();
@@ -87,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primaryCyan),
+        child: CircularProgressIndicator(color: _darkNavy),
       ),
     );
 
@@ -100,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan berhasil diambil!'),
-          backgroundColor: Colors.green,
+          backgroundColor: _ecoGreen,
         ),
       );
       _fetchDashboardData();
@@ -128,16 +135,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF4F6F8),
+        backgroundColor: _appBackground,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryCyan),
+          child: CircularProgressIndicator(color: _darkNavy),
         ),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF4F6F8),
+        backgroundColor: _appBackground,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -158,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryCyan,
+                    backgroundColor: _darkNavy,
                   ),
                   onPressed: _fetchDashboardData,
                   child: const Text(
@@ -173,8 +180,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final profile = _dashboardData?['partnerProfile'] ?? 
-        _dashboardData?['partner'] ?? 
+    final profile = _dashboardData?['partnerProfile'] ??
+        _dashboardData?['partner'] ??
         _dashboardData?['profile'] ?? {};
     final wallet = _dashboardData?['walletSummary'] ?? {};
     final stats = _dashboardData?['performanceStats'] ?? {};
@@ -203,344 +210,400 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final int remainingPoints = (maxScore - score).clamp(0, maxScore);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       body: RefreshIndicator(
-        color: AppColors.primaryCyan,
+        color: _darkNavy,
         onRefresh: _fetchDashboardData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double screenWidth = constraints.maxWidth;
+            final double topSafePadding = MediaQuery.paddingOf(context).top;
+
+            // Ukuran banner proporsional mengikuti lebar layar (rasio gambar ~2.05 : 1)
+            final double bannerWidth = (screenWidth * 0.74).clamp(245.0, 450.0);
+            final double bannerHeight = bannerWidth / 2.05;
+            final double headerHeight = topSafePadding + bannerHeight + 54;
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipPath(
-                    clipper: HeaderWaveClipper(),
-                    child: Container(
-                      width: double.infinity,
-                      height: 240,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryCyan,
-                      ),
+                  // Header Kuning Solid Responsif + Ilustrasi Banner dengan Tepi Memudar Halus
+                  Container(
+                    width: double.infinity,
+                    height: headerHeight,
+                    decoration: const BoxDecoration(
+                      color: _primaryYellow,
                     ),
-                  ),
-                  ClipPath(
-                    clipper: CurvedColorWaveClipper(),
-                    child: Container(
-                      width: double.infinity,
-                      height: 240,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF00E5FF).withOpacity(0.6),
-                            Colors.transparent,
-                          ],
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 70, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    clipBehavior: Clip.hardEdge,
+                    child: Stack(
                       children: [
-                        Text(
-                          'Hi, $namaUser!',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        // Ilustrasi Banner di Sisi Kanan dengan Efek Feathering di Semua Tepi
+                        Positioned(
+                          top: topSafePadding + 8,
+                          right: 0,
+                          width: bannerWidth,
+                          height: bannerHeight,
+                          child: ShaderMask(
+                            shaderCallback: (Rect bounds) {
+                              return const LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.white,
+                                  Colors.white,
+                                  Colors.transparent,
+                                ],
+                                stops: [0.0, 0.26, 0.95, 1.0],
+                              ).createShader(bounds);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: ShaderMask(
+                              shaderCallback: (Rect bounds) {
+                                return const LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.white,
+                                    Colors.white,
+                                    Colors.transparent,
+                                  ],
+                                  stops: [0.0, 0.16, 0.84, 1.0],
+                                ).createShader(bounds);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: Image.asset(
+                                'assets/images/banner_partner.png',
+                                fit: BoxFit.contain,
+                                alignment: Alignment.centerRight,
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Ready to recycle?',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w500,
+                        // Teks Sapaan Kiri Atas
+                        Positioned(
+                          top: topSafePadding + 26,
+                          left: 20,
+                          right: bannerWidth * 0.68,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Hi, $namaUser!',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: _primaryDark,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Ready to recycle?',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: _primaryDark.withOpacity(0.85),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Positioned(
-                    top: 150,
-                    left: 20,
-                    right: 20,
-                    child: InkWell(
-                      onTap: () => context.push('/detail-penghasilan'),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Total Penghasilan Bulan Ini',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
+
+                  // Kartu Total Penghasilan (Bayangan Kuning Tipis)
+                  Transform.translate(
+                    offset: const Offset(0, -44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: InkWell(
+                        onTap: () => context.push('/detail-penghasilan'),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: _primaryDark,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _primaryYellow.withOpacity(0.22),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              _formatCurrency(monthlyEarnings),
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.trending_up,
-                                  color: Colors.green,
-                                  size: 16,
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Total Penghasilan Bulan Ini',
+                                style: TextStyle(
+                                  color: _primaryYellow,
+                                  fontSize: 13,
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Tercatat Real-time',
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _formatCurrency(monthlyEarnings),
+                                style: const TextStyle(
+                                  color: _primaryYellow,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: const [
+                                  Icon(
+                                    Icons.trending_up,
+                                    color: _ecoGreen,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Tercatat Real-time',
+                                    style: TextStyle(
+                                      color: _ecoGreen,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Konten Statistik & Pekerjaan
+                  Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  'Material',
+                                  '${_todayMaterialWeight.toString().replaceAll('.', ',')} kg',
+                                  'Hari ini',
+                                  Icons.recycling,
+                                  _darkNavy,
+                                  onTap: () => context.push('/statistik-material'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildStatCard(
+                                  'Pekerjaan',
+                                  '$jobsCompleted Selesai',
+                                  'Bulan ini',
+                                  Icons.local_shipping_outlined,
+                                  _ecoGreen,
+                                  onTap: () => context.push('/riwayat-pekerjaan'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          InkWell(
+                            onTap: () => context.push('/skor-partner'),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _primaryYellow.withOpacity(0.18),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Level $level',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      Text(
+                                        nextLevel,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: _ecoGreen,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Skor Partner: $score/$maxScore',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(10),
+                                    ),
+                                    child: LinearProgressIndicator(
+                                      value: progressValue,
+                                      backgroundColor: const Color(0xFFE0E0E0),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(
+                                        _ecoGreen,
+                                      ),
+                                      minHeight: 8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      remainingPoints > 0
+                                          ? '$remainingPoints poin lagi ke Level $nextLevel'
+                                          : 'Selamat! Level Anda sudah maksimal',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Pekerjaan Tersedia',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => context.push(
+                                  '/daftar-pekerjaan',
+                                  extra: {'fromDashboard': true},
+                                ),
+                                child: const Text(
+                                  'Lihat Semua',
                                   style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                                    color: _darkNavy,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          if (_availableJobs.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _primaryYellow.withOpacity(0.18),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'Belum ada pekerjaan tersedia saat ini',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            SizedBox(
+                              height: 160,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _availableJobs.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (context, index) {
+                                  final job = _availableJobs[index];
+                                  final machine = job['machine'] ?? {};
+                                  final int jobId = job['id'];
+                                  final String rawCode = job['code'] ?? 'JOB-#$jobId';
+                                  final String code = rawCode.length > 10
+                                      ? '#${rawCode.substring(0, 8).toUpperCase()}'
+                                      : rawCode;
+                                  final String title =
+                                      job['title'] ?? 'Penjemputan Sampah';
+                                  final String address =
+                                      machine['placeName'] ??
+                                      machine['address'] ??
+                                      'Lokasi Penjemputan';
+                                  final String priority = job['priority'] ?? 'MEDIUM';
+
+                                  final String jobPrice = job['price'] ??
+                                      (job['machineId'] == null
+                                          ? 'Rp20.000+'
+                                          : 'Rp35.000+');
+
+                                  return _buildJobCard(
+                                    jobId: jobId,
+                                    code: code,
+                                    title: title,
+                                    distance: address,
+                                    price: jobPrice,
+                                    priority: priority,
+                                  );
+                                },
+                              ),
                             ),
-                          ],
-                        ),
+                          const SizedBox(height: 16),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 80),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            'Material',
-                            '${_todayMaterialWeight.toString().replaceAll('.', ',')} kg',
-                            'Hari ini',
-                            Icons.recycling,
-                            const Color(0xFF1565C0),
-                            onTap: () => context.push('/statistik-material'),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Pekerjaan',
-                            '$jobsCompleted Selesai',
-                            'Bulan ini',
-                            Icons.local_shipping_outlined,
-                            Colors.green,
-                            onTap: () => context.push('/riwayat-pekerjaan'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    InkWell(
-                      onTap: () => context.push('/skor-partner'),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Level $level',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  nextLevel,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Skor Partner: $score/$maxScore',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            ClipRRect(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(10),
-                              ),
-                              child: LinearProgressIndicator(
-                                value: progressValue,
-                                backgroundColor: const Color(0xFFE0E0E0),
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  AppColors.primaryCyan,
-                                ),
-                                minHeight: 8,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                remainingPoints > 0
-                                    ? '$remainingPoints poin lagi ke Level $nextLevel'
-                                    : 'Selamat! Level Anda sudah maksimal',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Pekerjaan Tersedia',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => context.push(
-                            '/daftar-pekerjaan',
-                            extra: {'fromDashboard': true},
-                          ),
-                          child: const Text(
-                            'Lihat Semua',
-                            style: TextStyle(
-                              color: Color(0xFF1565C0),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    if (_availableJobs.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Belum ada pekerjaan tersedia saat ini',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      SizedBox(
-                        height: 160,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _availableJobs.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 12),
-                          itemBuilder: (context, index) {
-                            final job = _availableJobs[index];
-                            final machine = job['machine'] ?? {};
-                            final int jobId = job['id'];
-                            final String rawCode = job['code'] ?? 'JOB-#$jobId';
-                            final String code = rawCode.length > 10
-                                ? '#${rawCode.substring(0, 8).toUpperCase()}'
-                                : rawCode;
-                            final String title =
-                                job['title'] ?? 'Penjemputan Sampah';
-                            final String address =
-                                machine['placeName'] ??
-                                machine['address'] ??
-                                'Lokasi Penjemputan';
-                            final String priority = job['priority'] ?? 'MEDIUM';
-
-                            final String jobPrice = job['price'] ??
-                                (job['machineId'] == null
-                                    ? 'Rp20.000+'
-                                    : 'Rp35.000+');
-
-                            return _buildJobCard(
-                              jobId: jobId,
-                              code: code,
-                              title: title,
-                              distance: address,
-                              price: jobPrice,
-                              priority: priority,
-                            );
-                          },
-                        ),
-                      ),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -564,7 +627,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: _primaryYellow.withOpacity(0.18),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -629,7 +692,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: _primaryYellow.withOpacity(0.18),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -724,7 +787,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: AppColors.primaryCyan,
+                      color: _darkNavy,
                     ),
                   ),
                 ],
@@ -732,7 +795,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ElevatedButton(
                 onPressed: () => _acceptJob(jobId),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCyan,
+                  backgroundColor: _primaryDark,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 6,
@@ -744,7 +807,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: const Text(
                   'Ambil',
-                  style: TextStyle(fontSize: 12, color: Colors.white),
+                  style: TextStyle(fontSize: 12, color: _primaryYellow),
                 ),
               ),
             ],
@@ -753,62 +816,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-}
-
-class HeaderWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.lineTo(0, size.height - 35);
-
-    var firstControlPoint = Offset(size.width / 4, size.height);
-    var firstEndPoint = Offset(size.width / 2, size.height - 25);
-    path.quadraticBezierTo(
-      firstControlPoint.dx,
-      firstControlPoint.dy,
-      firstEndPoint.dx,
-      firstEndPoint.dy,
-    );
-
-    var secondControlPoint = Offset(size.width * 3 / 4, size.height - 50);
-    var secondEndPoint = Offset(size.width, size.height - 20);
-    path.quadraticBezierTo(
-      secondControlPoint.dx,
-      secondControlPoint.dy,
-      secondEndPoint.dx,
-      secondEndPoint.dy,
-    );
-
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class CurvedColorWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-    path.moveTo(0, size.height * 0.12);
-
-    var controlPoint = Offset(size.width * 0.6, size.height * 0.45);
-    var endPoint = Offset(size.width, size.height * 0.22);
-    path.quadraticBezierTo(
-      controlPoint.dx,
-      controlPoint.dy,
-      endPoint.dx,
-      endPoint.dy,
-    );
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

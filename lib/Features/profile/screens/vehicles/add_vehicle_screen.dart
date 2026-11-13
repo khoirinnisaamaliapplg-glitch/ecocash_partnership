@@ -137,13 +137,13 @@ Future<void> _simpanKendaraan() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: const Color(0xFFFFE600),
         elevation: 0,
-        title: const Text('Tambah Kendaraan Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Tambah Kendaraan Baru', style: TextStyle(color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1E)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -267,7 +267,7 @@ Future<void> _simpanKendaraan() async {
                         Icon(
                           _pickedXFile != null ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
                           size: 40,
-                          color: _pickedXFile != null ? Colors.green : const Color(0xFF28859B),
+                          color: _pickedXFile != null ? Colors.green : const Color(0xFF1C1C1E),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -278,13 +278,13 @@ Future<void> _simpanKendaraan() async {
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
                           onPressed: _isLoading ? null : _pilihBerkas,
-                          icon: const Icon(Icons.folder_open, size: 14, color: Color(0xFF28859B)),
+                          icon: const Icon(Icons.folder_open, size: 14, color: Color(0xFF1C1C1E)),
                           label: Text(
                             _pickedXFile != null ? 'Ganti Foto' : 'Pilih Foto',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF28859B), fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF28859B)),
+                            side: const BorderSide(color: Color(0xFF1C1C1E)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             backgroundColor: Colors.white,
                           ),
@@ -304,7 +304,7 @@ Future<void> _simpanKendaraan() async {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _simpanKendaraan,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF28859B),
+                  backgroundColor: const Color(0xFF1C1C1E),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
@@ -312,9 +312,9 @@ Future<void> _simpanKendaraan() async {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        child: CircularProgressIndicator(color: Color(0xFFFFE600), strokeWidth: 2.5),
                       )
-                    : const Text('Simpan Kendaraan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                    : const Text('Simpan Kendaraan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFFFE600))),
               ),
             ),
             const SizedBox(height: 20),
@@ -336,24 +336,24 @@ Future<void> _simpanKendaraan() async {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? const Color(0xFFFFE600).withOpacity(0.18) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF28859B) : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF1C1C1E) : Colors.grey.shade300,
             width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? const Color(0xFF28859B) : AppColors.textSecondary, size: 20),
+            Icon(icon, color: isSelected ? const Color(0xFF1C1C1E) : AppColors.textSecondary, size: 20),
             const SizedBox(width: 6),
             Text(
               jenis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF28859B) : AppColors.textPrimary,
+                color: isSelected ? const Color(0xFF1C1C1E) : AppColors.textPrimary,
               ),
             ),
           ],

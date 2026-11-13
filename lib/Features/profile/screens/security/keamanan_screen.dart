@@ -198,13 +198,13 @@ class _KeamananScreenState extends State<KeamananScreen> {
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryCyan,
+                          backgroundColor: const Color(0xFF1C1C1E),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: isSubmitting
-                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                            : const Text('Simpan PIN Baru', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Color(0xFFFFE600), strokeWidth: 2.5))
+                            : const Text('Simpan PIN Baru', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFFE600))),
                       ),
                     ),
                   ],
@@ -396,13 +396,13 @@ class _KeamananScreenState extends State<KeamananScreen> {
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryCyan,
+                          backgroundColor: const Color(0xFF1C1C1E),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: isSubmitting
-                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                            : const Text('Simpan Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Color(0xFFFFE600), strokeWidth: 2.5))
+                            : const Text('Simpan Kata Sandi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFFFE600))),
                       ),
                     ),
                   ],
@@ -418,12 +418,12 @@ class _KeamananScreenState extends State<KeamananScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: const Color(0xFFFFE600),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1E)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -434,7 +434,7 @@ class _KeamananScreenState extends State<KeamananScreen> {
         ),
         title: const Text(
           'Keamanan Akun',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),

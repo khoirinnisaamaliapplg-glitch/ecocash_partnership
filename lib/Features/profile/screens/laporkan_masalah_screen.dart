@@ -17,6 +17,10 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
   final PartnerApiService _apiService = PartnerApiService();
   final _formKey = GlobalKey<FormState>();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
@@ -91,15 +95,15 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Laporkan Masalah',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -201,7 +205,7 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
                   child: _attachmentFile != null
                       ? Row(
                           children: [
-                            const Icon(Icons.image, color: AppColors.primaryCyan),
+                            const Icon(Icons.image, color: _navyColor),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -218,7 +222,7 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
                         )
                       : Column(
                           children: const [
-                            Icon(Icons.cloud_upload_outlined, size: 28, color: AppColors.primaryCyan),
+                            Icon(Icons.cloud_upload_outlined, size: 28, color: _navyColor),
                             SizedBox(height: 6),
                             Text('Tambahkan foto atau bukti', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           ],
@@ -227,20 +231,13 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Tombol Kirim Laporan dengan Gradien Warna Sesuai Gambar
+              // Tombol Kirim Laporan
               Container(
                 width: double.infinity,
                 height: 50,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF118D9B), // Toska / Cyan (Sisi Kiri)
-                      Color(0xFF257EB3), // Biru (Sisi Kanan)
-                    ],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
+                  color: _primaryDark,
                 ),
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitTicket,
@@ -256,7 +253,7 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: _primaryYellow,
                             strokeWidth: 2,
                           ),
                         )
@@ -265,7 +262,7 @@ class _LaporkanMasalahScreenState extends State<LaporkanMasalahScreen> {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: _primaryYellow,
                           ),
                         ),
                 ),

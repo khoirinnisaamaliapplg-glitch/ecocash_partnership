@@ -31,6 +31,10 @@ class PusatBantuanScreen extends StatefulWidget {
 }
 
 class _PusatBantuanScreenState extends State<PusatBantuanScreen> {
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   // List FAQ default (Siap diganti/diisi via API backend)
   final List<FaqItem> _faqList = [
     FaqItem(
@@ -58,16 +62,16 @@ class _PusatBantuanScreenState extends State<PusatBantuanScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Pusat Bantuan',
           style: TextStyle(
-            color: Colors.white,
+            color: _navyColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -178,12 +182,12 @@ class _PusatBantuanScreenState extends State<PusatBantuanScreen> {
               width: 52,
               height: 52,
               decoration: const BoxDecoration(
-                color: Color(0xFF0F2B48),
+                color: _primaryDark,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.chat_bubble_rounded,
-                color: Colors.white,
+                color: _primaryYellow,
                 size: 24,
               ),
             ),

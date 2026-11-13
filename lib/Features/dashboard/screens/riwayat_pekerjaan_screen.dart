@@ -19,12 +19,17 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   late TabController _tabController;
   final PartnerApiService _apiService = PartnerApiService();
 
-  List<Map<String, dynamic>> _listSelesai = [];
-  List<Map<String, dynamic>> _listDiproses = [];
-  List<Map<String, dynamic>> _listDibatalkan = [];
+  List<dynamic> _listSelesai = [];
+  List<dynamic> _listDiproses = [];
+  List<dynamic> _listDibatalkan = [];
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _appBackground = Color(0xFFF8F9FA);
 
   @override
   void initState() {
@@ -71,13 +76,13 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       if (mounted) {
         setState(() {
           _listSelesai = rawSelesai
-              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item as Map)))
               .toList();
           _listDiproses = rawDiproses
-              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item as Map)))
               .toList();
           _listDibatalkan = rawDibatalkan
-              .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
+              .map((item) => _formatJobItem(Map<String, dynamic>.from(item as Map)))
               .toList();
           _isLoading = false;
         });
@@ -118,7 +123,6 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         ? materialNames.take(2).join(', ')
         : 'Material Campuran';
 
-    // Utamakan completedAt jika ada
     String dateStr = (assignment['completedAt'] ?? assignment['assignedAt'] ?? job['createdAt'] ?? '').toString();
     if (dateStr.isNotEmpty) {
       try {
@@ -127,14 +131,12 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       } catch (_) {}
     }
 
-    // Hitung Komisi Asli dari API
     final dynamic rawReward = assignment['actualReward'] ?? job['actualReward'] ?? assignment['estimatedReward'] ?? job['estimatedReward'] ?? job['price'];
     num actualReward = 0;
 
     if (rawReward != null && _toDouble(rawReward) > 0) {
       actualReward = _toDouble(rawReward);
     } else {
-      // Fallback skema berdasarkan tipe pekerjaan
       final String jobType = (job['type'] ?? (job['machineId'] != null || job['machine'] != null ? 'SMART_CONTAINER' : 'RESIDENTIAL')).toString().toUpperCase();
       final bool isResidential = jobType == 'RESIDENTIAL' || jobType == 'RUMAH';
 
@@ -253,20 +255,20 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () => context.canPop() ? context.pop() : Navigator.pop(context),
         ),
         title: const Text('Riwayat Pekerjaan',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: _darkNavy, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          ? const Center(child: CircularProgressIndicator(color: _darkNavy))
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -277,7 +279,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                       Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+                        style: ElevatedButton.styleFrom(backgroundColor: _darkNavy),
                         onPressed: _loadJobHistory,
                         child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
                       ),
@@ -286,7 +288,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                 )
               : RefreshIndicator(
                   onRefresh: _loadJobHistory,
-                  color: AppColors.primaryCyan,
+                  color: _darkNavy,
                   child: Column(
                     children: [
                       Container(
@@ -294,9 +296,9 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: TabBar(
                           controller: _tabController,
-                          labelColor: AppColors.primaryCyan,
+                          labelColor: _darkNavy,
                           unselectedLabelColor: AppColors.textSecondary,
-                          indicatorColor: AppColors.primaryCyan,
+                          indicatorColor: _darkNavy,
                           indicatorWeight: 3,
                           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           tabs: [
@@ -323,7 +325,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     );
   }
 
-  Widget _buildJobListTab(List<Map<String, dynamic>> list,
+  Widget _buildJobListTab(List<dynamic> list,
       {bool isProcessing = false, bool isCancelled = false}) {
     if (list.isEmpty) {
       return ListView(
@@ -346,7 +348,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
       itemBuilder: (context, index) {
-        final item = list[index];
+        final item = list[index] as Map;
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: InkWell(
@@ -355,7 +357,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetailQrScreen(kodeKontainer: item['kode']),
+                        builder: (context) => DetailQrScreen(kodeKontainer: item['kode']?.toString() ?? ''),
                       ),
                     );
                   }
@@ -372,19 +374,19 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     );
   }
 
-  Widget _buildJobHistoryCard(Map<String, dynamic> item,
+  Widget _buildJobHistoryCard(Map item,
       {bool showCancelButton = false, VoidCallback? onCancel}) {
-    final String status = item['status'] ?? '';
+    final String status = item['status']?.toString() ?? '';
     final bool isCancelled = status == 'Dibatalkan';
     final bool isFinished = status == 'Selesai';
 
-    Color badgeColor = Colors.green.shade50;
-    Color textColor = Colors.green;
+    Color badgeColor = const Color(0xFFE6F7E9);
+    Color textColor = _ecoGreen;
     IconData badgeIcon = Icons.check_circle;
 
     if (status == 'Diproses') {
-      badgeColor = Colors.cyan.shade50;
-      textColor = Colors.cyan.shade700;
+      badgeColor = const Color(0xFFE8EEFF);
+      textColor = _darkNavy;
       badgeIcon = Icons.access_time_filled;
     } else if (isCancelled) {
       badgeColor = Colors.red.shade50;
@@ -410,7 +412,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
             children: [
               Expanded(
                 child: Text(
-                  item['company'],
+                  item['company']?.toString() ?? '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
@@ -445,7 +447,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                     children: [
                       const Text('Material', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       const SizedBox(height: 2),
-                      Text(item['material'],
+                      Text(item['material']?.toString() ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
@@ -457,7 +459,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                   children: [
                     const Text('Berat', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     const SizedBox(height: 2),
-                    Text(item['weight'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                    Text(item['weight']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
                   ],
                 ),
               ],
@@ -471,7 +473,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                 children: [
                   const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondary),
                   const SizedBox(width: 6),
-                  Text(item['date'], style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  Text(item['date']?.toString() ?? '', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 ],
               ),
               Column(
@@ -482,15 +484,15 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: isFinished ? FontWeight.bold : FontWeight.normal,
-                      color: isFinished ? Colors.green.shade700 : AppColors.textSecondary,
+                      color: isFinished ? _ecoGreen : AppColors.textSecondary,
                     ),
                   ),
                   Text(
-                    item['price'],
+                    item['price']?.toString() ?? '',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: isCancelled ? AppColors.textSecondary : AppColors.successGreen,
+                      color: isCancelled ? AppColors.textSecondary : _ecoGreen,
                       decoration: isCancelled ? TextDecoration.lineThrough : null,
                     ),
                   ),
@@ -514,7 +516,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
                   const Text('Alasan Pembatalan:',
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red)),
                   const SizedBox(height: 2),
-                  Text(item['alasan'], style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
+                  Text(item['alasan'].toString(), style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
                 ],
               ),
             ),

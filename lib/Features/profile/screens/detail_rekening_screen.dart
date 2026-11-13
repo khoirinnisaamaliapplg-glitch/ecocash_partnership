@@ -8,6 +8,9 @@ class DetailRekeningScreen extends StatelessWidget {
   final Map<String, String>? bankData;
   final PartnerApiService _apiService = PartnerApiService();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   DetailRekeningScreen({super.key, this.bankData});
 
   @override
@@ -21,15 +24,15 @@ class DetailRekeningScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Detail Rekening',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -56,23 +59,23 @@ class DetailRekeningScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryCyan.withOpacity(0.1),
+                          color: _primaryYellow.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.account_balance, color: AppColors.primaryCyan, size: 24),
+                        child: const Icon(Icons.account_balance, color: _navyColor, size: 24),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.cyan.shade50,
+                          color: _primaryYellow.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle, size: 12, color: AppColors.primaryCyan),
+                            Icon(Icons.check_circle, size: 12, color: _navyColor),
                             SizedBox(width: 4),
-                            Text('Terverifikasi', style: TextStyle(fontSize: 11, color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                            Text('Terverifikasi', style: TextStyle(fontSize: 11, color: _navyColor, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -91,7 +94,7 @@ class DetailRekeningScreen extends StatelessWidget {
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary, letterSpacing: 1.2),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy, size: 18, color: AppColors.primaryCyan),
+                        icon: const Icon(Icons.copy, size: 18, color: _navyColor),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: accountNumber));
                           ScaffoldMessenger.of(context).showSnackBar(

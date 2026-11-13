@@ -5,12 +5,15 @@ import '../../../core/theme/app_colors.dart';
 class SuccessWithdrawScreen extends StatelessWidget {
   final Map<String, dynamic>? withdrawalData;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   const SuccessWithdrawScreen({super.key, this.withdrawalData});
 
   String _formatRupiah(dynamic rawAmount) {
     if (rawAmount == null) return 'Rp 0';
     double amount = double.tryParse(rawAmount.toString()) ?? 0;
-    // Format sederhana dengan titik pemisah ribuan
     String formatted = amount.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]}.',
@@ -20,7 +23,6 @@ class SuccessWithdrawScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ekstraksi data dinamis dari backend dengan fallback jika data kosong
     final data = withdrawalData ?? {};
     final String amountText = _formatRupiah(data['amount'] ?? 0);
     final String trxId = data['id'] != null ? 'TRX-${data['id']}' : 'TRX-${DateTime.now().millisecondsSinceEpoch}';
@@ -35,13 +37,13 @@ class SuccessWithdrawScreen extends StatelessWidget {
         : 'Hari ini';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
-        title: const Text('Status Transaksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Status Transaksi', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -64,10 +66,10 @@ class SuccessWithdrawScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF28859B).withOpacity(0.15),
+                    color: _navyColor.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Color(0xFF28859B), size: 40),
+                  child: const Icon(Icons.check, color: _navyColor, size: 40),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -93,7 +95,7 @@ class SuccessWithdrawScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
@@ -124,7 +126,7 @@ class SuccessWithdrawScreen extends StatelessWidget {
                                     const SnackBar(content: Text('ID Transaksi disalin!'), duration: Duration(seconds: 1)),
                                   );
                                 },
-                                child: const Icon(Icons.copy, size: 14, color: Color(0xFF28859B)),
+                                child: const Icon(Icons.copy, size: 14, color: _navyColor),
                               ),
                             ],
                           ),
@@ -140,10 +142,10 @@ class SuccessWithdrawScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.share, color: Colors.white, size: 16),
-                    label: const Text('Bagikan Resi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    icon: const Icon(Icons.share, color: _primaryYellow, size: 16),
+                    label: const Text('Bagikan Resi', style: TextStyle(fontWeight: FontWeight.bold, color: _primaryYellow)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF28859B),
+                      backgroundColor: _primaryDark,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
@@ -160,12 +162,12 @@ class SuccessWithdrawScreen extends StatelessWidget {
                       Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300),
+                      side: const BorderSide(color: _primaryDark),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       backgroundColor: Colors.white,
                     ),
-                    child: const Text('Selesai', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    child: const Text('Selesai', style: TextStyle(fontWeight: FontWeight.bold, color: _primaryDark)),
                   ),
                 ),
               ],

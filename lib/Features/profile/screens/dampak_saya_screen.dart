@@ -15,6 +15,10 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _impactData;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   @override
   void initState() {
     super.initState();
@@ -38,20 +42,20 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Dampak Saya',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          ? const Center(child: CircularProgressIndicator(color: _navyColor))
           : RefreshIndicator(
               onRefresh: _fetchImpactData,
               child: SingleChildScrollView(
@@ -79,14 +83,14 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.primaryCyan.withOpacity(0.22),
-                            AppColors.primaryCyan.withOpacity(0.05),
+                            _primaryYellow.withOpacity(0.22),
+                            _primaryYellow.withOpacity(0.05),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primaryCyan.withOpacity(0.2)),
+                        border: Border.all(color: _primaryYellow.withOpacity(0.2)),
                       ),
                       child: Column(
                         children: [
@@ -95,10 +99,10 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: const BoxDecoration(
-                                  color: AppColors.primaryCyan,
+                                  color: _primaryDark,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.military_tech, color: Colors.white, size: 22),
+                                child: const Icon(Icons.military_tech, color: _primaryYellow, size: 22),
                               ),
                               const SizedBox(width: 12),
                               Column(
@@ -166,11 +170,11 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
                           context.push('/statistik-material');
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primaryCyan),
+                          side: const BorderSide(color: _primaryDark),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Lihat Detail', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                        child: const Text('Lihat Detail', style: TextStyle(color: _primaryDark, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -191,12 +195,12 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
                       child: ElevatedButton(
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryCyan,
+                          backgroundColor: _primaryDark,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
-                        child: const Text('Bagikan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: const Text('Bagikan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -227,7 +231,7 @@ class _DampakSayaScreenState extends State<DampakSayaScreen> {
         child: IntrinsicHeight(
           child: Row(
             children: [
-              Container(width: 6, color: AppColors.primaryCyan),
+              Container(width: 6, color: _primaryYellow),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

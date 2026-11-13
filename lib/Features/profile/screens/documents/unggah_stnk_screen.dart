@@ -24,6 +24,8 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
   String _selectedVehicleType = 'MOTORCYCLE';
   bool _isLoading = false;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
   static const Color _navyColor = Color(0xFF0F2C59);
 
   @override
@@ -177,10 +179,10 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: _isLoading
               ? null
               : () {
@@ -193,7 +195,7 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
         ),
         title: Text(
           isCart ? 'Unggah Foto Gerobak' : 'Unggah STNK',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: const TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -246,10 +248,10 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(
-                              color: _navyColor,
+                              color: _primaryDark,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 26),
+                            child: const Icon(Icons.camera_alt, color: _primaryYellow, size: 26),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -332,7 +334,7 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submitVehicleAndStnk,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88A8),
+                  backgroundColor: _primaryDark,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
@@ -340,11 +342,11 @@ class _UnggahStnkScreenState extends State<UnggahStnkScreen> {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2.5),
                       )
                     : Text(
                         isCart ? 'Simpan & Unggah Gerobak' : 'Simpan & Unggah STNK',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: const TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
               ),
             ),

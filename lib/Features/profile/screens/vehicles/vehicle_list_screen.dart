@@ -40,22 +40,23 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: const Color(0xFFFFE600),
         elevation: 0,
         title: const Text(
           'Kendaraan Operasional',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1E)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1C1C1E)))
           : RefreshIndicator(
+              color: const Color(0xFF1C1C1E),
               onRefresh: _fetchVehicleData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -118,15 +119,15 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                         },
                         icon: Icon(
                           _vehicleData != null ? Icons.edit_outlined : Icons.add,
-                          color: Colors.white,
+                          color: const Color(0xFFFFE600),
                           size: 18,
                         ),
                         label: Text(
                           _vehicleData != null ? 'Ubah / Perbarui Kendaraan' : 'Tambah Kendaraan Baru',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFFFE600)),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF28859B),
+                          backgroundColor: const Color(0xFF1C1C1E),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
@@ -178,10 +179,10 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryCyan.withOpacity(0.1),
+                  color: const Color(0xFFFFE600).withOpacity(0.25),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(iconData, color: AppColors.primaryCyan, size: 24),
+                child: Icon(iconData, color: const Color(0xFF1C1C1E), size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -245,13 +246,13 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
     } else {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: const Color(0xFFFFE600).withOpacity(0.25), borderRadius: BorderRadius.circular(8)),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.hourglass_top, size: 12, color: Colors.blue),
+            Icon(Icons.hourglass_top, size: 12, color: Color(0xFF1C1C1E)),
             SizedBox(width: 4),
-            Text('Diproses', style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold)),
+            Text('Diproses', style: TextStyle(fontSize: 10, color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold)),
           ],
         ),
       );

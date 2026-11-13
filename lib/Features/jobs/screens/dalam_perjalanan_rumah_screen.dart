@@ -11,12 +11,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:ecocash_partnership/services/api_service.dart';
 
-// --- KONSTANTA WARNA TINGKAT FILE ---
-const Color _navyColor = Color(0xFF0B3C5D);
-const Color _tealColor = Color(0xFF178CA4);
-const Color _cyanHeader = Color(0xFF00C7C9);
+const Color _navyColor = Color(0xFF0F2C59);
+const Color _primaryYellow = Color(0xFFFFE600);
+const Color _primaryDark = Color(0xFF1C1C1E);
+const Color _customBgColor = Color(0xFFF8F9FA);
 
-// --- MODEL DATA INPUT TIMBANGAN MATERIAL DINAMIS ---
 class MaterialInputItem {
   final int materialId;
   final String name;
@@ -33,7 +32,6 @@ class MaterialInputItem {
   double get subtotal => weight * ratePerKg;
 }
 
-// --- MODEL DATA BUKTI FOTO SAMPAH ---
 class TrashPhotoItem {
   final String? path;
   final Uint8List? bytes;
@@ -59,20 +57,17 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
   final PartnerApiService _apiService = PartnerApiService();
   final ImagePicker _picker = ImagePicker();
 
-  int _currentStep = 1; // 1: Menuju Lokasi, 2: Timbang, 3: Kirim Ke Tong, 4: Selesai
+  int _currentStep = 1;
   bool _isLoading = false;
   bool _isLoadingMaterials = true;
   Timer? _statusCheckTimer;
 
-  // State Daftar Material Dinamis dari Master Harga Admin
   List<MaterialInputItem> _materialInputs = [];
   String _qrCodeHandover = '';
 
-  // State Verifikasi QR Nasabah
   bool _isUserQrGenerated = false;
   String _generatedUserQrPayload = '';
 
-  // State Daftar Bukti Foto Sampah
   final List<TrashPhotoItem> _trashPhotos = [];
 
   final LatLng _userLocation = const LatLng(-6.8915, 107.6101);
@@ -89,7 +84,6 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
     return const LatLng(-6.8985, 107.6151);
   }
 
-  // --- GETTER DATA DINAMIS DARI BE ---
   dynamic get _jobId => widget.extraData['id'] ?? widget.extraData['rawJob']?['id'];
   Map get _rawJob => (widget.extraData['rawJob'] is Map) ? widget.extraData['rawJob'] : widget.extraData;
 
@@ -106,7 +100,6 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
   String get _customerAvatarUrl =>
       _rawJob['user']?['avatarUrl'] ?? _rawJob['avatarUrl'] ?? '';
 
-  // Baca kode dan nama mesin tujuan dinamis dari data penugasan
   String get _targetMachineCode {
     final code = _rawJob['machine']?['machineCode'] ??
         _rawJob['targetMachine']?['machineCode'] ??
@@ -284,7 +277,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Smart Container berhasil memverifikasi QR! Tugas selesai.'),
-                  backgroundColor: Colors.teal,
+                  backgroundColor: Colors.green,
                 ),
               );
               setState(() => _currentStep = 4);
@@ -333,7 +326,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('QR Code berhasil dibuat! Tunjukkan ke nasabah untuk dipindai.'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -368,7 +361,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.add_a_photo, color: _tealColor, size: 24),
+            Icon(Icons.add_a_photo, color: _navyColor, size: 24),
             SizedBox(width: 10),
             Text('Keterangan Foto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
@@ -432,7 +425,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _tealColor,
+              backgroundColor: _primaryDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () {
@@ -445,10 +438,10 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Foto bukti sampah berhasil ditambahkan!'), backgroundColor: Colors.teal),
+                const SnackBar(content: Text('Foto bukti sampah berhasil ditambahkan!'), backgroundColor: Colors.green),
               );
             },
-            child: const Text('Simpan Foto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Simpan Foto', style: TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -461,9 +454,9 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFEEF3FF),
+          color: _customBgColor,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.cyan.shade200),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _navyColor)),
       ),
@@ -544,7 +537,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Text('Pindai QR Fisik Smart Container', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text('Pindai QR Fisik Smart Container', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _navyColor)),
             ),
             Expanded(
               child: ClipRRect(
@@ -592,7 +585,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Kontainer $scannedCode terverifikasi! Muatan berhasil disetor.'),
-              backgroundColor: Colors.teal,
+              backgroundColor: Colors.green,
             ),
           );
           setState(() => _currentStep = 4);
@@ -618,12 +611,12 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+      backgroundColor: _customBgColor,
       appBar: AppBar(
-        backgroundColor: _cyanHeader,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () {
             if (_currentStep > 1 && _currentStep < 4) {
               setState(() => _currentStep--);
@@ -632,7 +625,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             }
           },
         ),
-        title: const Text('Detail Pekerjaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Detail Pekerjaan', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -647,7 +640,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.cyan.shade50, shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: _navyColor.withOpacity(0.1), shape: BoxShape.circle),
                         child: const Icon(Icons.location_on_outlined, size: 18, color: _navyColor),
                       ),
                       const SizedBox(width: 12),
@@ -706,15 +699,15 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleStepNext,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _tealColor,
+                      backgroundColor: _primaryDark,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: _isLoading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2))
                         : Text(
                             _getBottomButtonText(),
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _primaryYellow),
                           ),
                   ),
                 ),
@@ -774,7 +767,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                     MarkerLayer(
                       markers: [
                         Marker(point: _userLocation, width: 30, height: 30, child: const Icon(Icons.two_wheeler, color: _navyColor, size: 28)),
-                        Marker(point: _customerLocation, width: 35, height: 35, child: const Icon(Icons.location_pin, color: Colors.teal, size: 35)),
+                        Marker(point: _customerLocation, width: 35, height: 35, child: const Icon(Icons.location_pin, color: Colors.red, size: 35)),
                       ],
                     ),
                   ],
@@ -788,7 +781,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF07485B),
+                    color: _navyColor,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Row(
@@ -828,7 +821,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: Colors.teal.shade100,
+                backgroundColor: _navyColor.withOpacity(0.1),
                 backgroundImage: _customerAvatarUrl.isNotEmpty ? NetworkImage(_customerAvatarUrl) : null,
                 child: _customerAvatarUrl.isEmpty
                     ? Text(
@@ -852,11 +845,11 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                 height: 44,
                 width: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF07485B),
+                  color: _primaryDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                  icon: const Icon(Icons.chat_bubble_outline, color: _primaryYellow, size: 20),
                   onPressed: () => context.push('/chat/room/$_jobId'),
                   tooltip: 'Chat Warga',
                 ),
@@ -869,15 +862,15 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFE8EEFF),
+            color: _customBgColor,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.teal.shade100, borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.recycling, color: Colors.teal, size: 22),
+                decoration: BoxDecoration(color: _navyColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.recycling, color: _navyColor, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -892,7 +885,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFF07485B), borderRadius: BorderRadius.circular(20)),
+                decoration: BoxDecoration(color: _navyColor, borderRadius: BorderRadius.circular(20)),
                 child: Text('$_displayPrice (Est.)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ],
@@ -903,14 +896,14 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF4F6F8),
+            color: _customBgColor,
             borderRadius: BorderRadius.circular(12),
-            border: const Border(left: BorderSide(color: Colors.teal, width: 4)),
+            border: const Border(left: BorderSide(color: _navyColor, width: 4)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.note_alt_outlined, size: 20, color: Colors.teal),
+              const Icon(Icons.note_alt_outlined, size: 20, color: _navyColor),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -945,12 +938,12 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                children: const [
-                  Icon(Icons.verified_outlined, size: 12, color: Colors.teal),
+              decoration: BoxDecoration(color: _navyColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: const Row(
+                children: [
+                  Icon(Icons.verified_outlined, size: 12, color: _navyColor),
                   SizedBox(width: 4),
-                  Text('HARGA ADMIN AKTIF', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.teal)),
+                  Text('HARGA ADMIN AKTIF', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: _navyColor)),
                 ],
               ),
             ),
@@ -959,7 +952,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         const SizedBox(height: 14),
 
         if (_isLoadingMaterials)
-          const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator()))
+          const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator(color: _navyColor)))
         else ...[
           ..._materialInputs.map((material) {
             return Padding(
@@ -983,7 +976,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
 
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: const Color(0xFFEEF7F8), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(color: _customBgColor, borderRadius: BorderRadius.circular(12)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1000,7 +993,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                 children: [
                   const Text('TOTAL SALDO MASUK WARGA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 2),
-                  Text('Rp ${_formatCurrency(_totalPayout)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal)),
+                  Text('Rp ${_formatCurrency(_totalPayout)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
                 ],
               ),
             ],
@@ -1015,7 +1008,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: _trashPhotos.isEmpty ? Colors.red.shade50 : Colors.teal.shade50,
+                color: _trashPhotos.isEmpty ? Colors.red.shade50 : Colors.green.shade50,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -1023,7 +1016,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: _trashPhotos.isEmpty ? Colors.red : Colors.teal,
+                  color: _trashPhotos.isEmpty ? Colors.red : Colors.green,
                 ),
               ),
             ),
@@ -1041,14 +1034,14 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                   width: 90,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF3FF),
+                    color: _customBgColor,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.cyan.shade200),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: Column(
+                  child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.camera_alt, color: _tealColor, size: 24),
+                    children: [
+                      Icon(Icons.camera_alt, color: _navyColor, size: 24),
                       SizedBox(height: 4),
                       Text('Ambil Foto\nTambahan', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, color: Colors.grey, height: 1.1)),
                     ],
@@ -1079,10 +1072,11 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             children: [
               OutlinedButton.icon(
                 onPressed: _generateCustomerVerificationQr,
-                icon: const Icon(Icons.qr_code, color: Colors.teal, size: 18),
-                label: const Text('Buat QR Verifikasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal)),
+                icon: const Icon(Icons.qr_code, color: _primaryYellow, size: 18),
+                label: const Text('Buat QR Verifikasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _primaryYellow)),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.teal),
+                  backgroundColor: _primaryDark,
+                  side: const BorderSide(color: _primaryDark),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 ),
@@ -1100,7 +1094,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFF1E2838), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: _navyColor, borderRadius: BorderRadius.circular(16)),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1123,11 +1117,11 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.check_circle, color: Colors.tealAccent, size: 14),
+                          const Icon(Icons.check_circle, color: _primaryYellow, size: 14),
                           const SizedBox(width: 6),
                           Text(
                             'QR Siap Scan • ${_totalWeight.toStringAsFixed(1)} kg • Rp ${_formatCurrency(_totalPayout)}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.tealAccent),
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _primaryYellow),
                           ),
                         ],
                       ),
@@ -1146,7 +1140,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                         ),
                       ),
                     ] else ...[
-                      const Icon(Icons.qr_code_2, size: 60, color: Colors.tealAccent),
+                      const Icon(Icons.qr_code_2, size: 60, color: _primaryYellow),
                       const SizedBox(height: 10),
                       const Text('QR Code Belum Dibuat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                       const SizedBox(height: 4),
@@ -1176,9 +1170,9 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFFEEF3FF), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: _customBgColor, borderRadius: BorderRadius.circular(12)),
                 child: Text('Tujuan: $_targetMachineName ($_targetMachineCode)',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal)),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _navyColor)),
               ),
               const SizedBox(height: 8),
               const Text('Tunjukkan QR Ini ke Smart Container', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
@@ -1220,7 +1214,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
 
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: const Color(0xFFEEF3FF), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: _customBgColor, borderRadius: BorderRadius.circular(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1228,7 +1222,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Total Muatan Riil', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _navyColor)),
-                        Text('${_totalWeight.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.teal)),
+                        Text('${_totalWeight.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _navyColor)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -1253,10 +1247,11 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
           height: 44,
           child: OutlinedButton.icon(
             onPressed: _isLoading ? null : _openCameraScannerModal,
-            icon: const Icon(Icons.qr_code_scanner, color: _tealColor),
-            label: const Text('Pindai QR Fisik Mesin Kontainer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _tealColor)),
+            icon: const Icon(Icons.qr_code_scanner, color: _primaryYellow),
+            label: const Text('Pindai QR Fisik Mesin Kontainer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _primaryYellow)),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: _tealColor),
+              backgroundColor: _primaryDark,
+              side: const BorderSide(color: _primaryDark),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
@@ -1283,14 +1278,14 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         const SizedBox(height: 20),
         const CircleAvatar(
           radius: 36,
-          backgroundColor: Color(0xFF69F0AE),
+          backgroundColor: Colors.green,
           child: Icon(Icons.check, size: 40, color: Colors.white),
         ),
         const SizedBox(height: 16),
 
         const Text('Pekerjaan Berhasil Diselesaikan!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _navyColor)),
         const SizedBox(height: 4),
-        Text(_displayPrice, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.teal)),
+        Text(_displayPrice, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: _navyColor)),
         const SizedBox(height: 20),
 
         Container(
@@ -1320,10 +1315,10 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
           child: ElevatedButton(
             onPressed: () => context.go('/main'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _tealColor,
+              backgroundColor: _primaryDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Kembali ke Beranda', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Kembali ke Beranda', style: TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -1337,7 +1332,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
       children: [
         CircleAvatar(
           radius: 12,
-          backgroundColor: isDone ? Colors.teal : (isActive ? _tealColor : Colors.grey.shade300),
+          backgroundColor: isDone ? Colors.green : (isActive ? _navyColor : Colors.grey.shade300),
           child: isDone
               ? const Icon(Icons.check, size: 14, color: Colors.white)
               : Text('$stepNumber', style: TextStyle(fontSize: 10, color: isActive ? Colors.white : Colors.grey.shade700, fontWeight: FontWeight.bold)),
@@ -1348,7 +1343,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
           style: TextStyle(
             fontSize: 9,
             fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.normal,
-            color: isActive ? _tealColor : (isDone ? Colors.teal : Colors.grey),
+            color: isActive ? _navyColor : (isDone ? Colors.green : Colors.grey),
           ),
         ),
       ],
@@ -1359,7 +1354,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
     return Expanded(
       child: Container(
         height: 2,
-        color: _currentStep > stepNumber ? Colors.teal : Colors.grey.shade300,
+        color: _currentStep > stepNumber ? Colors.green : Colors.grey.shade300,
         margin: const EdgeInsets.symmetric(horizontal: 2),
       ),
     );
@@ -1403,7 +1398,7 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
         child: Stack(
           children: [
             Positioned.fill(child: imageWidget),
-            const Positioned(top: 4, right: 4, child: Icon(Icons.check_circle, color: Colors.teal, size: 16)),
+            const Positioned(top: 4, right: 4, child: Icon(Icons.check_circle, color: Colors.green, size: 16)),
             Positioned(
               bottom: 0,
               left: 0,
@@ -1450,7 +1445,6 @@ class _DalamPerjalananRumahScreenState extends State<DalamPerjalananRumahScreen>
   }
 }
 
-// --- WIDGET KOMPONEN INPUT BOBOT TIMBANGAN ---
 class _RealWeightInputCard extends StatefulWidget {
   final String title;
   final String subRate;
@@ -1515,7 +1509,7 @@ class _RealWeightInputCardState extends State<_RealWeightInputCard> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFEEF3FF), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: _customBgColor, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1523,7 +1517,7 @@ class _RealWeightInputCardState extends State<_RealWeightInputCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-              Text('@ ${widget.subRate}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _tealColor)),
+              Text('@ ${widget.subRate}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _navyColor)),
             ],
           ),
           const SizedBox(height: 8),
@@ -1562,17 +1556,17 @@ class _RealWeightInputCardState extends State<_RealWeightInputCard> {
               ElevatedButton(
                 onPressed: () => _updateWeight(widget.weight + 5.0),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan.shade100,
+                  backgroundColor: _primaryDark,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
-                child: const Text('+5kg', style: TextStyle(fontSize: 10, color: Color(0xFF178CA4), fontWeight: FontWeight.bold)),
+                child: const Text('+5kg', style: TextStyle(fontSize: 10, color: _primaryYellow, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: Text('Rp ${_formatCurrency(totalPayout)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal)),
+            child: Text('Rp ${_formatCurrency(totalPayout)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
           ),
         ],
       ),

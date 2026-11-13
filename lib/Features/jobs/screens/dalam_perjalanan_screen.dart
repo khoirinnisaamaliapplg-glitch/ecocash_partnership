@@ -18,6 +18,10 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
   final PartnerApiService _apiService = PartnerApiService();
   bool _isActionLoading = false;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   dynamic get _jobId => widget.jobData['id'] ?? widget.jobData['rawJob']?['id'];
 
   @override
@@ -32,9 +36,8 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
     }
   }
 
-  // Dialog Penentuan Muatan Pengosongan Parsial Mesin
   void _showEmptyingDialog(double machineWeight) {
-    const double vehicleLimit = 35.0; // Kapasitas maksimal motor
+    const double vehicleLimit = 35.0;
     double maxTake = machineWeight < vehicleLimit ? machineWeight : vehicleLimit;
     double selectedWeight = maxTake;
 
@@ -58,7 +61,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Konfirmasi Pengosongan Mesin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F2C59))),
+                  const Text('Konfirmasi Pengosongan Mesin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _navyColor)),
                   const SizedBox(height: 6),
                   Text(
                     'Tersedia di mesin: ${machineWeight.toStringAsFixed(1)} kg • Batas armada: ${vehicleLimit.toStringAsFixed(1)} kg',
@@ -68,7 +71,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${selectedWeight.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.primaryCyan)),
+                      Text('${selectedWeight.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: _navyColor)),
                       Text(
                         'Komisi: Rp ${estReward.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]}.")}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.green),
@@ -80,7 +83,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                     min: 5.0,
                     max: maxTake,
                     divisions: ((maxTake - 5.0) / 5.0).clamp(1, 10).toInt(),
-                    activeColor: AppColors.primaryCyan,
+                    activeColor: _navyColor,
                     onChanged: (val) {
                       setModalState(() => selectedWeight = val);
                     },
@@ -95,10 +98,10 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                         await _processEmptyingPickup(selectedWeight);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: _primaryDark,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('Buka Kompartemen & Muat Sampah', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text('Buka Kompartemen & Muat Sampah', style: TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -128,10 +131,9 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Muatan ${takenWeight.toStringAsFixed(1)} kg dinaikkan ke kendaraan! Menuju Pabrik Daur Ulang.'),
-            backgroundColor: Colors.teal,
+            backgroundColor: Colors.green,
           ),
         );
-        // Navigasi ke daftar tugas aktif
         context.go('/tugas');
       }
     } catch (_) {
@@ -155,10 +157,9 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Tiba di lokasi Smart Container! Pintu siap dibuka.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: Colors.green,
         ),
       );
-      // Tampilkan bottom sheet untuk menentukan berat muatan yang diangkut
       _showEmptyingDialog(40.0);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -189,15 +190,15 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Menuju Smart Container', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Menuju Smart Container', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
       body: Stack(
@@ -216,7 +217,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                 ),
                 PolylineLayer(
                   polylines: [
-                    Polyline(points: routePoints, strokeWidth: 4.5, color: const Color(0xFF00838F)),
+                    Polyline(points: routePoints, strokeWidth: 4.5, color: _navyColor),
                   ],
                 ),
                 MarkerLayer(
@@ -225,7 +226,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                       point: startLocation,
                       width: 40,
                       height: 40,
-                      child: const Icon(Icons.local_shipping, color: Color(0xFF0F2C59), size: 36),
+                      child: const Icon(Icons.local_shipping, color: _navyColor, size: 36),
                     ),
                     Marker(
                       point: destinationLocation,
@@ -265,7 +266,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(12)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -273,8 +274,8 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: AppColors.primaryCyan.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                              child: const Icon(Icons.recycling, color: AppColors.primaryCyan, size: 20),
+                              decoration: BoxDecoration(color: _navyColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.recycling, color: _navyColor, size: 20),
                             ),
                             const SizedBox(width: 12),
                             Column(
@@ -292,7 +293,7 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                           children: [
                             const Text('Estimasi Muatan', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                             const SizedBox(height: 2),
-                            Text(volume, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryCyan)),
+                            Text(volume, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor)),
                           ],
                         ),
                       ],
@@ -305,12 +306,12 @@ class _DalamPerjalananScreenState extends State<DalamPerjalananScreen> {
                     child: ElevatedButton(
                       onPressed: _isActionLoading ? null : _handleCheckIn,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: _primaryDark,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isActionLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Sampai di Mesin & Buka Kontainer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2))
+                          : const Text('Sampai di Mesin & Buka Kontainer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow)),
                     ),
                   ),
                 ],

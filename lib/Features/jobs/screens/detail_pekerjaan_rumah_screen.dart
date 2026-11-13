@@ -18,8 +18,9 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
   final PartnerApiService _apiService = PartnerApiService();
   bool _isLoading = false;
 
-  static const Color _navyColor = Color(0xFF0B3C5D);
-  static const Color _tealColor = Color(0xFF178CA4);
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
 
   Map get _rawJob {
     if (widget.jobData['rawJob'] is Map) {
@@ -140,7 +141,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan penjemputan warga berhasil diterima!'),
-          backgroundColor: Colors.teal,
+          backgroundColor: Colors.green,
         ),
       );
       context.push('/dalam-perjalanan-rumah', extra: updatedJobData);
@@ -170,7 +171,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("KYC_KTP_PENDING")) {
       title = "KTP Menunggu Verifikasi";
       icon = Icons.pending_actions_rounded;
-      iconColor = _tealColor;
+      iconColor = _navyColor;
       buttonText = "Cek Dokumen";
       onAction = () {
         Navigator.pop(context);
@@ -206,7 +207,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_PENDING")) {
       title = "Kendaraan Menunggu Verifikasi";
       icon = Icons.hourglass_top_rounded;
-      iconColor = _tealColor;
+      iconColor = _navyColor;
       buttonText = "Cek Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -233,7 +234,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("ACADEMY_NOT_COMPLETED")) {
       title = "Pelatihan Wajib Belum Selesai";
       icon = Icons.school_outlined;
-      iconColor = _tealColor;
+      iconColor = _navyColor;
       buttonText = "Buka Academy";
       onAction = () {
         Navigator.pop(context);
@@ -268,7 +269,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       };
     }
 
-    // Bersihkan prefix kode error agar teks pesan rapi
     description = description.replaceAll(RegExp(r'^[A-Z_]+:\s*'), '');
 
     showDialog(
@@ -290,11 +290,11 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryCyan,
+              backgroundColor: _primaryDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onAction ?? () => Navigator.pop(ctx),
-            child: Text(buttonText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(buttonText, style: const TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -337,17 +337,17 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     final String status = _jobStatus;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Detail Pekerjaan',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: false,
       ),
@@ -363,12 +363,12 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0F7FA),
+                        color: _navyColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         status == 'COMPLETED' ? 'Selesai' : 'Pekerjaan Tersedia',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryCyan),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _navyColor),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -500,15 +500,15 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6F8),
+                        color: const Color(0xFFF8F9FA),
                         borderRadius: BorderRadius.circular(12),
                         border: const Border(
-                          left: BorderSide(color: Color(0xFF007A5E), width: 4),
+                          left: BorderSide(color: _navyColor, width: 4),
                         ),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline, color: Color(0xFF007A5E), size: 22),
+                          Icon(Icons.info_outline, color: _navyColor, size: 22),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -540,14 +540,14 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F6F8),
+        color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade300, width: 0.8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: _tealColor),
+          Icon(icon, size: 14, color: _navyColor),
           const SizedBox(width: 6),
           Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
         ],
@@ -564,11 +564,11 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            side: BorderSide(color: Colors.grey.shade400),
+            side: const BorderSide(color: _primaryDark),
           ),
           child: const Text(
             'Kembali',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _primaryDark),
           ),
         ),
       );
@@ -582,13 +582,13 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         child: ElevatedButton(
           onPressed: () => context.push('/dalam-perjalanan-rumah', extra: widget.jobData),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _tealColor,
+            backgroundColor: _primaryDark,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,
           ),
           child: const Text(
             'Lanjutkan Pekerjaan',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _primaryYellow),
           ),
         ),
       );
@@ -604,9 +604,9 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
               onPressed: _isLoading ? null : () => context.pop(),
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                side: const BorderSide(color: _navyColor, width: 1.2),
+                side: const BorderSide(color: _primaryDark, width: 1.2),
               ),
-              child: const Text('Tolak', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _navyColor)),
+              child: const Text('Tolak', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryDark)),
             ),
           ),
         ),
@@ -618,7 +618,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handleAcceptJob,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _tealColor,
+                backgroundColor: _primaryDark,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
@@ -626,9 +626,9 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2),
                     )
-                  : const Text('Terima Pekerjaan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                  : const Text('Terima Pekerjaan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow)),
             ),
           ),
         ),

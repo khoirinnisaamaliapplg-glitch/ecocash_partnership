@@ -15,6 +15,10 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
   final TextEditingController _namaController = TextEditingController();
   final PartnerApiService _apiService = PartnerApiService();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   String? _selectedBank;
   bool _isLoading = false;
   bool _hasExistingBank = false; // Flag status rekening/PIN existing
@@ -132,7 +136,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                        borderSide: const BorderSide(color: _primaryDark, width: 2),
                       ),
                     ),
                   ),
@@ -153,13 +157,13 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                         _submitTambahRekening(pin); // Jalankan submit dengan PIN
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: _primaryDark,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                       child: Text(
                         _hasExistingBank ? 'Konfirmasi & Simpan' : 'Simpan PIN & Rekening',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow),
                       ),
                     ),
                   ),
@@ -233,16 +237,16 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: _isLoading ? null : () => context.pop(),
         ),
         title: const Text(
           'Tambah Rekening',
           style: TextStyle(
-            color: Colors.white,
+            color: _navyColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -257,10 +261,10 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.primaryCyan.withValues(alpha: 0.1),
+                color: _primaryYellow.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.primaryCyan.withValues(alpha: 0.3),
+                  color: _primaryYellow,
                 ),
               ),
               child: const Row(
@@ -268,7 +272,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: AppColors.primaryCyan,
+                    color: _navyColor,
                     size: 20,
                   ),
                   SizedBox(width: 10),
@@ -422,7 +426,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _onSavePressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCyan,
+                  backgroundColor: _primaryDark,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -433,7 +437,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                         height: 24,
                         width: 24,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: _primaryYellow,
                           strokeWidth: 2.5,
                         ),
                       )
@@ -442,7 +446,7 @@ class _TambahRekeningScreenState extends State<TambahRekeningScreen> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: _primaryYellow,
                         ),
                       ),
               ),

@@ -6,20 +6,24 @@ class DetailQrScreen extends StatelessWidget {
 
   const DetailQrScreen({super.key, this.kodeKontainer = 'EC-BGD-021'});
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _appBackground = Color(0xFFF8F9FA);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'QR Code Kontainer',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _darkNavy, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: Center(
@@ -42,7 +46,7 @@ class DetailQrScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.qr_code_2, size: 140, color: AppColors.primaryCyan),
+                const Icon(Icons.qr_code_2, size: 140, color: _darkNavy),
                 const SizedBox(height: 16),
                 Text(
                   kodeKontainer,

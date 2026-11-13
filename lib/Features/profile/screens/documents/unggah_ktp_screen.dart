@@ -20,6 +20,8 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
   XFile? _pickedXFile;
   File? _selectedImage;
   bool _isUploading = false;
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
   static const Color _navyColor = Color(0xFF0F2C59);
 
   Future<void> _pickImage(ImageSource source) async {
@@ -146,10 +148,10 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: _isUploading
               ? null
               : () {
@@ -162,7 +164,7 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
         ),
         title: const Text(
           'Unggah Dokumen',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -226,10 +228,10 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(
-                              color: _navyColor,
+                              color: _primaryDark,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+                            child: const Icon(Icons.camera_alt, color: _primaryYellow, size: 24),
                           ),
                           const SizedBox(height: 12),
                           const Text(
@@ -256,7 +258,7 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
                 children: [
                   Row(
                     children: const [
-                      Icon(Icons.info_outline, color: AppColors.primaryCyan, size: 20),
+                      Icon(Icons.info_outline, color: _navyColor, size: 20),
                       SizedBox(width: 8),
                       Text(
                         'Panduan Foto',
@@ -280,7 +282,7 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
               child: ElevatedButton(
                 onPressed: _isUploading ? null : _submitUploadKtp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88A8),
+                  backgroundColor: _primaryDark,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
@@ -288,11 +290,11 @@ class _UnggahKtpScreenState extends State<UnggahKtpScreen> {
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2.5),
                       )
                     : const Text(
                         'Simpan & Unggah Dokumen',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
               ),
             ),

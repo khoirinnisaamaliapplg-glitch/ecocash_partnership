@@ -17,6 +17,11 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
   String? _errorMessage;
   Map<String, dynamic>? _dashboardData;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _appBackground = Color(0xFFF8F9FA);
+
   @override
   void initState() {
     super.initState();
@@ -50,16 +55,16 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF4F6F8),
+        backgroundColor: _appBackground,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryCyan),
+          child: CircularProgressIndicator(color: _darkNavy),
         ),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF4F6F8),
+        backgroundColor: _appBackground,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +74,7 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
               Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
               const SizedBox(height: 16),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+                style: ElevatedButton.styleFrom(backgroundColor: _darkNavy),
                 onPressed: _fetchScoreData,
                 child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
               ),
@@ -89,17 +94,17 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
     final int remainingPoints = (maxScore - score).clamp(0, maxScore);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Skor Partner',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _darkNavy, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
@@ -112,10 +117,10 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                   Container(
                     width: 6,
                     height: 6,
-                    decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: _ecoGreen, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 4),
-                  const Text('Online', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Text('Online', style: TextStyle(color: _darkNavy, fontSize: 11, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -124,7 +129,7 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchScoreData,
-        color: AppColors.primaryCyan,
+        color: _darkNavy,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20.0),
@@ -146,8 +151,8 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: AppColors.primaryCyan.withOpacity(0.1), shape: BoxShape.circle),
-                      child: const Icon(Icons.military_tech, size: 48, color: AppColors.primaryCyan),
+                      decoration: BoxDecoration(color: _darkNavy.withOpacity(0.1), shape: BoxShape.circle),
+                      child: const Icon(Icons.military_tech, size: 48, color: _darkNavy),
                     ),
                     const SizedBox(height: 16),
                     Text('Level $level', style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
@@ -156,7 +161,7 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('$score', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primaryCyan)),
+                        Text('$score', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: _darkNavy)),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 6, left: 4),
                           child: Text('/$maxScore', style: const TextStyle(fontSize: 16, color: AppColors.textSecondary)),
@@ -171,7 +176,7 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                       child: LinearProgressIndicator(
                         value: progressValue,
                         backgroundColor: const Color(0xFFE0E0E0),
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryCyan),
+                        valueColor: const AlwaysStoppedAnimation<Color>(_ecoGreen),
                         minHeight: 8,
                       ),
                     ),
@@ -188,15 +193,15 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
               ),
               const SizedBox(height: 24),
 
-              // --- 2. BENEFIT LEVEL (Bonus Pendapatan 5% Dihapus) ---
+              // --- 2. BENEFIT LEVEL ---
               Text('Benefit Level $level', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 12),
               _buildBenefitItem(
                 Icons.star_outline,
-                const Color(0xFF1565C0),
+                _darkNavy,
                 'Prioritas Tugas',
                 'Akses lebih awal ke tugas-tugas penjemputan bervolume tinggi.',
-                const Color(0xFF1565C0),
+                _darkNavy,
               ),
               const SizedBox(height: 24),
 
@@ -212,25 +217,25 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildPerformanceRow(Icons.recycling, 'Kualitas Material', 'Akurasi pemilahan sampah', '${(score * 0.35).round()}', '300', Colors.green),
+                    _buildPerformanceRow(Icons.recycling, 'Kualitas Material', 'Akurasi pemilahan sampah', '${(score * 0.35).round()}', '300', _ecoGreen),
                     const Divider(height: 24, color: Color(0xFFEEEEEE)),
-                    _buildPerformanceRow(Icons.local_shipping_outlined, 'Kecepatan Penjemputan', 'Ketepatan waktu tiba di lokasi', '${(score * 0.25).round()}', '250', Colors.green),
+                    _buildPerformanceRow(Icons.local_shipping_outlined, 'Kecepatan Penjemputan', 'Ketepatan waktu tiba di lokasi', '${(score * 0.25).round()}', '250', _ecoGreen),
                     const Divider(height: 24, color: Color(0xFFEEEEEE)),
                     _buildPerformanceRow(Icons.thumb_up_outlined, 'Rating Pelanggan', 'Kepuasan pengguna aplikasi', '${(score * 0.20).round()}', '200', Colors.orange),
                     const Divider(height: 24, color: Color(0xFFEEEEEE)),
-                    _buildPerformanceRow(Icons.event_available_outlined, 'Kehadiran', 'Konsistensi aktif mingguan', '${(score * 0.20).round()}', '250', Colors.green),
+                    _buildPerformanceRow(Icons.event_available_outlined, 'Kehadiran', 'Konsistensi aktif mingguan', '${(score * 0.20).round()}', '250', _ecoGreen),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
-              // --- 4. TIPS LEVEL DENGAN TOMBOL ---
+              // --- 4. TIPS LEVEL ---
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryCyan.withOpacity(0.1),
+                  color: _darkNavy.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryCyan.withOpacity(0.3)),
+                  border: Border.all(color: _darkNavy.withOpacity(0.2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,13 +243,13 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.lightbulb_outline, color: AppColors.primaryCyan),
+                        const Icon(Icons.lightbulb_outline, color: _darkNavy),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Tips Meningkatkan Skor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryCyan)),
+                              const Text('Tips Meningkatkan Skor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _darkNavy)),
                               const SizedBox(height: 4),
                               Text(
                                 remainingPoints > 0
@@ -264,7 +269,7 @@ class _SkorPartnerScreenState extends State<SkorPartnerScreen> {
                       child: ElevatedButton(
                         onPressed: () => context.push('/daftar-pekerjaan', extra: {'fromDashboard': true}),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1B2B48),
+                          backgroundColor: _darkNavy,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           elevation: 0,
                         ),

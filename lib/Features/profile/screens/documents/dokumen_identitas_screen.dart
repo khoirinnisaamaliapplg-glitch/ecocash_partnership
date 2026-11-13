@@ -21,6 +21,7 @@ class _DokumenIdentitasScreenState extends State<DokumenIdentitasScreen> {
   Map<String, dynamic>? _partnerProfile;
   List<dynamic> _myDocuments = [];
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
   static const Color _navyColor = Color(0xFF0F2C59);
 
   @override
@@ -123,10 +124,10 @@ class _DokumenIdentitasScreenState extends State<DokumenIdentitasScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -137,12 +138,12 @@ class _DokumenIdentitasScreenState extends State<DokumenIdentitasScreen> {
         ),
         title: const Text(
           'Dokumen Identitas',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _navyColor))
           : RefreshIndicator(
               onRefresh: _fetchDokumenStatus,
               child: SingleChildScrollView(
@@ -372,13 +373,13 @@ class _DokumenIdentitasScreenState extends State<DokumenIdentitasScreen> {
     if (status == 'APPROVED' || status == 'VERIFIED') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: const Color(0xFFD0F4F4), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: _primaryYellow.withOpacity(0.25), borderRadius: BorderRadius.circular(12)),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, size: 12, color: AppColors.primaryCyan),
+            Icon(Icons.check_circle, size: 12, color: _navyColor),
             SizedBox(width: 4),
-            Text('Terverifikasi', style: TextStyle(fontSize: 11, color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+            Text('Terverifikasi', style: TextStyle(fontSize: 11, color: _navyColor, fontWeight: FontWeight.bold)),
           ],
         ),
       );

@@ -118,17 +118,17 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
         : _maxVehicleCapacity;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: const Color(0xFFFFE600),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C1E)),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Verifikasi & Muat Sampah',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: Color(0xFF1C1C1E), fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: SingleChildScrollView(
@@ -187,11 +187,11 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Tentukan Muatan Diangkut', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F2C59))),
+                      const Text('Tentukan Muatan Diangkut', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1E))),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: Colors.cyan.shade50, borderRadius: BorderRadius.circular(8)),
-                        child: Text('Tersedia: ${_availableInMachine.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryCyan)),
+                        decoration: BoxDecoration(color: const Color(0xFFFFE600).withOpacity(0.25), borderRadius: BorderRadius.circular(8)),
+                        child: Text('Tersedia: ${_availableInMachine.toStringAsFixed(1)} kg', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1E))),
                       ),
                     ],
                   ),
@@ -206,7 +206,7 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
                           const SizedBox(height: 2),
                           Text(
                             '${_selectedWeight.toStringAsFixed(1)} kg',
-                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF0F2C59)),
+                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1E)),
                           ),
                         ],
                       ),
@@ -217,7 +217,7 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
                           const SizedBox(height: 2),
                           Text(
                             'Rp ${_formatCurrency(estimatedReward)}',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E88A8)),
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1E)),
                           ),
                         ],
                       ),
@@ -229,7 +229,7 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
                     min: 5.0,
                     max: maxAllowed,
                     divisions: ((maxAllowed - 5.0) / 5.0).clamp(1, 10).toInt(),
-                    activeColor: AppColors.primaryCyan,
+                    activeColor: const Color(0xFF1C1C1E),
                     onChanged: (val) {
                       setState(() => _selectedWeight = val);
                     },
@@ -255,17 +255,17 @@ class _MaterialVerificationScreenState extends State<MaterialVerificationScreen>
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _selesaikanPengambilanMuatan,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryCyan,
+                  backgroundColor: const Color(0xFF1C1C1E),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFFFFE600), strokeWidth: 2))
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Muat ke Armada & Menuju Recycler', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text('Muat ke Armada & Menuju Recycler', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFFFE600))),
                           SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                          Icon(Icons.arrow_forward, color: Color(0xFFFFE600), size: 18),
                         ],
                       ),
               ),

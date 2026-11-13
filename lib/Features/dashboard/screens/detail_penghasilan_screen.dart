@@ -19,7 +19,13 @@ class _DetailPenghasilanScreenState extends State<DetailPenghasilanScreen> {
 
   num _monthlyEarnings = 0;
   num _balance = 0;
-  List<Map<String, dynamic>> _recentTransactions = [];
+  List<dynamic> _recentTransactions = [];
+
+  // EcoCash Color Palette
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _appBackground = Color(0xFFF8F9FA);
 
   @override
   void initState() {
@@ -51,7 +57,7 @@ class _DetailPenghasilanScreenState extends State<DetailPenghasilanScreen> {
       }
 
       if (jobsRes['success'] == true && jobsRes['data'] is List) {
-        final List rawJobs = jobsRes['data'];
+        final List rawJobs = jobsRes['data'] as List;
         _recentTransactions = rawJobs.map((item) {
           final job = item['job'] ?? {};
           final String title = job['title'] ?? 'Penjemputan Sampah';
@@ -65,9 +71,8 @@ class _DetailPenghasilanScreenState extends State<DetailPenghasilanScreen> {
             totalKg += double.tryParse((w['handoverWeight'] ?? w['pickupWeight'] ?? 0).toString()) ?? 0.0;
           }
 
-          // Ganti baris perhitungan 'earning' menjadi:
-final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualReward'])?.toString() ?? '') 
-    ?? (20000 + (totalKg * 1000)).toInt();
+          final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualReward'])?.toString() ?? '') 
+              ?? (20000 + (totalKg * 1000)).toInt();
 
           String dateStr = (item['completedAt'] ?? item['assignedAt'] ?? '').toString();
           if (dateStr.isNotEmpty) {
@@ -116,22 +121,22 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Detail Penghasilan',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _darkNavy, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          ? const Center(child: CircularProgressIndicator(color: _darkNavy))
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -142,7 +147,7 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
                       Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+                        style: ElevatedButton.styleFrom(backgroundColor: _darkNavy),
                         onPressed: _fetchEarningsData,
                         child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
                       ),
@@ -151,26 +156,26 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
                 )
               : RefreshIndicator(
                   onRefresh: _fetchEarningsData,
-                  color: AppColors.primaryCyan,
+                  color: _darkNavy,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(20.0),
                     child: Column(
                       children: [
-                        // --- KARTU TOTAL PENGHASILAN ---
+                        // --- KARTU TOTAL PENGHASILAN (GRADASI KUNING) ---
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF00B4D8), AppColors.primaryCyan],
+                              colors: [_primaryYellow, Color(0xFFFFC700)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primaryCyan.withOpacity(0.3),
+                                color: _primaryYellow.withOpacity(0.4),
                                 blurRadius: 10,
                                 offset: const Offset(0, 5),
                               ),
@@ -179,13 +184,19 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Total Penghasilan Bulan Ini',
-                                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              const Text(
+                                'Total Penghasilan Bulan Ini',
+                                style: TextStyle(
+                                  color: _darkNavy,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               Text(
                                 _formatCurrency(_monthlyEarnings),
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: _darkNavy,
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -193,15 +204,18 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.account_balance_wallet_outlined,
-                                      color: Colors.white, size: 16),
+                                  const Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    color: _darkNavy,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Saldo Dompet: ${_formatCurrency(_balance)}',
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: _darkNavy,
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -305,11 +319,11 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
                                   separatorBuilder: (_, __) =>
                                       const Divider(height: 24, color: Color(0xFFEEEEEE)),
                                   itemBuilder: (context, index) {
-                                    final tx = _recentTransactions[index];
+                                    final tx = _recentTransactions[index] as Map;
                                     return _buildTransactionItem(
-                                      tx['title'],
-                                      tx['subtitle'],
-                                      tx['amount'],
+                                      tx['title']?.toString() ?? '',
+                                      tx['subtitle']?.toString() ?? '',
+                                      tx['amount']?.toString() ?? '',
                                     );
                                   },
                                 ),
@@ -331,7 +345,7 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
           width: 24,
           height: (heightPercentage / 100) * 90,
           decoration: BoxDecoration(
-            color: isHighlighted ? AppColors.primaryCyan : const Color(0xFFE0E0E0),
+            color: isHighlighted ? _darkNavy : const Color(0xFFE0E0E0),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
@@ -382,14 +396,14 @@ final int earning = int.tryParse((item['actualReward'] ?? item['job']?['actualRe
           children: [
             Text(amount,
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green)),
+                    fontWeight: FontWeight.bold, fontSize: 13, color: _ecoGreen)),
             const SizedBox(height: 2),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                  color: Colors.green.shade50, borderRadius: BorderRadius.circular(4)),
+                  color: const Color(0xFFE6F7E9), borderRadius: BorderRadius.circular(4)),
               child: const Text('Selesai',
-                  style: TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 9, color: _ecoGreen, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

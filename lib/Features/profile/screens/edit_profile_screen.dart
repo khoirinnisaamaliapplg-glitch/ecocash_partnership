@@ -20,6 +20,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final PartnerApiService _apiService = PartnerApiService();
   final ImagePicker _picker = ImagePicker();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   XFile? _selectedXFile;
   Uint8List? _imageBytes;
   String? _avatarUrl; // State URL foto dari API Backend
@@ -143,7 +147,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
               ListTile(
-                leading: const Icon(Icons.camera_alt, color: AppColors.primaryCyan),
+                leading: const Icon(Icons.camera_alt, color: _navyColor),
                 title: const Text('Ambil dari Kamera'),
                 onTap: () async {
                   Navigator.pop(context);
@@ -161,7 +165,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.primaryCyan),
+                leading: const Icon(Icons.photo_library, color: _navyColor),
                 title: const Text('Pilih dari Galeri'),
                 onTap: () async {
                   Navigator.pop(context);
@@ -247,7 +251,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
+        body: Center(child: CircularProgressIndicator(color: _navyColor)),
       );
     }
 
@@ -276,15 +280,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Edit Profil',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -305,7 +309,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
-                        border: Border.all(color: AppColors.primaryCyan, width: 2),
+                        border: Border.all(color: _primaryYellow, width: 2),
                       ),
                       child: ClipOval(
                         child: _imageBytes != null
@@ -338,11 +342,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryCyan,
+                          color: _primaryDark,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                        child: const Icon(Icons.camera_alt, color: _primaryYellow, size: 16),
                       ),
                     ),
                   ],
@@ -476,7 +480,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _simpanPerubahan,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF28859B),
+                  backgroundColor: _primaryDark,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -485,11 +489,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2),
                       )
                     : const Text(
                         'Simpan Perubahan',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: _primaryYellow),
                       ),
               ),
             ),

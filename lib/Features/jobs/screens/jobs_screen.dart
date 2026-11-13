@@ -23,9 +23,10 @@ class _JobsScreenState extends State<JobsScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
 
-  static const Color _navyColor = Color(0xFF0B3C5D);
-  static const Color _tealColor = Color(0xFF178CA4);
-  static const Color _cyanHeader = Color(0xFF00C7C9);
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _tealAccent = Color(0xFF00897B);
 
   @override
   void initState() {
@@ -140,21 +141,21 @@ class _JobsScreenState extends State<JobsScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: _cyanHeader,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         automaticallyImplyLeading: false,
         leading: widget.isFromDashboard
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: _primaryDark),
                 onPressed: () => context.pop(),
               )
             : null,
         title: const Text(
           'Pekerjaan Mitra',
           style: TextStyle(
-            color: Colors.white,
+            color: _primaryDark,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -205,10 +206,10 @@ class _JobsScreenState extends State<JobsScreen> {
 
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: _cyanHeader))
+                ? const Center(child: CircularProgressIndicator(color: _primaryDark))
                 : RefreshIndicator(
                     onRefresh: _fetchJobs,
-                    color: _cyanHeader,
+                    color: _primaryDark,
                     child: filteredJobs.isEmpty
                         ? ListView(
                             children: const [
@@ -256,7 +257,7 @@ class _JobsScreenState extends State<JobsScreen> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: isSelected ? _cyanHeader : Colors.transparent,
+                color: isSelected ? _darkNavy : Colors.transparent,
                 width: 3.0,
               ),
             ),
@@ -267,7 +268,7 @@ class _JobsScreenState extends State<JobsScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? _cyanHeader : Colors.grey.shade500,
+              color: isSelected ? _darkNavy : Colors.grey.shade500,
             ),
           ),
         ),
@@ -283,10 +284,10 @@ class _JobsScreenState extends State<JobsScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? _navyColor : Colors.white,
+          color: isSelected ? _primaryYellow : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? _navyColor : Colors.grey.shade300,
+            color: isSelected ? _primaryYellow : Colors.grey.shade300,
           ),
         ),
         child: Text(
@@ -294,7 +295,7 @@ class _JobsScreenState extends State<JobsScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : Colors.grey.shade700,
+            color: isSelected ? _primaryDark : Colors.grey.shade700,
           ),
         ),
       ),
@@ -369,7 +370,7 @@ class _JobsScreenState extends State<JobsScreen> {
     } else {
       final String weightStr = job['volume'] ?? (job['estimatedWeight'] != null ? '${job['estimatedWeight']} kg' : '');
       final String tag = (job['materialTag'] ?? job['materialCategory'] ?? 'Material Sampah').toString();
-      
+
       if (weightStr.isNotEmpty) {
         materialChips.add(_buildMaterialChip(Icons.recycling, '$tag $weightStr'.trim()));
       } else {
@@ -400,12 +401,12 @@ class _JobsScreenState extends State<JobsScreen> {
                 children: [
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: Colors.teal.shade100,
+                    backgroundColor: const Color(0xFFE8ECF2),
                     backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
                     child: avatarUrl.isEmpty
                         ? Text(
                             userName.isNotEmpty ? userName[0].toUpperCase() : 'W',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal),
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: _darkNavy),
                           )
                         : null,
                   ),
@@ -416,7 +417,7 @@ class _JobsScreenState extends State<JobsScreen> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: isCompleted ? Colors.green : Colors.teal,
+                        color: isCompleted ? Colors.green : _tealAccent,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
@@ -434,18 +435,18 @@ class _JobsScreenState extends State<JobsScreen> {
                         Flexible(
                           child: Text(
                             userName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _primaryDark),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.circle, color: isCompleted ? Colors.green : Colors.teal, size: 8),
+                        Icon(Icons.circle, color: isCompleted ? Colors.green : _tealAccent, size: 8),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 13, color: Colors.grey),
+                        const Icon(Icons.location_on_outlined, size: 13, color: _tealAccent),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
@@ -473,7 +474,7 @@ class _JobsScreenState extends State<JobsScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isCompleted ? Colors.green : Colors.teal,
+                      color: isCompleted ? Colors.green : _tealAccent,
                     ),
                   ),
                 ],
@@ -494,7 +495,7 @@ class _JobsScreenState extends State<JobsScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFE8EEFF),
+              color: isCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFF5F6F8),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -502,7 +503,7 @@ class _JobsScreenState extends State<JobsScreen> {
                 Icon(
                   isCompleted ? Icons.check_circle : Icons.center_focus_strong,
                   size: 18,
-                  color: isCompleted ? Colors.green : Colors.teal,
+                  color: isCompleted ? Colors.green : _tealAccent,
                 ),
                 const SizedBox(width: 8),
                 Column(
@@ -513,12 +514,12 @@ class _JobsScreenState extends State<JobsScreen> {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: isCompleted ? Colors.green : Colors.teal,
+                        color: isCompleted ? Colors.green : _tealAccent,
                       ),
                     ),
                     Text(
                       isCompleted ? 'SELESAI & SALDO BERHASIL MASUK' : 'PRIORITAS UTAMA',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _primaryDark),
                     ),
                   ],
                 ),
@@ -548,13 +549,13 @@ class _JobsScreenState extends State<JobsScreen> {
                         )
                       : ElevatedButton.icon(
                           onPressed: () => _navigateToDetail(context, job, true),
-                          icon: const Icon(Icons.navigation_outlined, size: 18, color: Colors.white),
+                          icon: const Icon(Icons.navigation_outlined, size: 18, color: _primaryYellow),
                           label: Text(
                             isInProgress ? 'Lanjutkan Pekerjaan' : 'Terima & Mulai Rute',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _primaryYellow),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _tealColor,
+                            backgroundColor: _primaryDark,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             elevation: 0,
                           ),
@@ -566,13 +567,13 @@ class _JobsScreenState extends State<JobsScreen> {
                 height: 42,
                 width: 42,
                 decoration: BoxDecoration(
-                  color: isCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFE8EEFF),
+                  color: isCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFF5F6F8),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: IconButton(
                   icon: Icon(
                     Icons.chat_bubble_outline,
-                    color: isCompleted ? Colors.green : _tealColor,
+                    color: isCompleted ? Colors.green : _primaryDark,
                     size: 20,
                   ),
                   onPressed: () => context.push('/chat/room/$jobId', extra: job),
@@ -636,7 +637,7 @@ class _JobsScreenState extends State<JobsScreen> {
                 ),
                 child: Text(
                   categoryTag,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _primaryDark),
                 ),
               ),
               if (isCompleted)
@@ -660,7 +661,7 @@ class _JobsScreenState extends State<JobsScreen> {
 
           Text(
             title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryDark),
           ),
           const SizedBox(height: 4),
 
@@ -706,7 +707,7 @@ class _JobsScreenState extends State<JobsScreen> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: isCompleted ? Colors.green : _navyColor,
+                      color: isCompleted ? Colors.green : _tealAccent,
                     ),
                   ),
                 ],
@@ -730,7 +731,7 @@ class _JobsScreenState extends State<JobsScreen> {
                     : ElevatedButton(
                         onPressed: () => _navigateToDetail(context, job, false),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _tealColor,
+                          backgroundColor: _primaryDark,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           elevation: 0,
@@ -738,7 +739,7 @@ class _JobsScreenState extends State<JobsScreen> {
                         child: Text(
                           isInProgress ? 'Lanjut\nTugas' : 'Terima\nPekerjaan',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, height: 1.1),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _primaryYellow, height: 1.1),
                         ),
                       ),
               ),
@@ -753,15 +754,15 @@ class _JobsScreenState extends State<JobsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFEBF3F5),
+        color: const Color(0xFFF5F6F8),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: _navyColor),
+          Icon(icon, size: 12, color: _tealAccent),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _navyColor)),
+          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _primaryDark)),
         ],
       ),
     );
@@ -773,7 +774,7 @@ class _JobsScreenState extends State<JobsScreen> {
       children: [
         Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _primaryDark)),
       ],
     );
   }

@@ -10,25 +10,29 @@ class PengaturanNotifikasiScreen extends StatefulWidget {
 }
 
 class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen> {
-  // Status toggle sesuai dengan rancangan dokumen[cite: 1]
-  bool _notifTugasBaru = true;   // Tugas Baru (Aktif)[cite: 1]
-  bool _notifPembayaran = true;  // Pembayaran (Aktif)[cite: 1]
-  bool _notifPromo = false;      // Promo & Berita (Non-aktif)[cite: 1]
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
+  // Status toggle sesuai dengan rancangan dokumen
+  bool _notifTugasBaru = true;   // Tugas Baru (Aktif)
+  bool _notifPembayaran = true;  // Pembayaran (Aktif)
+  bool _notifPromo = false;      // Promo & Berita (Non-aktif)
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Pengaturan Notifikasi',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
       ),
@@ -37,14 +41,14 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- DESKRIPSI HEADER ---[cite: 1]
+            // --- DESKRIPSI HEADER ---
             const Text(
               'Kelola preferensi notifikasi Anda agar selalu mendapatkan informasi terbaru mengenai aktivitas di EcoCash Partner.',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 20),
 
-            // --- KARTU OPSI 1: TUGAS BARU ---[cite: 1]
+            // --- KARTU OPSI 1: TUGAS BARU ---
             _buildNotificationCard(
               icon: Icons.assignment_outlined,
               title: 'Tugas Baru',
@@ -58,7 +62,7 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
             ),
             const SizedBox(height: 12),
 
-            // --- KARTU OPSI 2: PEMBAYARAN ---[cite: 1]
+            // --- KARTU OPSI 2: PEMBAYARAN ---
             _buildNotificationCard(
               icon: Icons.account_balance_wallet_outlined,
               title: 'Pembayaran',
@@ -72,7 +76,7 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
             ),
             const SizedBox(height: 12),
 
-            // --- KARTU OPSI 3: PROMO & BERITA ---[cite: 1]
+            // --- KARTU OPSI 3: PROMO & BERITA ---
             _buildNotificationCard(
               icon: Icons.campaign_outlined,
               title: 'Promo & Berita',
@@ -86,7 +90,7 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
             ),
             const SizedBox(height: 28),
 
-            // --- TOMBOL SIMPAN PENGATURAN (POSISI DI KANAN) ---[cite: 1]
+            // --- TOMBOL SIMPAN PENGATURAN (POSISI DI KANAN) ---
             Align(
               alignment: Alignment.centerRight,
               child: SizedBox(
@@ -99,14 +103,14 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
                     context.pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryCyan,
+                    backgroundColor: _primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: 0,
                   ),
                   child: const Text(
                     'Simpan Pengaturan',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow),
                   ),
                 ),
               ),
@@ -172,8 +176,8 @@ class _PengaturanNotifikasiScreenState extends State<PengaturanNotifikasiScreen>
           // Tombol Switch di Kanan
           Switch(
             value: value,
-            activeColor: Colors.white,
-            activeTrackColor: AppColors.primaryCyan,
+            activeColor: _primaryYellow,
+            activeTrackColor: _primaryDark,
             inactiveThumbColor: Colors.grey.shade400,
             inactiveTrackColor: Colors.grey.shade200,
             onChanged: onChanged,

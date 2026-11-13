@@ -19,6 +19,10 @@ class _ChatCsScreenState extends State<ChatCsScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   IO.Socket? _socket;
   String? _roomId;
   int? _userId;
@@ -217,32 +221,32 @@ class _ChatCsScreenState extends State<ChatCsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
             const CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.support_agent, color: AppColors.primaryCyan, size: 18),
+              backgroundColor: _primaryDark,
+              child: Icon(Icons.support_agent, color: _primaryYellow, size: 18),
             ),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('Customer Support', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                Text('CS Online • Respons rata-rata < 5 menit', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                Text('Customer Support', style: TextStyle(color: _navyColor, fontSize: 14, fontWeight: FontWeight.bold)),
+                Text('CS Online • Respons rata-rata < 5 menit', style: TextStyle(color: _navyColor, fontSize: 10)),
               ],
             ),
           ],
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _navyColor))
           : Column(
               children: [
                 Expanded(
@@ -277,7 +281,7 @@ class _ChatCsScreenState extends State<ChatCsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     child: Row(
                       children: [
-                        const Icon(Icons.image, color: AppColors.primaryCyan, size: 20),
+                        const Icon(Icons.image, color: _navyColor, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -319,9 +323,9 @@ class _ChatCsScreenState extends State<ChatCsScreen> {
                       ),
                       const SizedBox(width: 8),
                       CircleAvatar(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: _primaryDark,
                         child: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white, size: 16),
+                          icon: const Icon(Icons.send, color: _primaryYellow, size: 16),
                           onPressed: _sendMessage,
                         ),
                       ),
@@ -346,7 +350,7 @@ class _ChatCsScreenState extends State<ChatCsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isMe ? AppColors.primaryCyan : Colors.white,
+            color: isMe ? _primaryDark : Colors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),

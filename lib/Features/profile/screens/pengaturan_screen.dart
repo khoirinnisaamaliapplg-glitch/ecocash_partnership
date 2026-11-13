@@ -5,21 +5,25 @@ import '../../../core/theme/app_colors.dart';
 class PengaturanScreen extends StatelessWidget {
   const PengaturanScreen({super.key});
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Pengaturan',
           style: TextStyle(
-            color: Colors.white,
+            color: _navyColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -272,7 +276,7 @@ class PengaturanScreen extends StatelessWidget {
           ),
           title: const Row(
             children: [
-              Icon(Icons.info_outline, color: AppColors.primaryCyan),
+              Icon(Icons.info_outline, color: _navyColor),
               SizedBox(width: 10),
               Text(
                 'Penutupan Akun Mitra',
@@ -292,14 +296,14 @@ class PengaturanScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryCyan.withOpacity(0.08),
+                  color: _primaryYellow.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
                   children: [
                     Icon(
                       Icons.headset_mic_outlined,
-                      color: AppColors.primaryCyan,
+                      color: _navyColor,
                       size: 20,
                     ),
                     SizedBox(width: 10),
@@ -308,7 +312,7 @@ class PengaturanScreen extends StatelessWidget {
                         'Silakan hubungi Administrator melalui Pusat Bantuan untuk mengajukan penutupan akun.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.primaryCyan,
+                          color: _navyColor,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -336,7 +340,7 @@ class PengaturanScreen extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryCyan,
+                backgroundColor: _primaryDark,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -353,7 +357,7 @@ class PengaturanScreen extends StatelessWidget {
               child: const Text(
                 'Chat CS Admin',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _primaryYellow,
                   fontWeight: FontWeight.bold,
                 ),
               ),

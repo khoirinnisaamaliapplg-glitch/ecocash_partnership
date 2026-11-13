@@ -15,6 +15,9 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
   List<dynamic> _ticketList = [];
   bool _isLoading = true;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   @override
   void initState() {
     super.initState();
@@ -92,16 +95,16 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Riwayat Laporan',
           style: TextStyle(
-            color: Colors.white,
+            color: _navyColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -109,7 +112,7 @@ class _RiwayatLaporanScreenState extends State<RiwayatLaporanScreen> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _navyColor))
           : RefreshIndicator(
               onRefresh: _fetchTickets,
               child: _ticketList.isEmpty

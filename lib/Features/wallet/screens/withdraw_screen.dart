@@ -14,12 +14,14 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
   final TextEditingController _amountController = TextEditingController(text: '100000');
   final PartnerApiService _apiService = PartnerApiService();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   List<dynamic> _bankAccounts = [];
   String? _selectedBankAccountId;
   bool _isLoadingBank = true;
   bool _isSubmitting = false;
-
-  static const Color _navyColor = Color(0xFF0F2C59);
 
   @override
   void initState() {
@@ -48,7 +50,6 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     }
   }
 
-  // Validasi Awal sebelum Membuka Dialog PIN
   void _onConfirmWithdrawal() {
     String rawAmount = _amountController.text.replaceAll('.', '').replaceAll(',', '').trim();
     double? amount = double.tryParse(rawAmount);
@@ -70,7 +71,6 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     _showPinDialog(amount);
   }
 
-  // Popup Dialog Input PIN Transaksi
   void _showPinDialog(double amount) {
     final TextEditingController pinController = TextEditingController();
     bool isPinVisible = false;
@@ -142,7 +142,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppColors.primaryCyan, width: 2),
+                        borderSide: const BorderSide(color: _navyColor, width: 2),
                       ),
                     ),
                   ),
@@ -158,17 +158,17 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                           );
                           return;
                         }
-                        Navigator.pop(ctx); // Tutup Dialog PIN
+                        Navigator.pop(ctx);
                         _submitWithdrawal(amount, pin);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E88A8),
+                        backgroundColor: _primaryDark,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                       child: const Text(
                         'Konfirmasi & Tarik Saldo',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow),
                       ),
                     ),
                   ),
@@ -181,14 +181,13 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     );
   }
 
-  // Proses Kirim Request Penarikan ke Backend
   Future<void> _submitWithdrawal(double amount, String pin) async {
     setState(() => _isSubmitting = true);
 
     final result = await _apiService.requestWithdrawal(
       amount: amount,
       bankAccountId: _selectedBankAccountId!,
-      pin: pin, // <--- TAMBAHKAN PARAMETER PIN DI SINI
+      pin: pin,
     );
 
     if (!mounted) return;
@@ -216,17 +215,17 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         centerTitle: true,
         title: const Text(
           'Tarik Saldo',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -263,7 +262,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
                         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryCyan)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _navyColor)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       keyboardType: TextInputType.number,
@@ -280,7 +279,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                   const SizedBox(height: 12),
 
                   _isLoadingBank
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: CircularProgressIndicator(color: _navyColor))
                       : _bankAccounts.isEmpty
                           ? const Text('Belum ada rekening tersimpan. Silakan tambah rekening terlebih dahulu.', style: TextStyle(color: Colors.red, fontSize: 12))
                           : Column(
@@ -339,15 +338,15 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _onConfirmWithdrawal,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E88A8),
+                    backgroundColor: _primaryDark,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _isSubmitting
-                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: _primaryYellow, strokeWidth: 2.5))
                       : const Text(
                           'Konfirmasi Penarikan',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _primaryYellow),
                         ),
                 ),
               ),

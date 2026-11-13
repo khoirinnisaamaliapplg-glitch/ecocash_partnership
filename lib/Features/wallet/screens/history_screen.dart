@@ -13,6 +13,10 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final PartnerApiService _apiService = PartnerApiService();
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   String _selectedFilter = 'Semua';
   String _searchQuery = '';
   bool _isLoading = true;
@@ -91,13 +95,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
-        title: const Text('Riwayat Transaksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Riwayat Transaksi', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -114,6 +118,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade300)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _navyColor)),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
@@ -130,10 +135,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 16),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+                  ? const Center(child: CircularProgressIndicator(color: _navyColor))
                   : RefreshIndicator(
                       onRefresh: _fetchHistory,
-                      color: AppColors.primaryCyan,
+                      color: _navyColor,
                       child: filtered.isEmpty
                           ? ListView(
                               children: const [
@@ -160,9 +165,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 final String date = _formatDateShort(item['createdAt']);
                                 final String amountText = "${isDeposit ? '+' : '-'}Rp ${_formatCurrency(amount)}";
 
-                                // Prioritas penentuan badge: Penjemputan warga diprioritaskan utama
+                                // Prioritas penentuan badge
                                 String badgeText = isDeposit ? 'Komisi' : 'Tarik Saldo';
-                                Color badgeColor = isDeposit ? const Color(0xFF1E88A8) : Colors.red;
+                                Color badgeColor = isDeposit ? _navyColor : Colors.red;
 
                                 final String lowerDesc = desc.toLowerCase();
                                 if (!isDeposit) {
@@ -170,7 +175,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   badgeColor = Colors.red;
                                 } else if (lowerDesc.contains('warga') || lowerDesc.contains('jemput') || lowerDesc.contains('penjemputan')) {
                                   badgeText = 'Jemput Warga';
-                                  badgeColor = const Color(0xFF0F2C59);
+                                  badgeColor = _navyColor;
                                 } else if (lowerDesc.contains('smart container') || lowerDesc.contains('kontainer') || lowerDesc.contains('rvm')) {
                                   badgeText = 'Smart Container';
                                   badgeColor = Colors.teal;
@@ -277,10 +282,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF112C56) : Colors.white,
+          color: isSelected ? _primaryYellow : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF112C56) : const Color(0xFFE0E0E0),
+            color: isSelected ? _primaryYellow : const Color(0xFFE0E0E0),
             width: 1,
           ),
         ),
@@ -289,7 +294,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+            color: isSelected ? _primaryDark : const Color(0xFF6B7280),
           ),
         ),
       ),

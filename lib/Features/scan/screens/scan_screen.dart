@@ -122,10 +122,10 @@ class _ScanScreenState extends State<ScanScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
+            child: const Text('Batal', style: TextStyle(color: Color(0xFF1C1C1E))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C1C1E)),
             onPressed: () {
               Navigator.pop(ctx);
               final input = controller.text.trim();
@@ -137,7 +137,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 _prosesCheckInOtomatis(input);
               }
             },
-            child: const Text('Verifikasi', style: TextStyle(color: Colors.white)),
+            child: const Text('Verifikasi', style: TextStyle(color: Color(0xFFFFE600))),
           ),
         ],
       ),
@@ -184,7 +184,7 @@ class _ScanScreenState extends State<ScanScreen> {
               child: IconButton(
                 icon: Icon(
                   _isTorchOn ? Icons.flash_on : Icons.flash_off,
-                  color: _isTorchOn ? Colors.amber : Colors.black,
+                  color: _isTorchOn ? const Color(0xFFFFE600) : Colors.black,
                 ),
                 onPressed: () async {
                   await _scannerController.toggleTorch();
@@ -235,7 +235,7 @@ class _ScanScreenState extends State<ScanScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF4F6F8),
+                      color: const Color(0xFFF8F9FA),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
@@ -244,10 +244,10 @@ class _ScanScreenState extends State<ScanScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryCyan.withOpacity(0.15),
+                            color: const Color(0xFFFFE600).withOpacity(0.25),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.qr_code_2, color: AppColors.primaryCyan, size: 24),
+                          child: const Icon(Icons.qr_code_2, color: Color(0xFF1C1C1E), size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -264,7 +264,7 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                         ),
                         if (_isLoading)
-                          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF1C1C1E), strokeWidth: 2))
                         else
                           IconButton(
                             icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
@@ -280,10 +280,10 @@ class _ScanScreenState extends State<ScanScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : () => _prosesCheckInOtomatis(_kodeKontainer ?? targetCode),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: const Color(0xFF1C1C1E),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text('Konfirmasi & Buka Pintu Mesin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text('Konfirmasi & Buka Pintu Mesin', style: TextStyle(color: Color(0xFFFFE600), fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -305,7 +305,7 @@ class ScannerOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.greenAccent
+      ..color = const Color(0xFFFFE600)
       ..strokeWidth = 4.0
       ..style = PaintingStyle.stroke;
 

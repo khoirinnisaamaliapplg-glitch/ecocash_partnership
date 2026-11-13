@@ -10,18 +10,19 @@ class NotifikasiScreen extends StatefulWidget {
 }
 
 class _NotifikasiScreenState extends State {
-  static const Color _navyColor = Color(0xFF0F2C59);
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkColor = Color(0xFF1C1C1E);
   bool _hasUnread = true; // Status indikator notifikasi belum dibaca
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkColor),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -32,7 +33,7 @@ class _NotifikasiScreenState extends State {
         ),
         title: const Text(
           'Notifikasi',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: _darkColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
@@ -48,7 +49,7 @@ class _NotifikasiScreenState extends State {
             child: const Text(
               'Tandai Semua Sudah Dibaca',
               style: TextStyle(
-                color: Colors.white,
+                color: _darkColor,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
               ),
@@ -67,7 +68,7 @@ class _NotifikasiScreenState extends State {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: _navyColor,
+                color: _darkColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -119,7 +120,7 @@ class _NotifikasiScreenState extends State {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: _navyColor,
+                color: _darkColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -178,10 +179,10 @@ class _NotifikasiScreenState extends State {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFEFEF).withOpacity(0.8),
+              color: _primaryYellow.withOpacity(0.22),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.textPrimary, size: 20),
+            child: Icon(icon, color: _darkColor, size: 20),
           ),
           const SizedBox(width: 14),
 
@@ -208,7 +209,7 @@ class _NotifikasiScreenState extends State {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: _navyColor,
+                          color: _darkColor,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -230,7 +231,7 @@ class _NotifikasiScreenState extends State {
                     child: LinearProgressIndicator(
                       value: progressValue,
                       backgroundColor: const Color(0xFFE8ECEF),
-                      valueColor: const AlwaysStoppedAnimation(_navyColor),
+                      valueColor: const AlwaysStoppedAnimation(_darkColor),
                       minHeight: 6,
                     ),
                   ),

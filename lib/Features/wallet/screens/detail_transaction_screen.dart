@@ -5,6 +5,10 @@ class DetailTransactionScreen extends StatelessWidget {
   final bool isWithdrawal;
   final Map<String, dynamic>? transactionData;
 
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   const DetailTransactionScreen({
     super.key,
     this.isWithdrawal = false,
@@ -59,7 +63,7 @@ class DetailTransactionScreen extends StatelessWidget {
     final matchWeight = RegExp(r'(\d+(?:\.\d+)?)\s*kg', caseSensitive: false).firstMatch(description);
     final double weightKg = matchWeight != null ? (double.tryParse(matchWeight.group(1)!) ?? 0.0) : 0.0;
 
-    // Ekstraksi lokasi kontainer tujuan (format: "disetor ke Smart Container...")
+    // Ekstraksi lokasi kontainer tujuan
     final matchMachine = RegExp(r'disetor ke\s+([^\n]+?)$', caseSensitive: false).firstMatch(description) ??
         RegExp(r'(?:setor ke|ke)\s+([^(\n]+?)(?:\s+via|\s+Job|\s*\(|$)', caseSensitive: false).firstMatch(description);
     final String? machineDestination = matchMachine != null ? matchMachine.group(1)!.trim() : null;
@@ -82,13 +86,13 @@ class DetailTransactionScreen extends StatelessWidget {
     final num? balAfter = double.tryParse(transactionData?['balanceAfter']?.toString() ?? '');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
-        title: const Text('Detail Transaksi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Detail Transaksi', style: TextStyle(color: _navyColor, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _navyColor),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -121,10 +125,10 @@ class DetailTransactionScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryCyan.withOpacity(0.1),
+                      color: _navyColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text('Transaksi Berhasil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primaryCyan)),
+                    child: const Text('Transaksi Berhasil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: _navyColor)),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -132,7 +136,7 @@ class DetailTransactionScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: isOut ? Colors.red : const Color(0xFF0F2C59),
+                      color: isOut ? Colors.red : _navyColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -188,7 +192,7 @@ class DetailTransactionScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.cyan.shade100),
+                  border: Border.all(color: _navyColor.withOpacity(0.2)),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
                 ),
                 child: Column(
@@ -196,9 +200,9 @@ class DetailTransactionScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: const [
-                        Icon(Icons.calculate_outlined, color: AppColors.primaryCyan, size: 20),
+                        Icon(Icons.calculate_outlined, color: _navyColor, size: 20),
                         SizedBox(width: 8),
-                        Text('Rincian Perhitungan Komisi Mitra', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
+                        Text('Rincian Perhitungan Komisi Mitra', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -217,10 +221,10 @@ class DetailTransactionScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Komisi Diterima', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F2C59))),
+                        const Text('Total Komisi Diterima', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor)),
                         Text(
                           'Rp ${_formatCurrency(amount)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E88A8)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _navyColor),
                         ),
                       ],
                     ),
@@ -238,11 +242,11 @@ class DetailTransactionScreen extends StatelessWidget {
                     const SnackBar(content: Text('Bukti transaksi berhasil diunduh ke perangkat')),
                   );
                 },
-                icon: const Icon(Icons.download, color: Colors.white, size: 16),
-                label: const Text('Unduh Bukti Transaksi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                icon: const Icon(Icons.download, color: _primaryYellow, size: 16),
+                label: const Text('Unduh Bukti Transaksi', style: TextStyle(fontWeight: FontWeight.bold, color: _primaryYellow)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E88A8),
-                  foregroundColor: Colors.white,
+                  backgroundColor: _primaryDark,
+                  foregroundColor: _primaryYellow,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,

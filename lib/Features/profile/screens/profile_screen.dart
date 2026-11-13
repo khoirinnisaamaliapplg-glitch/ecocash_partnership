@@ -21,6 +21,11 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final PartnerApiService _apiService = PartnerApiService();
+
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _primaryDark = Color(0xFF1C1C1E);
+  static const Color _navyColor = Color(0xFF0F2C59);
+
   Map<String, dynamic> _profileData = {};
   Map<String, dynamic> _dashboardData = {};
   Map<String, dynamic> _impactData = {};
@@ -169,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.eco, color: AppColors.primaryCyan),
+              Icon(Icons.eco, color: _navyColor),
               SizedBox(width: 10),
               Text(
                 'Akumulasi Material',
@@ -185,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryCyan.withOpacity(0.1),
+                  color: _navyColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -195,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 2),
                     Text(
                       formattedMaterial,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryCyan),
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _navyColor),
                     ),
                   ],
                 ),
@@ -220,7 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'Tutup',
-                style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _primaryDark, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -291,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.primaryCyan)),
+        body: Center(child: CircularProgressIndicator(color: _navyColor)),
       );
     }
 
@@ -314,7 +319,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final int totalJobs = stats['totalJobsCompleted'] ?? 0;
 
-    // --- PARSING AMAN DATA MATERIAL & RATING ---
     final rawWeight = _impactData['totalMaterialKg'] ?? stats['totalWeightCollectedKg'];
     double totalWeightKg = 0.0;
     if (rawWeight is num) {
@@ -369,26 +373,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Row(
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.black,
               child: ClipOval(child: avatarWidget(32)),
             ),
             const SizedBox(width: 10),
             Text(
               'Halo, $name',
-              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: _navyColor, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const Icon(Icons.notifications_outlined, color: _navyColor),
             onPressed: () {
               Navigator.push(
                 context,
@@ -400,7 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadProfileData,
-        color: AppColors.primaryCyan,
+        color: _navyColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20.0),
@@ -435,8 +439,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 72,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.primaryCyan,
-                        border: Border.all(color: AppColors.primaryCyan, width: 2),
+                        color: Colors.black,
+                        border: Border.all(color: Colors.black, width: 2),
                       ),
                       child: ClipOval(child: avatarWidget(72)),
                     ),
@@ -465,11 +469,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           }
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primaryCyan),
+                          backgroundColor: _primaryDark,
+                          side: const BorderSide(color: _primaryDark),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Edit Profil', style: TextStyle(color: AppColors.primaryCyan, fontWeight: FontWeight.bold)),
+                        child: const Text('Edit Profil', style: TextStyle(color: _primaryYellow, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -534,7 +539,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: LinearProgressIndicator(
                           value: progressValue,
                           backgroundColor: const Color(0xFFE0E0E0),
-                          valueColor: const AlwaysStoppedAnimation(AppColors.primaryCyan),
+                          valueColor: const AlwaysStoppedAnimation(_navyColor),
                           minHeight: 8,
                         ),
                       ),
@@ -589,7 +594,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      const Icon(Icons.trending_up, color: AppColors.primaryCyan, size: 24),
+                      const Icon(Icons.trending_up, color: _navyColor, size: 24),
                     ],
                   ),
                 ),
@@ -599,7 +604,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Expanded(
                     child: InkWell(
-                      // --- PENYESUAIAN ONTAP MATERIAL: POPUP INFO INTERAKTIF ---
                       onTap: () => _showMaterialInfoDialog(context, formattedMaterial),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
@@ -614,7 +618,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.eco, color: AppColors.primaryCyan, size: 22),
+                            const Icon(Icons.eco, color: Colors.teal, size: 22),
                             const SizedBox(height: 12),
                             Text(formattedMaterial, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                             const SizedBox(height: 2),

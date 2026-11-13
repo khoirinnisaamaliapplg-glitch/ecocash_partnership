@@ -11,13 +11,11 @@ class StatistikMaterialScreen extends StatefulWidget {
 }
 
 class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
-  // Inisialisasi service partner API
   final PartnerApiService _apiService = PartnerApiService();
 
   bool _isLoading = true;
   String? _errorMessage;
 
-  // State data agregasi
   Map<String, dynamic> _today = {
     'totalWeight': 0.0,
     'percentageVsYesterday': 0.0,
@@ -27,11 +25,14 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
   List<dynamic> _breakdown = [];
   List<dynamic> _recentSessions = [];
 
-  // Penyesuaian tema warna
-  static const Color _navyColor = Color(0xFF0F2C59);
-  static const Color _badgeBgColor = Color(0xFFCEF5F5);
-  static const Color _historyIconBgColor = Color(0xFFDDE9FA);
+  // EcoCash Brand Color Palette
+  static const Color _primaryYellow = Color(0xFFFFE600);
+  static const Color _darkNavy = Color(0xFF0F2C59);
+  static const Color _ecoGreen = Color(0xFF00AA13);
+  static const Color _badgeBgColor = Color(0xFFE6F7E9);
+  static const Color _historyIconBgColor = Color(0xFFE8EEFF);
   static const Color _progressBgColor = Color(0xFFE8ECEF);
+  static const Color _appBackground = Color(0xFFF8F9FA);
 
   @override
   void initState() {
@@ -39,7 +40,6 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
     _fetchStatistics();
   }
 
-  /// Mengambil data dari endpoint backend
   Future<void> _fetchStatistics() async {
     setState(() {
       _isLoading = true;
@@ -66,7 +66,6 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
     }
   }
 
-  /// Menentukan ikon berdasarkan tipe material daur ulang
   IconData _getMaterialIcon(String? type) {
     switch (type?.toUpperCase()) {
       case 'PET':
@@ -90,12 +89,12 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
     final bool isTrendDown = _today['trend'] == 'DOWN';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _appBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: _darkNavy),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -107,7 +106,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
         title: const Text(
           'Statistik Material',
           style: TextStyle(
-            color: Colors.white,
+            color: _darkNavy,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -116,7 +115,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryCyan),
+              child: CircularProgressIndicator(color: _darkNavy),
             )
           : _errorMessage != null
               ? Center(
@@ -135,7 +134,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryCyan,
+                            backgroundColor: _darkNavy,
                           ),
                           onPressed: _fetchStatistics,
                           child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
@@ -145,7 +144,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                   ),
                 )
               : RefreshIndicator(
-                  color: AppColors.primaryCyan,
+                  color: _darkNavy,
                   onRefresh: _fetchStatistics,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -173,7 +172,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                               const Icon(
                                 Icons.scale_outlined,
                                 size: 38,
-                                color: _navyColor,
+                                color: _darkNavy,
                               ),
                               const SizedBox(height: 12),
                               const Text(
@@ -192,7 +191,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                                   Text(
                                     '${_today['totalWeight']?.toString().replaceAll('.', ',') ?? '0'} ',
                                     style: const TextStyle(
-                                      color: _navyColor,
+                                      color: _darkNavy,
                                       fontSize: 32,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -200,7 +199,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                                   const Text(
                                     'kg',
                                     style: TextStyle(
-                                      color: _navyColor,
+                                      color: _darkNavy,
                                       fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -219,14 +218,14 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                                   children: [
                                     Icon(
                                       isTrendDown ? Icons.trending_down : Icons.trending_up,
-                                      color: isTrendDown ? Colors.redAccent : AppColors.primaryCyan,
+                                      color: isTrendDown ? Colors.redAccent : _ecoGreen,
                                       size: 16,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _today['trendText'] ?? '0% dari kemarin',
                                       style: TextStyle(
-                                        color: isTrendDown ? Colors.redAccent : AppColors.primaryCyan,
+                                        color: isTrendDown ? Colors.redAccent : _ecoGreen,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -302,7 +301,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                               child: const Text(
                                 'Lihat Semua',
                                 style: TextStyle(
-                                  color: _navyColor,
+                                  color: _darkNavy,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -357,7 +356,6 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
     );
   }
 
-  // Helper Kartu Rincian Material Per Item
   Widget _buildMaterialCard({
     required IconData icon,
     required String title,
@@ -385,7 +383,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: _navyColor, size: 20),
+                  Icon(icon, color: _darkNavy, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     title,
@@ -402,7 +400,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: _navyColor,
+                  color: _darkNavy,
                 ),
               ),
             ],
@@ -413,7 +411,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
             child: LinearProgressIndicator(
               value: percent.clamp(0.0, 1.0),
               backgroundColor: _progressBgColor,
-              valueColor: const AlwaysStoppedAnimation(AppColors.primaryCyan),
+              valueColor: const AlwaysStoppedAnimation(_ecoGreen),
               minHeight: 8,
             ),
           ),
@@ -422,7 +420,6 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
     );
   }
 
-  // Helper untuk Item Riwayat Timbangan
   Widget _buildRiwayatItem(String title, String subtitle, String weight) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -435,7 +432,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
                 color: _historyIconBgColor,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.scale, color: _navyColor, size: 20),
+              child: const Icon(Icons.scale, color: _darkNavy, size: 20),
             ),
             const SizedBox(width: 12),
             Column(
@@ -466,7 +463,7 @@ class _StatistikMaterialScreenState extends State<StatistikMaterialScreen> {
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
-            color: _navyColor,
+            color: _darkNavy,
           ),
         ),
       ],
