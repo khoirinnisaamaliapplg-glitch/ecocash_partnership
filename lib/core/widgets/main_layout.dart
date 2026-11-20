@@ -27,50 +27,114 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Menggunakan IndexedStack dengan pengecekan atau membangun halaman secara dinamis
       body: IndexedStack(
         index: _selectedIndex,
         children: [
           DashboardScreen(userData: widget.userData),
           const JobsScreen(),
-          // Halaman Scan hanya akan dirender/dijalankan ketika tab ke-2 (Scan) diklik!
           _selectedIndex == 2 ? const ScanScreen() : const SizedBox.shrink(),
           const WalletScreen(),
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary2,
-        unselectedItemColor: AppColors.textSecondary,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Beranda',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: AppColors.surface,
+            selectedItemColor: AppColors.darkNavy,
+            unselectedItemColor: AppColors.textMuted,
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              height: 1.4,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+            items: [
+              const BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.grid_view_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.grid_view_rounded, size: 22),
+                ),
+                label: 'Beranda',
+              ),
+              const BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.assignment_outlined, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.assignment_rounded, size: 22),
+                ),
+                label: 'Tugas',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 2 ? AppColors.darkNavy : AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: _selectedIndex == 2 ? AppColors.darkNavy : AppColors.cardBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.qr_code_scanner_rounded,
+                    size: 20,
+                    color: _selectedIndex == 2 ? Colors.white : AppColors.textMuted,
+                  ),
+                ),
+                label: 'Scan',
+              ),
+              const BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.account_balance_wallet_outlined, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.account_balance_wallet_rounded, size: 22),
+                ),
+                label: 'Wallet',
+              ),
+              const BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.person_outline_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 2),
+                  child: Icon(Icons.person_rounded, size: 22),
+                ),
+                label: 'Profil',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment),
-            label: 'Tugas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: Icon(Icons.account_balance_wallet),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profil',
-          ),
-        ],
+        ),
       ),
     );
   }

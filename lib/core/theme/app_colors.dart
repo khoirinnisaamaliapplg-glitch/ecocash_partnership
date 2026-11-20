@@ -1,37 +1,68 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primaryCyan = Color(0xFF0BCFD1);
-  // --- Brand Colors (Warna Utama Identitas) ---
-  static const Color primaryGreen = Color(0xFF0F7A3E); // Hijau utama (Tombol Masuk, Lanjut, aksen daun di Logo)
-  static const Color primaryBlue = Color(0xFF1E88E5);  // Biru utama (Huruf 'e' pada Logo EcoCash, ikon verifikasi)
+  // ==========================================
+  // 1. BRAND COLOR PALETTE (DESIGN SYSTEM NEW)
+  // ==========================================
   
-  // --- Background Colors (Warna Latar) ---
-  static const Color background = Color(0xFFFFFFFF);   // Putih bersih untuk latar belakang utama aplikasi
-  static const Color surface = Color(0xFFF8F9FA);      // Putih abu-abu halus untuk area kartu, panel, atau form
+  /// Warna utama identitas brand (Header, kartu sorotan, & aksen penting)
+  static const Color primaryYellow = Color(0xFFFFE600);
   
-  // --- Text Colors (Warna Teks) ---
-  static const Color textPrimary = Color(0xFF1A1A1A);  // Hitam pekat untuk judul, heading, dan teks penekanan
-  static const Color textSecondary = Color(0xFF6C757D);// Abu-abu untuk teks deskripsi, hint form, dan sub-judul
-  static const Color textLink = Color(0xFF1E88E5);     // Biru untuk teks yang bisa diklik (seperti "Lupa Kata Sandi?")
-  static const Color textLink2 = Color(0xFF63D1F0);
-static const Color primary2 = Color(0xFF003F7B); // biru untuk EcoCash Partner
+  /// Teks utama & ikon di atas bidang kuning untuk kontras tinggi
+  static const Color primaryDark = Color(0xFF1C1C1E);
+  
+  /// Aksen pelengkap merepresentasikan lingkungan
+  static const Color ecoGreen = Color(0xFF00AA13);
+  static const Color ecoGreenDark = Color(0xFF059669);
+  
+  /// Elemen nominal saldo, judul kartu, & tombol aksi utama
+  static const Color darkNavy = Color(0xFF0F2C59);
+  static const Color slateNavy = Color(0xFF1E293B);
+  
+  /// Warna dasar kartu saldo, menu aksi, & komponen UI
+  static const Color surface = Color(0xFFFFFFFF);
+  
+  /// Warna latar belakang utama agar kartu putih terlihat menonjol
+  static const Color background = Color(0xFFF8F9FA);
 
-  // --- UI Elements (Garis & Komponen Pasif) ---
-  static const Color border = Color(0xFFEBEBEB);       // Abu-abu terang untuk garis batas luar (border) TextFormField
-  static const Color divider = Color(0xFFEEEEEE);      // Abu-abu sangat pudar untuk garis pemisah (divider)
-  static const Color dotInactive = Color(0xFFD9D9D9);  // Abu-abu untuk indikator halaman (dot onboarding) yang tidak aktif
+  // ==========================================
+  // 2. TEXT & BORDER COLORS (DESAIN MODERN)
+  // ==========================================
   
-  // --- Semantic / Status Colors (Warna Validasi) ---
-  static const Color success = Color(0xFF28A745);      // Hijau terang untuk status berhasil (seperti centang sukses)
-  static const Color successGreen = Color(0xFF047363); //hijau untuk rupiah
-  static const Color error = Color(0xFFDC3545);        // Merah untuk peringatan atau teks error (seperti OTP salah)
-  static const Color warning = Color(0xFFFFC107);      // Kuning untuk status peringatan, pending, atau menunda
-  static const Color info = Color(0xFF17A2B8);         // Biru toska untuk informasi tambahan (opsional)
-static const LinearGradient primaryButtonGradient = LinearGradient(
+  static const Color textPrimary = Color(0xFF1C1C1E);
+  static const Color textSecondary = Color(0xFF6C757D);
+  static const Color textMuted = Color(0xFF94A3B8);
+  static const Color textLink = Color(0xFF1E88E5);
+  static const Color textLink2 = Color(0xFF63D1F0);
+  
+  static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color border = Color(0xFFEBEBEB);
+  static const Color divider = Color(0xFFEEEEEE);
+  static const Color dotInactive = Color(0xFFD9D9D9);
+
+  // ==========================================
+  // 3. SEMANTIC / STATUS COLORS
+  // ==========================================
+  
+  static const Color success = Color(0xFF28A745);
+  static const Color successGreen = Color(0xFF047363);
+  static const Color error = Color(0xFFDC3545);
+  static const Color warning = Color(0xFFFFC107);
+  static const Color info = Color(0xFF17A2B8);
+
+  // ==========================================
+  // 4. LEGACY ALIASES (AGAR FE TIDAK BREAK)
+  // ==========================================
+  
+  static const Color primaryCyan = Color(0xFF0BCFD1);
+  static const Color primaryGreen = Color(0xFF0F7A3E);
+  static const Color primaryBlue = Color(0xFF1E88E5);
+  static const Color primary2 = Color(0xFF003F7B);
+
+  static const LinearGradient primaryButtonGradient = LinearGradient(
     colors: [
-      Color(0xFF2B7A98), // Biru Tua (sisi kiri)
-      Color(0xFF14A89B), // Toska / Cyan (sisi kanan)
+      Color(0xFF0F2C59), // Dark Navy
+      Color(0xFF1E88E5), // Primary Blue
     ],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,

@@ -1,392 +1,958 @@
-import 'dart:convert';
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../../../../services/api_service.dart'; // 1. Import API Service
+import '../../../../services/api_service.dart';
 
 class EditVehicleScreen extends StatefulWidget {
-  final Map vehicleData;
+  final Map<String, dynamic> vehicleData;
 
-  const EditVehicleScreen({super.key, required this.vehicleData});
+  const EditVehicleScreen({
+    super.key,
+    required this.vehicleData,
+  });
 
   @override
-  State createState() => _EditVehicleScreenState();
+  State<EditVehicleScreen> createState() => _EditVehicleScreenState();
 }
 
-class _EditVehicleScreenState extends State {
-  // 2. Inisialisasi API Service & Loading State
+class _EditVehicleScreenState extends State<EditVehicleScreen> {
   final PartnerApiService _apiService = PartnerApiService();
-  bool _isSubmitting = false;
+  final ImagePicker _picker = ImagePicker();
 
   late String _selectedJenis;
-  late final TextEditingController _modelController;
   late final TextEditingController _platController;
-  late final TextEditingController _kapasitasController;
 
-  final ImagePicker _picker = ImagePicker();
-  String? _fileName;
-  Uint8List? _fileBytes;
-
-  // Casting eksplisit untuk mencegah error type resolution pada Dart Dev Compiler
-  Map get _vehicleData => (widget as EditVehicleScreen).vehicleData;
+  XFile? _pickedXFile;
+  String? _existingPhotoUrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    final String type = _vehicleData['backendType'] ?? ''; // Gunakan backendType untuk presisi
-    if (type == 'MOTORCYCLE') {
-      // Cek apakah Viar (Roda 3) berdasarkan plat atau title dari data API sebelumnya
-      if (_vehicleData['type'].contains('Roda 3')) {
-         _selectedJenis = 'Roda 3';
-      } else {
-         _selectedJenis = 'Motor';
-      }
+
+    final String type =
+        (widget.vehicleData['type'] ?? 'MOTORCYCLE').toString();
+
+    if (type == 'CAR') {
+      _selectedJenis = 'Mobil';
     } else if (type == 'CART') {
       _selectedJenis = 'Gerobak';
-    } else if (type == 'CAR') {
-      _selectedJenis = 'Mobil';
     } else {
-       _selectedJenis = 'Motor'; // Default
+      _selectedJenis = 'Motor';
     }
 
-    _modelController = TextEditingController(text: _vehicleData['title'] ?? '');
-    _platController = TextEditingController(text: _vehicleData['plat'] ?? '');
-    _kapasitasController = TextEditingController(
-      text: (_vehicleData['capacity'] ?? '').replaceAll(RegExp(r'[^0-9]'), ''),
+    _platController = TextEditingController(
+      text: widget.vehicleData['plateNumber'] ?? '',
     );
 
-    // Logika STNK (Jika STNK berupa URL dari API, kita abaikan bytes-nya dulu untuk pratinjau lama)
-    _fileName = _vehicleData['stnk'];
+    _existingPhotoUrl = type == 'CART'
+        ? widget.vehicleData['vehiclePhotoUrl']
+        : widget.vehicleData['stnkPhotoUrl'];
   }
 
   @override
   void dispose() {
-    _modelController.dispose();
     _platController.dispose();
-    _kapasitasController.dispose();
     super.dispose();
   }
 
-  // Helper untuk mapping jenis ke Enum Backend
-  String _mapJenisToBackend(String jenis) {
-    switch (jenis) {
-      case 'Motor':
-      case 'Roda 3':
-        return 'MOTORCYCLE';
-      case 'Mobil':
-        return 'CAR';
-      case 'Gerobak':
-        return 'CART';
-      default:
-        return 'MOTORCYCLE';
-    }
-  }
+  // =========================================================
+  // PILIH FOTO
+  // =========================================================
 
-  Future _ubahFotoSTNK() async {
+  Future<void> _pilihFotoBaru() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-      if (image != null) {
-        final bytes = await image.readAsBytes();
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null && mounted) {
         setState(() {
-          _fileName = image.name;
-          _fileBytes = bytes;
+          _pickedXFile = image;
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto STNK berhasil diperbarui!'), backgroundColor: Colors.green),
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memilih berkas: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Gagal memilih foto: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: const Color(0xFFF4F6F8),
-          appBar: AppBar(
-            backgroundColor: AppColors.primaryCyan,
-            elevation: 0,
-            title: const Text('Edit Kendaraan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ... (UI sama seperti sebelumnya) ...
-                // --- 1. PILIH JENIS KENDARAAN ---
-                const Text('Jenis Kendaraan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: _buildJenisOption('Motor', Icons.two_wheeler)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildJenisOption('Roda 3', Icons.electric_rickshaw)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildJenisOption('Mobil', Icons.local_shipping)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildJenisOption('Gerobak', Icons.shopping_cart)),
-                  ],
-                ),
-                const SizedBox(height: 20),
+  // =========================================================
+  // SIMPAN PERUBAHAN
+  // =========================================================
 
-                // --- 2. FORM INPUT DETAIL KENDARAAN ---
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Nama/Model Kendaraan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _modelController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(_selectedJenis == 'Gerobak' ? 'ID / Label Gerobak' : 'Nomor Plat', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _platController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Kapasitas Maksimum (kg)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _kapasitasController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          suffixText: 'kg',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+  Future<void> _simpanPerubahan() async {
+    String backendType = 'MOTORCYCLE';
 
-                // --- 3. DOKUMEN KENDARAAN (STNK) - HANYA TAMPIL JIKA BUKAN GEROBAK ---
-                if (_selectedJenis != 'Gerobak') ...[
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3)),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Dokumen Kendaraan (STNK)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Column(
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                child: SizedBox(
-                                  height: 130,
-                                  width: double.infinity,
-                                  child: _fileBytes != null
-                                      ? Image.memory(_fileBytes!, fit: BoxFit.cover)
-                                      : Container(
-                                          color: Colors.grey.shade200,
-                                          child: const Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.description_outlined, size: 36, color: AppColors.textSecondary),
-                                              SizedBox(height: 4),
-                                              Text('STNK Terunggah', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                                            ],
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      _fileName ?? 'STNK_Dokumen.jpg',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text('Terakhir diupdate: Hari ini', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                    const SizedBox(height: 10),
-                                    OutlinedButton.icon(
-                                      onPressed: _ubahFotoSTNK,
-                                      icon: const Icon(Icons.camera_alt_outlined, size: 14, color: Color(0xFF28859B)),
-                                      label: const Text('Ubah Foto STNK', style: TextStyle(fontSize: 12, color: Color(0xFF28859B), fontWeight: FontWeight.bold)),
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Color(0xFF28859B)),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        backgroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+    if (_selectedJenis == 'Mobil') {
+      backendType = 'CAR';
+    } else if (_selectedJenis == 'Gerobak') {
+      backendType = 'CART';
+    }
 
-                // --- 4. TOMBOL SIMPAN PERUBAHAN (LOGIKA DIUBAH KE API) ---
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _updateKendaraan, // Panggil fungsi update
-                    icon: const Icon(Icons.save_outlined, color: Colors.white, size: 18),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF28859B),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
-                    ),
-                    label: const Text('Simpan Perubahan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        ),
-        // Loading Overlay
-        if (_isSubmitting)
-          Container(
-            color: Colors.black54,
-            child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-          ),
-      ],
-    );
-  }
-
-  // 3. Fungsi Integrasi API untuk Update
-  Future _updateKendaraan() async {
-    if (_modelController.text.isEmpty || _platController.text.isEmpty) {
+    if (backendType != 'CART' &&
+        _platController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mohon lengkapi data kendaraan!'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Nomor plat wajib diisi!'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() => _isLoading = true);
 
-    // MOCK UPLOAD FOTO (Sama seperti Add, gunakan URL lama atau mock URL baru)
-    String? stnkUrl = _vehicleData['stnk']; // Gunakan URL lama secara default
-    if (_selectedJenis != 'Gerobak' && _fileBytes != null && _fileName != null) {
-        // Jika user memilih foto baru, dalam realita unggah dulu, di sini kita mock.
-        stnkUrl = "MOCK_URL_UPDATED/$_fileName"; 
-    } else if (_selectedJenis == 'Gerobak') {
-        stnkUrl = null;
+    String? finalPhotoUrl = _existingPhotoUrl;
+
+    if (_pickedXFile != null) {
+      final uploadRes = await _apiService.uploadSingleFile(
+        _pickedXFile!.path,
+        xFile: _pickedXFile,
+        category: 'document',
+      );
+
+      if (uploadRes['success'] == true &&
+          uploadRes['url'] != null) {
+        finalPhotoUrl = uploadRes['url'];
+      } else {
+        if (!mounted) return;
+
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              uploadRes['message'] ??
+                  'Gagal mengunggah foto baru.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
     }
 
-    // Panggil API (Backend menggunakan upsert, jadi method-nya sama)
     final result = await _apiService.registerOrUpdateVehicle(
-      type: _mapJenisToBackend(_selectedJenis),
-      plateNumber: _platController.text,
-      stnkPhotoUrl: stnkUrl,
-      // vehiclePhotoUrl: _vehicleData['vehiclePhotoUrl'] // Pertahankan URL foto fisik lama
+      type: backendType,
+      plateNumber: backendType != 'CART'
+          ? _platController.text.trim()
+          : null,
+      stnkPhotoUrl: backendType != 'CART'
+          ? finalPhotoUrl
+          : null,
+      vehiclePhotoUrl: backendType == 'CART'
+          ? finalPhotoUrl
+          : null,
     );
 
-    if (mounted) {
-      setState(() => _isSubmitting = false);
+    if (!mounted) return;
 
-      if (result['success'] == true) {
-        // Kembali ke layar detail dengan sinyal sukses agar detail melakukan reload
-        Navigator.pop(context, true); 
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
-        );
-      }
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['message'] ??
+                'Perubahan kendaraan berhasil disimpan!',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result['message'] ??
+                'Gagal memperbarui kendaraan.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  Widget _buildJenisOption(String jenis, IconData icon) {
-    bool isSelected = _selectedJenis == jenis;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedJenis = jenis;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF28859B) : Colors.grey.shade300,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
+  // =========================================================
+  // BUILD
+  // =========================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7F5),
+      body: SafeArea(
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? const Color(0xFF28859B) : AppColors.textSecondary, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              jenis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? const Color(0xFF28859B) : AppColors.textPrimary,
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildIntro(),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(
+                      number: '01',
+                      title: 'Jenis Kendaraan',
+                      subtitle: 'Pilih kendaraan yang ingin diperbarui',
+                    ),
+                    const SizedBox(height: 13),
+                    _buildVehicleTypeSelector(),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle(
+                      number: '02',
+                      title: 'Informasi Kendaraan',
+                      subtitle: 'Periksa kembali informasi kendaraanmu',
+                    ),
+                    const SizedBox(height: 13),
+                    _buildVehicleForm(),
+                    const SizedBox(height: 25),
+                    _buildSectionTitle(
+                      number: '03',
+                      title: 'Dokumen Kendaraan',
+                      subtitle: 'Pastikan foto yang digunakan terlihat jelas',
+                    ),
+                    const SizedBox(height: 13),
+                    _buildDocumentCard(),
+                    const SizedBox(height: 30),
+                    _buildSaveButton(),
+                    const SizedBox(height: 12),
+                    _buildBottomNote(),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // =========================================================
+  // HEADER
+  // =========================================================
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 20, 12),
+      child: Row(
+        children: [
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => Navigator.pop(context),
+              child: SizedBox(
+                width: 43,
+                height: 43,
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppColors.darkNavy,
+                  size: 21,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit Kendaraan',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Perbarui data kendaraan partner',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // INTRO
+  // =========================================================
+
+  Widget _buildIntro() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F4EC),
+        borderRadius: BorderRadius.circular(19),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.directions_car_filled_rounded,
+              color: AppColors.ecoGreen,
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 13),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kelola Kendaraanmu',
+                  style: TextStyle(
+                    color: AppColors.darkNavy,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Pastikan informasi dan dokumen kendaraan selalu sesuai.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // SECTION TITLE
+  // =========================================================
+
+  Widget _buildSectionTitle({
+    required String number,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 29,
+          height: 29,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.ecoGreen.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: AppColors.ecoGreen,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================
+  // PILIHAN JENIS KENDARAAN
+  // =========================================================
+
+  Widget _buildVehicleTypeSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildJenisOption(
+            'Motor',
+            Icons.two_wheeler_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildJenisOption(
+            'Mobil',
+            Icons.directions_car_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildJenisOption(
+            'Gerobak',
+            Icons.shopping_cart_rounded,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJenisOption(String jenis, IconData icon) {
+    final bool isSelected = _selectedJenis == jenis;
+
+    return GestureDetector(
+      onTap: _isLoading
+          ? null
+          : () {
+              setState(() {
+                _selectedJenis = jenis;
+              });
+            },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(
+          vertical: 17,
+          horizontal: 5,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFE8F4EC)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.ecoGreen
+                : const Color(0xFFE8ECE9),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  size: 26,
+                  color: isSelected
+                      ? AppColors.ecoGreen
+                      : AppColors.textSecondary,
+                ),
+                if (isSelected)
+                  Positioned(
+                    right: -9,
+                    top: -7,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.ecoGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 10,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              jenis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: isSelected
+                    ? AppColors.ecoGreen
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // FORM INFORMASI KENDARAAN
+  // =========================================================
+
+  Widget _buildVehicleForm() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: const Color(0xFFEDF0EE),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.025),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_selectedJenis != 'Gerobak') ...[
+            const Text(
+              'Nomor Plat Kendaraan',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 9),
+            TextField(
+              controller: _platController,
+              enabled: !_isLoading,
+              textCapitalization: TextCapitalization.characters,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Contoh: Z 1234 ABC',
+                hintStyle: const TextStyle(
+                  color: Color(0xFFADB6B0),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0,
+                ),
+                prefixIcon: const Icon(
+                  Icons.confirmation_number_outlined,
+                  color: AppColors.ecoGreen,
+                  size: 20,
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF7F9F7),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFE8ECE9),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(13),
+                  borderSide: const BorderSide(
+                    color: AppColors.ecoGreen,
+                    width: 1.4,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 9),
+            const Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 13,
+                  color: AppColors.textSecondary,
+                ),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Masukkan nomor plat sesuai dokumen kendaraan.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F8F5),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: AppColors.ecoGreen,
+                    size: 20,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Pendaftaran gerobak tidak memerlukan nomor plat.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // DOKUMEN KENDARAAN
+  // =========================================================
+
+  Widget _buildDocumentCard() {
+    final bool isCart = _selectedJenis == 'Gerobak';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: const Color(0xFFEDF0EE),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.025),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.ecoGreen.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  isCart
+                      ? Icons.photo_camera_back_rounded
+                      : Icons.description_outlined,
+                  color: AppColors.ecoGreen,
+                  size: 19,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isCart
+                          ? 'Foto Fisik Gerobak'
+                          : 'Foto Dokumen STNK',
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Dokumen atau foto kendaraan',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_pickedXFile != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F4EC),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Foto baru',
+                    style: TextStyle(
+                      color: AppColors.ecoGreen,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Area preview foto
+          ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              height: 175,
+              width: double.infinity,
+              color: const Color(0xFFF4F7F5),
+              child: _pickedXFile != null
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: AppColors.ecoGreen,
+                            size: 43,
+                          ),
+                          SizedBox(height: 9),
+                          Text(
+                            'Foto baru berhasil dipilih',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Foto akan diunggah saat disimpan',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : (_existingPhotoUrl != null &&
+                          _existingPhotoUrl!.isNotEmpty
+                      ? Image.network(
+                          _existingPhotoUrl!,
+                          width: double.infinity,
+                          height: 175,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildEmptyPhoto();
+                          },
+                          loadingBuilder:
+                              (context, child, loadingProgress) {
+                            if (loadingProgress == null) {
+                              return child;
+                            }
+
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.ecoGreen,
+                                strokeWidth: 2,
+                              ),
+                            );
+                          },
+                        )
+                      : _buildEmptyPhoto()),
+            ),
+          ),
+
+          const SizedBox(height: 13),
+
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isLoading ? null : _pilihFotoBaru,
+              icon: const Icon(
+                Icons.add_a_photo_outlined,
+                size: 17,
+              ),
+              label: Text(
+                _pickedXFile != null
+                    ? 'Pilih Foto Lain'
+                    : 'Ubah Foto',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.ecoGreen,
+                backgroundColor: const Color(0xFFF8FAF8),
+                side: BorderSide(
+                  color: AppColors.ecoGreen.withOpacity(0.35),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPhoto() {
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.image_outlined,
+          color: Color(0xFF9AA9A0),
+          size: 42,
+        ),
+        SizedBox(height: 9),
+        Text(
+          'Belum ada foto kendaraan',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Silakan pilih foto dari galeri',
+          style: TextStyle(
+            color: Color(0xFF9AA9A0),
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================
+  // TOMBOL SIMPAN
+  // =========================================================
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _simpanPerubahan,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.ecoGreen,
+          disabledBackgroundColor:
+              AppColors.ecoGreen.withOpacity(0.6),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.3,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.save_rounded,
+                    size: 19,
+                  ),
+                  SizedBox(width: 9),
+                  Text(
+                    'Simpan Perubahan',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNote() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.lock_outline_rounded,
+          size: 13,
+          color: AppColors.textSecondary,
+        ),
+        SizedBox(width: 6),
+        Text(
+          'Informasi kendaraan digunakan untuk keperluan verifikasi.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 9,
+          ),
+        ),
+      ],
     );
   }
 }
