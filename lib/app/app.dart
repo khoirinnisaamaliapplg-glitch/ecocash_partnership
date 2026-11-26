@@ -8,7 +8,7 @@ class EcoCashApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'EcoCash Indonesia',
+      title: 'EcoCash Partnership',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../services/api_service.dart';
 import 'detail_qr_screen.dart';
+import '../../../core/widgets/app_loading.dart';
 
 class RiwayatPekerjaanScreen extends StatefulWidget {
   final Map? dataBaru;
@@ -26,6 +28,15 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   bool _isLoading = true;
   String? _errorMessage;
 
+  static const Color _navy = AppColors.darkNavy;
+  static const Color _yellow = AppColors.primaryYellow;
+  static const Color _green = AppColors.ecoGreen;
+  static const Color _background = AppColors.background;
+  static const Color _surface = AppColors.surface;
+  static const Color _text = AppColors.textPrimary;
+  static const Color _muted = AppColors.textSecondary;
+  static const Color _border = AppColors.cardBorder;
+
   @override
   void initState() {
     super.initState();
@@ -46,10 +57,12 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   }
 
   Future<void> _loadJobHistory() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
       final results = await Future.wait([
@@ -58,13 +71,18 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         _apiService.getMyJobs(status: 'CANCELLED'),
       ]);
 
-      final List rawSelesai = (results[0]['success'] == true && results[0]['data'] is List)
+      final List rawSelesai =
+          (results[0]['success'] == true && results[0]['data'] is List)
           ? results[0]['data'] as List
           : [];
-      final List rawDiproses = (results[1]['success'] == true && results[1]['data'] is List)
+
+      final List rawDiproses =
+          (results[1]['success'] == true && results[1]['data'] is List)
           ? results[1]['data'] as List
           : [];
-      final List rawDibatalkan = (results[2]['success'] == true && results[2]['data'] is List)
+
+      final List rawDibatalkan =
+          (results[2]['success'] == true && results[2]['data'] is List)
           ? results[2]['data'] as List
           : [];
 
@@ -73,18 +91,22 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
           _listSelesai = rawSelesai
               .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
               .toList();
+
           _listDiproses = rawDiproses
               .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
               .toList();
+
           _listDibatalkan = rawDibatalkan
               .map((item) => _formatJobItem(Map<String, dynamic>.from(item)))
               .toList();
+
           _isLoading = false;
         });
       }
     } catch (e, stack) {
       debugPrint('[RiwayatPekerjaan] ERROR: $e');
       debugPrint('$stack');
+
       if (mounted) {
         setState(() {
           _errorMessage = 'Gagal memuat riwayat pekerjaan: $e';
@@ -97,18 +119,28 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
   Map<String, dynamic> _formatJobItem(Map<String, dynamic> assignment) {
     final job = assignment['job'] ?? {};
     final machine = job['machine'];
-    final weights = (job['weights'] as List?) ?? (assignment['weights'] as List?) ?? [];
+
+    final weights =
+        (job['weights'] as List?) ?? (assignment['weights'] as List?) ?? [];
 
     String locationName = job['title'] ?? 'Penjemputan Sampah';
-    if (machine != null && machine['placeName'] != null && machine['placeName'].toString().isNotEmpty) {
+
+    if (machine != null &&
+        machine['placeName'] != null &&
+        machine['placeName'].toString().isNotEmpty) {
       locationName = machine['placeName'].toString();
     }
 
     double totalKg = 0.0;
     List<String> materialNames = [];
+
     for (var w in weights) {
-      final double weightVal = _toDouble(w['pickupWeight'] ?? w['handoverWeight'] ?? w['weight']);
+      final double weightVal = _toDouble(
+        w['pickupWeight'] ?? w['handoverWeight'] ?? w['weight'],
+      );
+
       totalKg += weightVal;
+
       if (w['material'] != null && w['material']['name'] != null) {
         materialNames.add(w['material']['name'].toString());
       }
@@ -118,8 +150,13 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         ? materialNames.take(2).join(', ')
         : 'Material Campuran';
 
-    // Utamakan completedAt jika ada
-    String dateStr = (assignment['completedAt'] ?? assignment['assignedAt'] ?? job['createdAt'] ?? '').toString();
+    String dateStr =
+        (assignment['completedAt'] ??
+                assignment['assignedAt'] ??
+                job['createdAt'] ??
+                '')
+            .toString();
+
     if (dateStr.isNotEmpty) {
       try {
         final dt = DateTime.parse(dateStr).toLocal();
@@ -127,15 +164,26 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
       } catch (_) {}
     }
 
-    // Hitung Komisi Asli dari API
-    final dynamic rawReward = assignment['actualReward'] ?? job['actualReward'] ?? assignment['estimatedReward'] ?? job['estimatedReward'] ?? job['price'];
+    final dynamic rawReward =
+        assignment['actualReward'] ??
+        job['actualReward'] ??
+        assignment['estimatedReward'] ??
+        job['estimatedReward'] ??
+        job['price'];
+
     num actualReward = 0;
 
     if (rawReward != null && _toDouble(rawReward) > 0) {
       actualReward = _toDouble(rawReward);
     } else {
-      // Fallback skema berdasarkan tipe pekerjaan
-      final String jobType = (job['type'] ?? (job['machineId'] != null || job['machine'] != null ? 'SMART_CONTAINER' : 'RESIDENTIAL')).toString().toUpperCase();
+      final String jobType =
+          (job['type'] ??
+                  (job['machineId'] != null || job['machine'] != null
+                      ? 'SMART_CONTAINER'
+                      : 'RESIDENTIAL'))
+              .toString()
+              .toUpperCase();
+
       final bool isResidential = jobType == 'RESIDENTIAL' || jobType == 'RUMAH';
 
       actualReward = isResidential
@@ -143,7 +191,8 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
           : (35000 + (totalKg * 2000));
     }
 
-    final String priceText = 'Rp${NumberFormat('#,##0', 'id_ID').format(actualReward)}';
+    final String priceText =
+        'Rp${NumberFormat('#,##0', 'id_ID').format(actualReward)}';
 
     return {
       'id': job['id'],
@@ -161,6 +210,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
 
   String _mapJobStatus(dynamic rawStatus) {
     final statusStr = rawStatus?.toString() ?? '';
+
     switch (statusStr) {
       case 'COMPLETED':
         return 'Selesai';
@@ -173,6 +223,7 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
 
   void _tampilkanDialogPembatalan(dynamic jobId) {
     final TextEditingController alasanController = TextEditingController();
+
     String? dialogError;
 
     showDialog(
@@ -181,160 +232,360 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Alasan Pembatalan',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: alasanController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      hintText: 'Tuliskan alasan pembatalan pekerjaan ini...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                      filled: true,
-                      fillColor: const Color(0xFFF4F6F8),
-                      errorText: dialogError,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    ),
-                    onChanged: (_) {
-                      if (dialogError != null) setStateDialog(() => dialogError = null);
-                    },
-                  ),
-                ],
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
+              title: const Text(
+                'Alasan Pembatalan',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: _navy,
+                ),
+              ),
+              content: TextField(
+                controller: alasanController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 13, color: _text),
+                decoration: InputDecoration(
+                  hintText: 'Tuliskan alasan pembatalan pekerjaan ini...',
+                  hintStyle: const TextStyle(fontSize: 12, color: _muted),
+                  filled: true,
+                  fillColor: _background,
+                  errorText: dialogError,
+                  contentPadding: const EdgeInsets.all(13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (_) {
+                  if (dialogError != null) {
+                    setStateDialog(() => dialogError = null);
+                  }
+                },
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Batal', style: TextStyle(color: AppColors.textSecondary)),
+                  child: const Text('Batal', style: TextStyle(color: _muted)),
                 ),
                 ElevatedButton(
                   onPressed: () async {
                     final String alasan = alasanController.text.trim();
-                    final words = alasan.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+                    final words = alasan
+                        .split(RegExp(r'\s+'))
+                        .where((w) => w.isNotEmpty)
+                        .toList();
 
                     if (alasan.isEmpty) {
-                      setStateDialog(() => dialogError = 'Alasan tidak boleh kosong.');
+                      setStateDialog(
+                        () => dialogError = 'Alasan tidak boleh kosong.',
+                      );
                       return;
                     } else if (words.length < 3) {
-                      setStateDialog(() => dialogError = 'Alasan terlalu singkat (min. 3 kata).');
+                      setStateDialog(
+                        () => dialogError =
+                            'Alasan terlalu singkat (min. 3 kata).',
+                      );
                       return;
                     }
 
                     try {
-                      final res = await _apiService.cancelJob(jobId, reason: alasan);
+                      final res = await _apiService.cancelJob(
+                        jobId,
+                        reason: alasan,
+                      );
+
                       if (res['success'] == true) {
                         if (context.mounted) {
                           Navigator.pop(context);
                           _loadJobHistory();
+
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Pekerjaan berhasil dibatalkan'), backgroundColor: Colors.red),
+                            const SnackBar(
+                              content: Text('Pekerjaan berhasil dibatalkan'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                            ),
                           );
                         }
                       } else {
-                        setStateDialog(() => dialogError = res['message'] ?? 'Gagal membatalkan pekerjaan');
+                        setStateDialog(
+                          () => dialogError =
+                              res['message'] ?? 'Gagal membatalkan pekerjaan',
+                        );
                       }
                     } catch (e) {
-                      setStateDialog(() => dialogError = 'Gagal membatalkan pekerjaan: $e');
+                      setStateDialog(
+                        () => dialogError = 'Gagal membatalkan pekerjaan: $e',
+                      );
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Konfirmasi', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Konfirmasi',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
           },
         );
       },
-    );
+    ).then((_) => alasanController.dispose());
   }
+
+  // =========================================================
+  // STYLE STATUS
+  // =========================================================
+
+  Map<String, dynamic> _getStatusStyle(String status) {
+    if (status == 'Selesai') {
+      return {
+        'color': _green,
+        'background': const Color(0xFFEAF6ED),
+        'icon': Icons.check_circle_rounded,
+      };
+    }
+
+    if (status == 'Diproses') {
+      return {
+        'color': const Color(0xFF1976A5),
+        'background': const Color(0xFFEAF5FA),
+        'icon': Icons.schedule_rounded,
+      };
+    }
+
+    return {
+      'color': const Color(0xFFD64B4B),
+      'background': const Color(0xFFFFEEEE),
+      'icon': Icons.cancel_rounded,
+    };
+  }
+
+  // =========================================================
+  // APP BAR
+  // =========================================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: _background,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.canPop() ? context.pop() : Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded, color: _navy, size: 21),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
-        title: const Text('Riwayat Pekerjaan',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Riwayat Pekerjaan',
+          style: TextStyle(
+            color: _navy,
+            fontWeight: FontWeight.w800,
+            fontSize: 17,
+            letterSpacing: -0.3,
+          ),
+        ),
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryCyan))
+          ? const AppLoading(
+              message: 'Menyiapkan riwayat pekerjaan kamu...',
+              size: 76,
+            )
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                      const SizedBox(height: 12),
-                      Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
-                        onPressed: _loadJobHistory,
-                        child: const Text('Coba Lagi', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
+          ? _buildErrorState()
+          : RefreshIndicator(
+              onRefresh: _loadJobHistory,
+              color: _navy,
+              backgroundColor: _yellow,
+              child: Column(
+                children: [
+                  _buildTabBar(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildJobListTab(_listSelesai),
+                        _buildJobListTab(_listDiproses, isProcessing: true),
+                        _buildJobListTab(_listDibatalkan, isCancelled: true),
+                      ],
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadJobHistory,
-                  color: AppColors.primaryCyan,
-                  child: Column(
-                    children: [
-                      Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: AppColors.primaryCyan,
-                          unselectedLabelColor: AppColors.textSecondary,
-                          indicatorColor: AppColors.primaryCyan,
-                          indicatorWeight: 3,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          tabs: [
-                            Tab(text: 'Selesai (${_listSelesai.length})'),
-                            Tab(text: 'Diproses (${_listDiproses.length})'),
-                            Tab(text: 'Dibatalkan (${_listDibatalkan.length})'),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                      Expanded(
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildJobListTab(_listSelesai),
-                            _buildJobListTab(_listDiproses, isProcessing: true),
-                            _buildJobListTab(_listDibatalkan, isCancelled: true),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
+              ),
+            ),
     );
   }
 
-  Widget _buildJobListTab(List<Map<String, dynamic>> list,
-      {bool isProcessing = false, bool isCancelled = false}) {
+  // =========================================================
+  // TAB BAR
+  // =========================================================
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 5, 16, 12),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _border.withValues(alpha: 0.7)),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: _navy,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: _muted,
+        labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+        tabs: [
+          Tab(height: 38, text: 'Selesai (${_listSelesai.length})'),
+          Tab(height: 38, text: 'Proses (${_listDiproses.length})'),
+          Tab(height: 38, text: 'Batal (${_listDibatalkan.length})'),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // ERROR STATE
+  // =========================================================
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEEE),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                color: Colors.redAccent,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Riwayat belum dapat dimuat',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _navy,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _muted, fontSize: 11, height: 1.5),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: _loadJobHistory,
+              icon: const Icon(Icons.refresh_rounded, size: 17),
+              label: const Text('Coba Lagi'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _yellow,
+                foregroundColor: _navy,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 11,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // JOB LIST
+  // =========================================================
+
+  Widget _buildJobListTab(
+    List<Map<String, dynamic>> list, {
+    bool isProcessing = false,
+    bool isCancelled = false,
+  }) {
     if (list.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 100),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 105),
           Center(
             child: Column(
               children: [
-                Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
-                SizedBox(height: 8),
-                Text('Belum ada pekerjaan pada kategori ini', style: TextStyle(color: Colors.grey)),
+                Container(
+                  width: 75,
+                  height: 75,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    Icons.inbox_rounded,
+                    size: 34,
+                    color: Color(0xFFADB5C0),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Belum ada pekerjaan',
+                  style: TextStyle(
+                    color: _navy,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                const Text(
+                  'Pekerjaan pada kategori ini akan muncul di sini.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _muted, fontSize: 11),
+                ),
               ],
             ),
           ),
@@ -343,28 +594,34 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 24),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final item = list[index];
+
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: InkWell(
-            onTap: isProcessing
-                ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailQrScreen(kodeKontainer: item['kode']),
-                      ),
-                    );
-                  }
-                : null,
-            borderRadius: BorderRadius.circular(16),
-            child: _buildJobHistoryCard(
-              item,
-              showCancelButton: isProcessing,
-              onCancel: () => _tampilkanDialogPembatalan(item['id']),
+          padding: const EdgeInsets.only(bottom: 11),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isProcessing
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              DetailQrScreen(kodeKontainer: item['kode']),
+                        ),
+                      );
+                    }
+                  : null,
+              borderRadius: BorderRadius.circular(16),
+              child: _buildJobHistoryCard(
+                item,
+                showCancelButton: isProcessing,
+                onCancel: () => _tampilkanDialogPembatalan(item['id']),
+              ),
             ),
           ),
         );
@@ -372,166 +629,312 @@ class _RiwayatPekerjaanScreenState extends State<RiwayatPekerjaanScreen>
     );
   }
 
-  Widget _buildJobHistoryCard(Map<String, dynamic> item,
-      {bool showCancelButton = false, VoidCallback? onCancel}) {
+  // =========================================================
+  // JOB CARD
+  // =========================================================
+
+  Widget _buildJobHistoryCard(
+    Map<String, dynamic> item, {
+    bool showCancelButton = false,
+    VoidCallback? onCancel,
+  }) {
     final String status = item['status'] ?? '';
     final bool isCancelled = status == 'Dibatalkan';
     final bool isFinished = status == 'Selesai';
 
-    Color badgeColor = Colors.green.shade50;
-    Color textColor = Colors.green;
-    IconData badgeIcon = Icons.check_circle;
-
-    if (status == 'Diproses') {
-      badgeColor = Colors.cyan.shade50;
-      textColor = Colors.cyan.shade700;
-      badgeIcon = Icons.access_time_filled;
-    } else if (isCancelled) {
-      badgeColor = Colors.red.shade50;
-      textColor = Colors.red;
-      badgeIcon = Icons.cancel;
-    }
+    final statusStyle = _getStatusStyle(status);
+    final Color statusColor = statusStyle['color'];
+    final Color statusBackground = statusStyle['background'];
+    final IconData statusIcon = statusStyle['icon'];
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border.withValues(alpha: 0.75), width: 0.8),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))
+            color: _navy.withValues(alpha: 0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // LOKASI DAN STATUS
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Text(
-                  item['company'],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+              Container(
+                width: 37,
+                height: 37,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF6D9),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: Color(0xFFB68A16),
+                  size: 19,
                 ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item['company']?.toString() ?? 'Penjemputan Sampah',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _navy,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: badgeColor, borderRadius: BorderRadius.circular(6)),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: statusBackground,
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(badgeIcon, size: 12, color: textColor),
+                    Icon(statusIcon, size: 11, color: statusColor),
                     const SizedBox(width: 4),
                     Text(
                       status,
-                      style: TextStyle(fontSize: 11, color: textColor, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+
+          const SizedBox(height: 13),
+
+          // MATERIAL DAN BERAT
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            decoration: BoxDecoration(
+              color: _background,
+              borderRadius: BorderRadius.circular(11),
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
+                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Material', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      const SizedBox(height: 2),
-                      Text(item['material'],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
+                      const Text(
+                        'MATERIAL',
+                        style: TextStyle(
+                          color: _muted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['material']?.toString() ?? 'Material Campuran',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _text,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Berat', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    const SizedBox(height: 2),
-                    Text(item['weight'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary)),
-                  ],
+                Container(
+                  width: 1,
+                  height: 29,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  color: _border,
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'BERAT',
+                        style: TextStyle(
+                          color: _muted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['weight']?.toString() ?? '0 kg',
+                        style: const TextStyle(
+                          color: _text,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+
           const SizedBox(height: 12),
+
+          // TANGGAL DAN KOMISI
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textSecondary),
-                  const SizedBox(width: 6),
-                  Text(item['date'], style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 12,
+                      color: _muted,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item['date']?.toString() ?? '-',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    isFinished ? 'Komisi Diterima' : 'Estimasi',
+                    isFinished ? 'Komisi Diterima' : 'Estimasi Komisi',
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isFinished ? FontWeight.bold : FontWeight.normal,
-                      color: isFinished ? Colors.green.shade700 : AppColors.textSecondary,
+                      color: isFinished ? _green : _muted,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 3),
                   Text(
-                    item['price'],
+                    item['price']?.toString() ?? 'Rp0',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: isCancelled ? AppColors.textSecondary : AppColors.successGreen,
-                      decoration: isCancelled ? TextDecoration.lineThrough : null,
+                      color: isCancelled ? _muted : _green,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      decoration: isCancelled
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          if (isCancelled && item['alasan'] != null) ...[
+
+          // ALASAN PEMBATALAN
+          if (isCancelled &&
+              item['alasan'] != null &&
+              item['alasan'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.red.shade50.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade100),
+                color: const Color(0xFFFFF1F1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFF5D5D5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Alasan Pembatalan:',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red)),
-                  const SizedBox(height: 2),
-                  Text(item['alasan'], style: const TextStyle(fontSize: 12, color: AppColors.textPrimary)),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.redAccent,
+                        size: 13,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        'Alasan Pembatalan',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    item['alasan'].toString(),
+                    style: const TextStyle(
+                      color: _text,
+                      fontSize: 10,
+                      height: 1.4,
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
+
+          // TOMBOL BATALKAN
           if (showCancelButton) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              height: 38,
-              child: OutlinedButton(
+              height: 36,
+              child: OutlinedButton.icon(
                 onPressed: onCancel,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                icon: const Icon(Icons.close_rounded, size: 14),
+                label: const Text(
+                  'Batalkan Pekerjaan',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
                 ),
-                child: const Text('Batalkan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: BorderSide(
+                    color: Colors.redAccent.withValues(alpha: 0.35),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          // PETUNJUK BUKA DETAIL
+          if (showCancelButton) ...[
+            const SizedBox(height: 8),
+            const Center(
+              child: Text(
+                'Ketuk kartu untuk melihat detail pekerjaan',
+                style: TextStyle(color: _muted, fontSize: 9),
               ),
             ),
           ],
