@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
-import 'package:ecocash_partnership/services/api_service.dart';
+import '../../../services/api_service.dart';
+import '../../../services/job_socket_service.dart';
 
 class DetailPekerjaanRumahScreen extends StatefulWidget {
   final Map jobData;
@@ -16,10 +18,10 @@ class DetailPekerjaanRumahScreen extends StatefulWidget {
 
 class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen> {
   final PartnerApiService _apiService = PartnerApiService();
+  final JobSocketService _socketService = JobSocketService.instance;
+  StreamSubscription<JobSocketEvent>? _socketSub;
   bool _isLoading = false;
-
-  static const Color _navyColor = Color(0xFF0B3C5D);
-  static const Color _tealColor = Color(0xFF178CA4);
+  bool _isClaimedByOther = false;
 
   Map get _rawJob {
     if (widget.jobData['rawJob'] is Map) {
@@ -75,7 +77,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         _rawJob['reward'];
 
     if (rawPrice == null) return 'Rp0';
-    String strPrice = rawPrice.toString().trim();
+    final String strPrice = rawPrice.toString().trim();
     if (!strPrice.startsWith('Rp')) {
       return 'Rp$strPrice';
     }
@@ -91,7 +93,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         _rawJob['weight'];
 
     if (rawWeight == null) return '0 kg';
-    String strWeight = rawWeight.toString().trim();
+    final String strWeight = rawWeight.toString().trim();
     if (!strWeight.toLowerCase().contains('kg')) {
       return '$strWeight kg';
     }
@@ -112,6 +114,35 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       return LatLng(lat, lng);
     }
     return const LatLng(-6.9175, 107.6191);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initJobSocket();
+  }
+
+  @override
+  void dispose() {
+    if (_resolvedJobId != null) {
+      _socketService.leaveJobRoom(_resolvedJobId);
+    }
+    _socketSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initJobSocket() async {
+    await _socketService.connect();
+    if (_resolvedJobId != null) {
+      _socketService.joinJobRoom(_resolvedJobId);
+    }
+    _socketSub = _socketService.events.listen((event) {
+      if (!mounted || _resolvedJobId == null) return;
+      final String targetId = _resolvedJobId.toString();
+      if (event.type == 'job:claimed' && event.payload['jobId']?.toString() == targetId && !_isLoading) {
+        setState(() => _isClaimedByOther = true);
+      }
+    });
   }
 
   Future<void> _handleAcceptJob() async {
@@ -140,7 +171,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan penjemputan warga berhasil diterima!'),
-          backgroundColor: Colors.teal,
+          backgroundColor: AppColors.ecoGreen,
         ),
       );
       context.push('/dalam-perjalanan-rumah', extra: updatedJobData);
@@ -161,7 +192,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     if (errorMessage.contains("KYC_KTP_MISSING")) {
       title = "KTP Belum Diunggah";
       icon = Icons.badge_outlined;
-      iconColor = Colors.orange;
       buttonText = "Unggah KTP";
       onAction = () {
         Navigator.pop(context);
@@ -170,7 +200,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("KYC_KTP_PENDING")) {
       title = "KTP Menunggu Verifikasi";
       icon = Icons.pending_actions_rounded;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Cek Dokumen";
       onAction = () {
         Navigator.pop(context);
@@ -179,7 +209,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("KYC_KTP_REJECTED")) {
       title = "KTP Ditolak Admin";
       icon = Icons.error_outline_rounded;
-      iconColor = Colors.redAccent;
+      iconColor = AppColors.error;
       buttonText = "Unggah Ulang KTP";
       onAction = () {
         Navigator.pop(context);
@@ -188,7 +218,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("KYC_NOT_VERIFIED")) {
       title = "Akun Belum Aktif";
       icon = Icons.verified_user_outlined;
-      iconColor = Colors.orange;
       buttonText = "Lengkapi Dokumen";
       onAction = () {
         Navigator.pop(context);
@@ -197,7 +226,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_MISSING")) {
       title = "Kendaraan Belum Terdaftar";
       icon = Icons.two_wheeler_outlined;
-      iconColor = Colors.orange;
       buttonText = "Daftar Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -206,7 +234,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_PENDING")) {
       title = "Kendaraan Menunggu Verifikasi";
       icon = Icons.hourglass_top_rounded;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Cek Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -215,7 +243,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_REJECTED")) {
       title = "Kendaraan Ditolak Admin";
       icon = Icons.cancel_outlined;
-      iconColor = Colors.redAccent;
+      iconColor = AppColors.error;
       buttonText = "Perbarui Armada";
       onAction = () {
         Navigator.pop(context);
@@ -224,7 +252,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_NOT_VERIFIED")) {
       title = "Kendaraan Belum Terverifikasi";
       icon = Icons.two_wheeler_outlined;
-      iconColor = Colors.orange;
       buttonText = "Data Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -233,7 +260,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("ACADEMY_NOT_COMPLETED")) {
       title = "Pelatihan Wajib Belum Selesai";
       icon = Icons.school_outlined;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Buka Academy";
       onAction = () {
         Navigator.pop(context);
@@ -242,7 +269,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("VEHICLE_OVERLOAD")) {
       title = "Muatan Melebihi Kapasitas";
       icon = Icons.scale_rounded;
-      iconColor = Colors.orange;
       buttonText = "Ganti Armada";
       onAction = () {
         Navigator.pop(context);
@@ -251,7 +277,6 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     } else if (errorMessage.contains("LIMIT_EXCEEDED") || errorMessage.contains("3 pekerjaan aktif")) {
       title = "Batas Pekerjaan Tercapai";
       icon = Icons.assignment_late_outlined;
-      iconColor = Colors.orange;
       buttonText = "Kembali";
       onAction = () {
         Navigator.pop(context);
@@ -268,18 +293,17 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
       };
     }
 
-    // Bersihkan prefix kode error agar teks pesan rapi
     description = description.replaceAll(RegExp(r'^[A-Z_]+:\s*'), '');
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: 10),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
           ],
         ),
         content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
@@ -290,7 +314,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryCyan,
+              backgroundColor: AppColors.darkNavy,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onAction ?? () => Navigator.pop(ctx),
@@ -306,26 +330,26 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         ? widget.jobData['materials']
         : ((_rawJob['materials'] is List) ? _rawJob['materials'] : []);
 
-    List<Widget> chips = [];
+    final List<Widget> chips = [];
 
     if (rawMaterials.isNotEmpty) {
       for (var mat in rawMaterials) {
         if (mat is Map) {
-          String name = mat['name'] ?? mat['category'] ?? mat['materialName'] ?? mat['material']?['name'] ?? 'Material';
-          String weight = mat['weight'] != null
+          final String name = mat['name'] ?? mat['category'] ?? mat['materialName'] ?? mat['material']?['name'] ?? 'Material';
+          final String weight = mat['weight'] != null
               ? '${mat['weight']} kg'
               : (mat['estimatedWeight'] != null ? '${mat['estimatedWeight']} kg' : '');
-          chips.add(_buildMaterialChip(Icons.recycling, '$name $weight'.trim()));
+          chips.add(_buildMaterialChip(Icons.recycling_rounded, '$name $weight'.trim()));
         } else if (mat != null) {
-          chips.add(_buildMaterialChip(Icons.recycling, mat.toString()));
+          chips.add(_buildMaterialChip(Icons.recycling_rounded, mat.toString()));
         }
       }
     } else {
       final String tag = (widget.jobData['materialTag'] ?? _rawJob['materialTag'] ?? _rawJob['materialCategory'] ?? '').toString();
       if (tag.isNotEmpty) {
-        chips.add(_buildMaterialChip(Icons.recycling, tag));
+        chips.add(_buildMaterialChip(Icons.recycling_rounded, tag));
       } else {
-        chips.add(_buildMaterialChip(Icons.recycling, 'Sampah Warga ($_volume)'));
+        chips.add(_buildMaterialChip(Icons.recycling_rounded, 'Sampah Warga ($_volume)'));
       }
     }
 
@@ -337,23 +361,41 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     final String status = _jobStatus;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: AppColors.primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primaryDark, size: 20),
           onPressed: () => context.pop(),
         ),
         title: const Text(
           'Detail Pekerjaan',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w900, fontSize: 18),
         ),
         centerTitle: false,
       ),
       body: SafeArea(
         child: Column(
           children: [
+            if (_isClaimedByOther)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: const Color(0xFFFEE2E2),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_rounded, color: AppColors.error, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pekerjaan ini baru saja diambil oleh mitra lain.',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -361,40 +403,44 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE0F7FA),
+                        color: status == 'COMPLETED' ? const Color(0xFFDCFCE7) : AppColors.primaryYellow.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        status == 'COMPLETED' ? 'Selesai' : 'Pekerjaan Tersedia',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primaryCyan),
+                        status == 'COMPLETED' ? 'Selesai' : 'Penjemputan Rumah Warga',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: status == 'COMPLETED' ? AppColors.ecoGreen : AppColors.darkNavy,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
 
-                    Text(_title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    Text(_title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppColors.darkNavy)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                        const Icon(Icons.location_on_outlined, size: 15, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
-                        Expanded(child: Text(_cleanAddress, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+                        Expanded(child: Text(_cleanAddress, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
                       ],
                     ),
                     const SizedBox(height: 14),
 
                     Container(
-                      height: 160,
+                      height: 170,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         child: FlutterMap(
-                          options: MapOptions(initialCenter: _pickupLocation, initialZoom: 13.0),
+                          options: MapOptions(initialCenter: _pickupLocation, initialZoom: 13.5),
                           children: [
                             TileLayer(
                               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -404,9 +450,9 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                               markers: [
                                 Marker(
                                   point: _pickupLocation,
-                                  width: 32,
-                                  height: 32,
-                                  child: const Icon(Icons.location_pin, color: Colors.red, size: 32),
+                                  width: 34,
+                                  height: 34,
+                                  child: const Icon(Icons.location_pin, color: AppColors.error, size: 34),
                                 ),
                               ],
                             ),
@@ -420,18 +466,18 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.recycling, color: _navyColor, size: 20),
+                              Icon(Icons.recycling_rounded, color: AppColors.ecoGreen, size: 20),
                               SizedBox(width: 8),
-                              Text('Material', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              Text('Material & Estimasi Bobot', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
                             ],
                           ),
                           const SizedBox(height: 10),
@@ -441,7 +487,7 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                             children: _buildMaterialChips(),
                           ),
                           const SizedBox(height: 12),
-                          Text(_volume, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _navyColor)),
+                          Text(_volume, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.darkNavy)),
                         ],
                       ),
                     ),
@@ -451,16 +497,16 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Estimasi Pendapatan', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const Text('Estimasi Pendapatan Mitra', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           const SizedBox(height: 4),
-                          Text(_price, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: _navyColor)),
+                          Text(_price, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ecoGreen)),
                         ],
                       ),
                     ),
@@ -469,27 +515,27 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: AppColors.primaryYellow.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.access_time, color: Colors.black87, size: 22),
+                            child: const Icon(Icons.access_time_rounded, color: AppColors.darkNavy, size: 22),
                           ),
                           const SizedBox(width: 14),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Jendela Waktu Pengambilan', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              const Text('Jendela Waktu Pengambilan', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                               const SizedBox(height: 2),
-                              Text(_timeWindow, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87)),
+                              Text(_timeWindow, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
                             ],
                           ),
                         ],
@@ -500,20 +546,20 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF4F6F8),
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFDCFCE7).withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(14),
                         border: const Border(
-                          left: BorderSide(color: Color(0xFF007A5E), width: 4),
+                          left: BorderSide(color: AppColors.ecoGreen, width: 4),
                         ),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline, color: Color(0xFF007A5E), size: 22),
+                          Icon(Icons.info_outline_rounded, color: AppColors.ecoGreen, size: 22),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Pastikan material diverifikasi sebelum pengambilan.',
-                              style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.3),
+                              'Pastikan material diverifikasi dan ditimbang sebelum pengambilan.',
+                              style: TextStyle(fontSize: 12, color: AppColors.primaryDark, fontWeight: FontWeight.w600, height: 1.3),
                             ),
                           ),
                         ],
@@ -527,7 +573,10 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
 
             Container(
               padding: const EdgeInsets.all(16),
-              color: Colors.white,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.cardBorder)),
+              ),
               child: _buildBottomActions(status),
             ),
           ],
@@ -540,16 +589,15 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F6F8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300, width: 0.8),
+        color: const Color(0xFFDCFCE7).withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: _tealColor),
+          Icon(icon, size: 14, color: AppColors.ecoGreen),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
         ],
       ),
     );
@@ -559,16 +607,16 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
     if (status == 'COMPLETED') {
       return SizedBox(
         width: double.infinity,
+        height: 48,
         child: OutlinedButton(
           onPressed: () => context.pop(),
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            side: BorderSide(color: Colors.grey.shade400),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            side: const BorderSide(color: AppColors.darkNavy),
           ),
           child: const Text(
             'Kembali',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
           ),
         ),
       );
@@ -582,13 +630,13 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
         child: ElevatedButton(
           onPressed: () => context.push('/dalam-perjalanan-rumah', extra: widget.jobData),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _tealColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: AppColors.darkNavy,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             elevation: 0,
           ),
           child: const Text(
             'Lanjutkan Pekerjaan',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
           ),
         ),
       );
@@ -603,10 +651,10 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
             child: OutlinedButton(
               onPressed: _isLoading ? null : () => context.pop(),
               style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                side: const BorderSide(color: _navyColor, width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                side: const BorderSide(color: AppColors.darkNavy, width: 1.2),
               ),
-              child: const Text('Tolak', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _navyColor)),
+              child: const Text('Kembali', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
             ),
           ),
         ),
@@ -616,19 +664,22 @@ class _DetailPekerjaanRumahScreenState extends State<DetailPekerjaanRumahScreen>
           child: SizedBox(
             height: 48,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleAcceptJob,
+              onPressed: (_isLoading || _isClaimedByOther) ? null : _handleAcceptJob,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _tealColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                backgroundColor: AppColors.darkNavy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
               ),
               child: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(color: AppColors.primaryYellow, strokeWidth: 2.2),
                     )
-                  : const Text('Terima Pekerjaan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                  : Text(
+                      _isClaimedByOther ? 'Sudah Diambil Mitra Lain' : 'Terima Pekerjaan',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
             ),
           ),
         ),

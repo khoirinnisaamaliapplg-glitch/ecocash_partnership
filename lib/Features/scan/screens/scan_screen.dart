@@ -78,7 +78,7 @@ class _ScanScreenState extends State<ScanScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lokasi Mesin $scannedCode Terverifikasi! Pintu kontainer dibuka.'),
-          backgroundColor: Colors.teal,
+          backgroundColor: AppColors.ecoGreen,
         ),
       );
 
@@ -125,7 +125,7 @@ class _ScanScreenState extends State<ScanScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryCyan),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkNavy),
             onPressed: () {
               Navigator.pop(ctx);
               final input = controller.text.trim();
@@ -244,10 +244,10 @@ class _ScanScreenState extends State<ScanScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryCyan.withOpacity(0.15),
+                            color: AppColors.darkNavy.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.qr_code_2, color: AppColors.primaryCyan, size: 24),
+                          child: const Icon(Icons.qr_code_2, color: AppColors.darkNavy, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -280,7 +280,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : () => _prosesCheckInOtomatis(_kodeKontainer ?? targetCode),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryCyan,
+                        backgroundColor: AppColors.darkNavy,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: const Text('Konfirmasi & Buka Pintu Mesin', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
