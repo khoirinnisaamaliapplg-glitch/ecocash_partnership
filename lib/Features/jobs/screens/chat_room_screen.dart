@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+import '../../../core/constants/api_constants.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/app_loading.dart';
 import '../../../data/app_storage.dart';
-import 'package:ecocash_partnership/services/api_service.dart';
+import '../../../services/api_service.dart';
 
 class ChatMessageItem {
   final String id;
@@ -37,9 +41,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  static const Color _cyanHeader = Color(0xFF00C7C9);
-  static const Color _tealBubble = Color(0xFF178CA4);
-  static const Color _navyColor = Color(0xFF0B3C5D);
+  io.Socket? _chatSocket;
+  bool _isSocketConnected = false;
 
   String? _roomId;
   int? _partnerId;
@@ -66,19 +69,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    if (_chatSocket != null) {
+      if (_roomId != null) {
+        _chatSocket!.emit('leaveRoom', _roomId);
+      }
+      _chatSocket!.disconnect();
+      _chatSocket!.dispose();
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _initChatRoom() async {
-    // 1. Ambil ID Partner kurir dari storage lokal
     final profile = await AppStorage.getProfile();
     if (profile != null) {
       _partnerId = profile['id'] ?? profile['partnerId'];
     }
 
-    // 2. Ambil fallback nama & avatar dari parameter navigasi
     if (widget.extraData != null) {
       _customerName = widget.extraData!['customerName'] ??
           widget.extraData!['user']?['name'] ??
@@ -91,7 +99,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final res = await _apiService.getJobRoom(widget.jobId);
       if (res['success'] == true && res['data'] != null) {
         final room = res['data'];
-        _roomId = room['id'];
+        _roomId = room['id']?.toString();
 
         if (room['partnerId'] != null) {
           _partnerId ??= room['partnerId'];
@@ -115,25 +123,77 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       }
     }
 
-    // 3. Polling update pesan setiap 3.5 detik
+    if (_roomId != null) {
+      await _connectChatSocket(_roomId!);
+    }
     _startMessagePolling();
+  }
+
+  Future<void> _connectChatSocket(String roomId) async {
+    final token = await AppStorage.getToken();
+    final base = ApiConstants.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+
+    final socket = io.io(
+      '$base/chat',
+      io.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .setAuth({'token': token ?? ''})
+          .enableReconnection()
+          .build(),
+    );
+
+    socket.onConnect((_) {
+      if (!mounted) return;
+      setState(() => _isSocketConnected = true);
+      socket.emit('joinRoom', roomId);
+    });
+
+    socket.onDisconnect((_) {
+      if (!mounted) return;
+      setState(() => _isSocketConnected = false);
+    });
+
+    socket.on('newMessage', (data) {
+      if (!mounted || data is! Map) return;
+      final String senderType = (data['senderType'] ?? '').toString().toUpperCase();
+      // Abaikan pantulan pesan sendiri yang sudah ditambahkan lewat optimistic UI
+      if (senderType == 'PARTNER') return;
+
+      final String incomingId = data['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
+      if (_messages.any((m) => m.id == incomingId)) return;
+
+      final DateTime dt = DateTime.tryParse(data['createdAt']?.toString() ?? '')?.toLocal() ?? DateTime.now();
+      final String timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+      setState(() {
+        _messages.add(
+          ChatMessageItem(
+            id: incomingId,
+            text: (data['message'] ?? '').toString(),
+            time: timeStr,
+            isMe: false,
+          ),
+        );
+      });
+      _scrollToBottom();
+    });
+
+    _chatSocket = socket;
   }
 
   void _startMessagePolling() {
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(milliseconds: 3500), (_) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 6), (_) async {
       if (!mounted || _roomId == null) return;
       try {
         final res = await _apiService.getChatHistory(_roomId!);
         if (res['success'] == true && res['data'] is List) {
           final List rawList = res['data'];
-          if (rawList.length != _messages.length) {
-            if (mounted) {
-              setState(() {
-                _parseMessages(rawList);
-              });
-              _scrollToBottom();
-            }
+          if (rawList.length > _messages.length && mounted) {
+            setState(() {
+              _parseMessages(rawList);
+            });
+            _scrollToBottom();
           }
         }
       } catch (_) {}
@@ -168,7 +228,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final now = DateTime.now();
     final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    // Optimistic UI update
     setState(() {
       _messages.add(
         ChatMessageItem(
@@ -210,12 +269,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: _cyanHeader,
+        backgroundColor: AppColors.primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primaryDark, size: 20),
           onPressed: () => context.pop(),
         ),
         titleSpacing: 0,
@@ -224,8 +283,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             Stack(
               children: [
                 CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white24,
+                  radius: 19,
+                  backgroundColor: AppColors.darkNavy,
                   backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
                       ? NetworkImage(_avatarUrl!)
                       : null,
@@ -233,9 +292,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       ? Text(
                           _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'W',
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                            color: AppColors.primaryYellow,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
                           ),
                         )
                       : null,
@@ -244,12 +303,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    width: 9,
-                    height: 9,
+                    width: 10,
+                    height: 10,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00FF87),
+                      color: AppColors.ecoGreen,
                       shape: BoxShape.circle,
-                      border: Border.all(color: _cyanHeader, width: 1.5),
+                      border: Border.all(color: AppColors.primaryYellow, width: 1.5),
                     ),
                   ),
                 ),
@@ -263,17 +322,53 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   Text(
                     _customerName,
                     style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primaryDark,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     'Order #${widget.jobId} • Nasabah',
-                    style: const TextStyle(fontSize: 10, color: Colors.white70),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.slateNavy,
+                    ),
                   ),
                 ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _isSocketConnected ? const Color(0xFF22C55E) : Colors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _isSocketConnected ? 'LIVE' : 'SYNC',
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primaryYellow,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -284,24 +379,44 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           children: [
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: _cyanHeader))
+                  ? const AppLoading(message: 'Memuat percakapan...', size: 68)
                   : _messages.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey.shade400),
-                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryYellow.withValues(alpha: 0.28),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 36,
+                                  color: AppColors.darkNavy,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               Text(
                                 'Mulai obrolan dengan $_customerName',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                style: const TextStyle(
+                                  color: AppColors.darkNavy,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Gunakan balasan cepat di bawah untuk konfirmasi lokasi.',
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                               ),
                             ],
                           ),
                         )
                       : ListView.builder(
                           controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             return _buildChatBubble(_messages[index]);
@@ -317,20 +432,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: _quickReplies.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final chipText = _quickReplies[index];
                   return OutlinedButton(
                     onPressed: () => _sendMessage(chipText),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: _navyColor, width: 1),
+                      side: const BorderSide(color: AppColors.darkNavy, width: 1.1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
                       backgroundColor: Colors.white,
                     ),
                     child: Text(
                       chipText,
-                      style: const TextStyle(fontSize: 11, color: _navyColor, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.darkNavy,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   );
                 },
@@ -339,25 +458,29 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
             // Input Bar
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.cardBorder)),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
-                      height: 42,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F3F5),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
                       child: TextField(
                         controller: _messageController,
-                        style: const TextStyle(fontSize: 13),
+                        style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
                         decoration: const InputDecoration(
                           hintText: 'Tulis pesan ke nasabah...',
-                          hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                          hintStyle: TextStyle(fontSize: 12, color: AppColors.textMuted),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
@@ -367,9 +490,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   GestureDetector(
                     onTap: () => _sendMessage(),
                     child: const CircleAvatar(
-                      radius: 21,
-                      backgroundColor: _tealBubble,
-                      child: Icon(Icons.send, color: Colors.white, size: 18),
+                      radius: 22,
+                      backgroundColor: AppColors.darkNavy,
+                      child: Icon(Icons.send_rounded, color: AppColors.primaryYellow, size: 19),
                     ),
                   ),
                 ],
@@ -391,7 +514,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: const BoxDecoration(
-                color: _tealBubble,
+                color: AppColors.darkNavy,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
@@ -401,7 +524,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
               child: Text(
                 msg.text,
-                style: const TextStyle(fontSize: 12.5, color: Colors.white, height: 1.3),
+                style: const TextStyle(fontSize: 12.5, color: Colors.white, height: 1.35),
               ),
             ),
             const SizedBox(height: 4),
@@ -410,10 +533,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               children: [
                 Text(
                   msg.time,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.done_all, size: 14, color: _tealBubble),
+                const Icon(Icons.done_all_rounded, size: 14, color: AppColors.ecoGreen),
               ],
             ),
           ],
@@ -426,15 +549,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.teal.shade100,
+              radius: 15,
+              backgroundColor: AppColors.primaryYellow.withValues(alpha: 0.4),
               backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
                   ? NetworkImage(_avatarUrl!)
                   : null,
               child: _avatarUrl == null || _avatarUrl!.isEmpty
                   ? Text(
                       _customerName.isNotEmpty ? _customerName[0].toUpperCase() : 'W',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.darkNavy,
+                      ),
                     )
                   : null,
             ),
@@ -445,9 +572,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEDEDED),
-                      borderRadius: BorderRadius.only(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: AppColors.cardBorder),
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(4),
                         topRight: Radius.circular(16),
                         bottomLeft: Radius.circular(16),
@@ -456,13 +584,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ),
                     child: Text(
                       msg.text,
-                      style: const TextStyle(fontSize: 12.5, color: Colors.black87, height: 1.3),
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.textPrimary, height: 1.35),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     msg.time,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
                   ),
                 ],
               ),

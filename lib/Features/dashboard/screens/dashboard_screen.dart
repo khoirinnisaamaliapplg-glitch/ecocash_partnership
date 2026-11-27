@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:ecocash_partnership/core/theme/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../data/app_storage.dart';
 import '../../../services/api_service.dart';
+import '../../../services/job_socket_service.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/widgets/app_loading.dart';
 
@@ -20,6 +22,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final PartnerApiService _apiService = PartnerApiService();
+  StreamSubscription<JobSocketEvent>? _jobSocketSub;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -35,6 +38,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _fetchDashboardData();
+    _initDashboardSocket();
+  }
+
+  @override
+  void dispose() {
+    _jobSocketSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initDashboardSocket() async {
+    await JobSocketService.instance.connect();
+    _jobSocketSub = JobSocketService.instance.events.listen((event) {
+      if (!mounted) return;
+      if (event.type == "job:created" ||
+          event.type == "job:claimed" ||
+          event.type == "job:cancelled" ||
+          event.type == "job:status") {
+        _fetchDashboardData();
+      }
+    });
   }
 
   /// Helper untuk Memformat URL Foto Profil dari API / Localhost / Relative Path

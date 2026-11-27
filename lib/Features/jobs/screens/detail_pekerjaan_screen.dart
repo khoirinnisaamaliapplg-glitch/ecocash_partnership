@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/theme/app_colors.dart';
-import 'package:ecocash_partnership/services/api_service.dart';
+import '../../../services/api_service.dart';
+import '../../../services/job_socket_service.dart';
 
 class DetailPekerjaanScreen extends StatefulWidget {
   final Map jobData;
@@ -16,9 +18,10 @@ class DetailPekerjaanScreen extends StatefulWidget {
 
 class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
   final PartnerApiService _apiService = PartnerApiService();
+  final JobSocketService _socketService = JobSocketService.instance;
+  StreamSubscription<JobSocketEvent>? _socketSub;
   bool _isLoading = false;
-
-  static const Color _tealColor = Color(0xFF178CA4);
+  bool _isClaimedByOther = false;
 
   Map get _rawJob {
     if (widget.jobData['rawJob'] is Map) {
@@ -65,6 +68,36 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     return const LatLng(-6.9175, 107.6191);
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _initJobSocket();
+  }
+
+  @override
+  void dispose() {
+    if (_resolvedJobId != null) {
+      _socketService.leaveJobRoom(_resolvedJobId);
+    }
+    _socketSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initJobSocket() async {
+    await _socketService.connect();
+    if (_resolvedJobId != null) {
+      _socketService.joinJobRoom(_resolvedJobId);
+    }
+    _socketSub = _socketService.events.listen((event) {
+      if (!mounted || _resolvedJobId == null) return;
+      if (event.type == 'job:claimed' &&
+          event.payload['jobId']?.toString() == _resolvedJobId.toString() &&
+          !_isLoading) {
+        setState(() => _isClaimedByOther = true);
+      }
+    });
+  }
+
   Future<void> _handleAcceptJob() async {
     final dynamic jobId = _resolvedJobId;
 
@@ -91,7 +124,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pekerjaan pengosongan kontainer berhasil diambil!'),
-          backgroundColor: Colors.teal,
+          backgroundColor: AppColors.ecoGreen,
         ),
       );
       context.push('/dalam-perjalanan', extra: updatedJobData);
@@ -112,7 +145,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     if (errorMessage.contains("KYC_KTP_MISSING")) {
       title = "KTP Belum Diunggah";
       icon = Icons.badge_outlined;
-      iconColor = Colors.orange;
       buttonText = "Unggah KTP";
       onAction = () {
         Navigator.pop(context);
@@ -121,7 +153,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("KYC_KTP_PENDING")) {
       title = "KTP Menunggu Verifikasi";
       icon = Icons.pending_actions_rounded;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Cek Dokumen";
       onAction = () {
         Navigator.pop(context);
@@ -130,7 +162,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("KYC_KTP_REJECTED")) {
       title = "KTP Ditolak Admin";
       icon = Icons.error_outline_rounded;
-      iconColor = Colors.redAccent;
+      iconColor = AppColors.error;
       buttonText = "Unggah Ulang KTP";
       onAction = () {
         Navigator.pop(context);
@@ -139,7 +171,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("KYC_NOT_VERIFIED")) {
       title = "Akun Belum Aktif";
       icon = Icons.verified_user_outlined;
-      iconColor = Colors.orange;
       buttonText = "Lengkapi Dokumen";
       onAction = () {
         Navigator.pop(context);
@@ -148,7 +179,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("VEHICLE_MISSING")) {
       title = "Kendaraan Belum Terdaftar";
       icon = Icons.two_wheeler_outlined;
-      iconColor = Colors.orange;
       buttonText = "Daftar Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -157,7 +187,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("VEHICLE_PENDING")) {
       title = "Kendaraan Menunggu Verifikasi";
       icon = Icons.hourglass_top_rounded;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Cek Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -166,7 +196,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("VEHICLE_REJECTED")) {
       title = "Kendaraan Ditolak Admin";
       icon = Icons.cancel_outlined;
-      iconColor = Colors.redAccent;
+      iconColor = AppColors.error;
       buttonText = "Perbarui Armada";
       onAction = () {
         Navigator.pop(context);
@@ -175,7 +205,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("VEHICLE_NOT_VERIFIED")) {
       title = "Kendaraan Belum Terverifikasi";
       icon = Icons.two_wheeler_outlined;
-      iconColor = Colors.orange;
       buttonText = "Data Kendaraan";
       onAction = () {
         Navigator.pop(context);
@@ -184,7 +213,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("ACADEMY_NOT_COMPLETED")) {
       title = "Pelatihan Wajib Belum Selesai";
       icon = Icons.school_outlined;
-      iconColor = _tealColor;
+      iconColor = AppColors.darkNavy;
       buttonText = "Buka Academy";
       onAction = () {
         Navigator.pop(context);
@@ -193,7 +222,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("VEHICLE_OVERLOAD")) {
       title = "Muatan Melebihi Kapasitas";
       icon = Icons.scale_rounded;
-      iconColor = Colors.orange;
       buttonText = "Ganti Armada";
       onAction = () {
         Navigator.pop(context);
@@ -202,7 +230,6 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     } else if (errorMessage.contains("LIMIT_EXCEEDED") || errorMessage.contains("3 pekerjaan aktif")) {
       title = "Batas Pekerjaan Tercapai";
       icon = Icons.assignment_late_outlined;
-      iconColor = Colors.orange;
       buttonText = "Kembali";
       onAction = () {
         Navigator.pop(context);
@@ -224,12 +251,12 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: 10),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
           ],
         ),
         content: Text(description, style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
@@ -240,7 +267,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryCyan,
+              backgroundColor: AppColors.darkNavy,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: onAction ?? () => Navigator.pop(ctx),
@@ -260,59 +287,82 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
             _machine?['placeName'] ??
             'Lokasi Smart Container')
         .toString();
-    final String material = (widget.jobData['materialTag'] ?? _rawJob['materialTag'] ?? 'PET (Botol)').toString();
-    final String volume = (widget.jobData['volume'] ?? _rawJob['volume'] ?? '40.0 kg').toString();
+    final String descCat = RegExp(r'\[CATEGORY:([^\]]+)\]').firstMatch((_rawJob['description'] ?? '').toString())?.group(1)?.trim() ?? '';
+    final String material = (widget.jobData['materialTag'] ?? _rawJob['materialTag'] ?? (descCat.isNotEmpty ? descCat : 'Kontainer Penuh')).toString();
+    final String volume = (widget.jobData['volume'] ?? _rawJob['volume'] ?? (_rawJob['estimatedWeight'] != null ? "${_rawJob['estimatedWeight']} kg" : '20.0 kg')).toString();
     final String price = (widget.jobData['price'] ?? _rawJob['price'] ?? 'Rp115.000').toString();
     final String status = _jobStatus;
     final LatLng pickupLocation = _pickupLocation;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryCyan,
+        backgroundColor: AppColors.primaryYellow,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primaryDark, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Detail Pengosongan Kontainer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: true,
+        title: const Text(
+          'Detail Pengosongan Kontainer',
+          style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w900, fontSize: 18),
+        ),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_isClaimedByOther) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Tugas kontainer ini sudah diambil mitra lain.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.error),
+                ),
+              ),
+            ],
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.shade50,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.primaryCyan.withOpacity(0.3)),
+                    color: AppColors.primaryYellow.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text('Smart Container B2B', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryCyan)),
+                  child: const Text(
+                    'Smart Container B2B',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.darkNavy),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 if (status == 'COMPLETED')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.green.shade200),
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text('SELESAI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green)),
+                    child: const Text(
+                      'SELESAI',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.ecoGreen),
+                    ),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppColors.darkNavy)),
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                const Icon(Icons.location_on_outlined, size: 15, color: AppColors.textSecondary),
                 const SizedBox(width: 4),
                 Expanded(child: Text(address, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
               ],
@@ -322,11 +372,11 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
               height: 180,
               width: double.infinity,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 child: FlutterMap(
                   options: MapOptions(initialCenter: pickupLocation, initialZoom: 15.0),
                   children: [
@@ -340,7 +390,7 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
                           point: pickupLocation,
                           width: 40,
                           height: 40,
-                          child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
+                          child: const Icon(Icons.location_pin, color: AppColors.error, size: 40),
                         ),
                       ],
                     ),
@@ -352,19 +402,19 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0F5FF),
-                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.delete_sweep_outlined, color: AppColors.primaryCyan, size: 24),
+                    child: const Icon(Icons.delete_sweep_rounded, color: AppColors.ecoGreen, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -372,9 +422,9 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
                     children: [
                       const Text('Kapasitas Tersedia di Mesin', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                       const SizedBox(height: 2),
-                      Text(material, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
+                      Text(material, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.darkNavy)),
                       const SizedBox(height: 2),
-                      Text(volume, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryCyan)),
+                      Text(volume, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.ecoGreen)),
                     ],
                   ),
                 ],
@@ -385,16 +435,16 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.cardBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Skema Komisi B2B (Rp 35.000 + Rp 2.000/kg)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   const SizedBox(height: 4),
-                  Text(price, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0F2C59))),
+                  Text(price, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: AppColors.ecoGreen)),
                 ],
               ),
             ),
@@ -414,18 +464,17 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.shade300),
+              color: const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.green, size: 22),
+                Icon(Icons.check_circle_rounded, color: AppColors.ecoGreen, size: 22),
                 SizedBox(width: 8),
                 Text(
                   'Pengosongan Mesin Selesai',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.green),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.ecoGreen),
                 ),
               ],
             ),
@@ -433,13 +482,14 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: OutlinedButton(
               onPressed: () => context.pop(),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                side: const BorderSide(color: AppColors.darkNavy),
               ),
-              child: const Text('Kembali', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              child: const Text('Kembali', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
             ),
           ),
         ],
@@ -450,20 +500,15 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     if (activeStatuses.contains(status)) {
       return SizedBox(
         width: double.infinity,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryButtonGradient,
-            borderRadius: BorderRadius.circular(12),
+        height: 48,
+        child: ElevatedButton(
+          onPressed: () => context.push('/dalam-perjalanan', extra: widget.jobData),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.darkNavy,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            elevation: 0,
           ),
-          child: ElevatedButton(
-            onPressed: () => context.push('/dalam-perjalanan', extra: widget.jobData),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-            child: const Text('Lanjutkan Perjalanan ke Mesin', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-          ),
+          child: const Text('Lanjutkan Perjalanan ke Mesin', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
         ),
       );
     }
@@ -471,34 +516,36 @@ class _DetailPekerjaanScreenState extends State<DetailPekerjaanScreen> {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton(
-            onPressed: _isLoading ? null : () => context.pop(),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              side: BorderSide(color: Colors.grey.shade400),
+          child: SizedBox(
+            height: 48,
+            child: OutlinedButton(
+              onPressed: _isLoading ? null : () => context.pop(),
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                side: const BorderSide(color: AppColors.darkNavy),
+              ),
+              child: const Text('Kembali', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.darkNavy)),
             ),
-            child: const Text('Tolak', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 14),
         Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryButtonGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
+          flex: 2,
+          child: SizedBox(
+            height: 48,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleAcceptJob,
+              onPressed: (_isLoading || _isClaimedByOther) ? null : _handleAcceptJob,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: AppColors.darkNavy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
               ),
               child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Terima Tugas Mesin', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.primaryYellow, strokeWidth: 2))
+                  : Text(
+                      _isClaimedByOther ? 'Sudah Diambil' : 'Terima Tugas Mesin',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
             ),
           ),
         ),
